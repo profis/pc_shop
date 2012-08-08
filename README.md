@@ -1,4 +1,4 @@
 pc_shop
 =======
 
-Plugin for online shop
+An online shop plugin for ProfisCMS framework
