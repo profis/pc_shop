@@ -1,0 +1,1 @@
+Front shop page
