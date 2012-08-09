@@ -455,57 +455,155 @@ class PC_shop_orders extends PC_base {
 }
 class PC_shop_cart extends PC_base {
 	private $shop;
+	
 	public function Init(PC_shop $shop) {
 		$this->shop = $shop;
+		if (!isset($_SESSION['pc_shop']) || !is_array($_SESSION['pc_shop']))
+			$_SESSION['pc_shop'] = Array();
+		if (!isset($_SESSION['pc_shop']['cart']) || !is_array($_SESSION['pc_shop']['cart']))
+			$this->Clear();
 	}
+	
 	public function Get($raw=false) {
-		$d = array(
-			'total'=> 0,
-			'totalQuantity'=> 0,
-			'items'=> array(),
-			'totalPrice'=> 0
-		);
-		if (!count(v($_SESSION['pc_shop']['cart']))) return array();
 		if ($raw) {
 			return $_SESSION['pc_shop']['cart'];
 		}
-		$d['items'] = $this->shop->products->Get(array_keys($_SESSION['pc_shop']['cart']));
-		foreach ($d['items'] as &$p) {
+
+		$d = array(
+			'total'=> 0,
+			'totalQuantity'=> $_SESSION['pc_shop']['cart']['totalQuantity'],
+			'items'=> array(),
+			'totalPrice'=> 0
+		);
+		
+		$productList = $this->shop->products->Get(array_keys($_SESSION['pc_shop']['cart']["productIndex"]));
+		$products = Array();
+		foreach( $productList as &$p )
+			$products[$p["id"]] = &$p;
+		
+		foreach ($_SESSION['pc_shop']['cart']['items'] as $ciid => $cartItemInfo) {
 			$d['total']++;
-			$d['totalQuantity'] += $_SESSION['pc_shop']['cart'][$p['id']];
-			//price = $this->shop->products->Get_price($d)
-			$d['totalPrice'] += $p['price'] * $p['quantity'];
-			$p['quantity'] = $_SESSION['pc_shop']['cart'][$p['id']];
+			$p = &$products[$cartItemInfo[0]];
+			$d['items'][$ciid] = &$p;
+			// $d['totalPrice'] += $p['totalPrice'] = $shop->products->Get_price($cartItemInfo[0], $cartItemInfo[1]);
+			$d['totalPrice'] += $p['totalPrice'] = $p['price'] * ($p["quantity"] = $cartItemInfo[1]);			
 		}
 		return $d;
 	}
-	public function Add($productId, $quantity=1) {
+	
+	/** Finds a product entry CIID by productId and attributes */
+	public function Find($productId, $attributes=null) {
+		if( empty($_SESSION['pc_shop']['cart']['productIndex'][$productId]) )
+			return null;
+
+		// There are products with that productId in the cart.
+		// For now only one variation of product (attributes are ignored) can be
+		// added to cart so "search" algorithm is quite simple.
+		// Later some hook might be needed to add possibility to create custom
+		// search algorithm implementations.
+		
+		reset($_SESSION['pc_shop']['cart']['productIndex'][$productId]);
+		return key($_SESSION['pc_shop']['cart']['productIndex'][$productId]);
+	}
+	
+	public function Add($productId, $quantity=1, $attributes=null) {
 		if (!$this->shop->products->Exists($productId)) return false;
-		if (!isset($_SESSION['pc_shop']['cart'][$productId])) $_SESSION['pc_shop']['cart'][$productId] = 0;
-		$_SESSION['pc_shop']['cart'][$productId] += $quantity;
-		return $_SESSION['pc_shop']['cart'][$productId];
-	}
-	public function Delete($productId, $quantity=null) {
-		if (is_null($quantity)) {
-			unset($_SESSION['pc_shop']['cart'][$productId]);
-			return true;
+		if (!isset($_SESSION['pc_shop']['cart']['productIndex'][$productId]))
+			$_SESSION['pc_shop']['cart']['productIndex'][$productId] = Array();
+		$quantity = intval($quantity);
+		$ciid = $this->Find($productId, $attributes);
+		if( is_null($ciid) ) {
+			// Product is not in the cart yet so add it as a new item
+			
+			if( $quantity < 1 )
+				return 0; // no need to add it
+			
+			$ciid = $_SESSION['pc_shop']['cart']['nextCIID']++;
+			
+			// We just need to store CIID (cart item id). Storing value into key
+			// will give us faster search and removal in Remove method.
+			$_SESSION['pc_shop']['cart']['productIndex'][$productId][$ciid] = 1;
+			
+			// At the moment only productId and quantity are needed for item
+			// entries in the cart.
+			$_SESSION['pc_shop']['cart']['items'][$ciid] = Array(
+				$productId,
+				$qty = $quantity
+			);
+			$_SESSION['pc_shop']['cart']['totalQuantity'] += $qty;
 		}
-		if (!isset($_SESSION['pc_shop']['cart'][$productId])) return 0;
+		else
+			$qty = $this->AddAt($ciid, $quantity);
+		
+		return $qty;
 	}
-	public function Set($productId, $quantity=1) {
-		$_SESSION['pc_shop']['cart'][$productId] = $quantity;
-		return true;
+	
+	/** Add a quantity to item in cart
+	*
+	* This method adds a specified quantity to an item already placed in the
+	* cart. CIID is used to identify the item.
+	*
+	* @param int $ciid CIID (Cart Item ID) of the item entry in the cart to which specified quantity should be added.
+	* @param int $quantity=1 Specifies how much should be added to the item entry.
+	* @return int Returns quantity of item in the cart after adding.
+	*/
+	public function AddAt($ciid, $quantity=1) {
+		if (!isset($_SESSION['pc_shop']['cart']['items'][$ciid]))
+			return 0;
+		return $this->_SetQuantity($ciid, $_SESSION['pc_shop']['cart']['items'][$ciid][1] + intval($quantity));
 	}
+	
+	public function Set($ciid, $quantity=1) {
+		if (!isset($_SESSION['pc_shop']['cart']['items'][$ciid]))
+			return 0;
+		return $this->_SetQuantity($ciid, intval($quantity));
+	}
+	
+	/** Sets the quantity to an item in the cart (internal use only)
+	*
+	* This method assumes that item already exists in the cart so it does not
+	* check wether it is true. If the quantity is 0 then item is automatically
+	* removed from the cart.
+	*/
+	protected function _SetQuantity($ciid, $quantity) {
+		$old_qty = $_SESSION['pc_shop']['cart']['items'][$ciid][1];
+		if( 0 == ($qty = $_SESSION['pc_shop']['cart']['items'][$ciid][1] = max($quantity, 0)) ) {
+			$productId = $_SESSION['pc_shop']['cart']['items'][$ciid][0];
+			unset(
+				$_SESSION['pc_shop']['cart']['items'][$ciid],
+				$_SESSION['pc_shop']['cart']['productIndex'][$productId][$ciid]
+			);
+			if( empty($_SESSION['pc_shop']['cart']['productIndex'][$productId]) )
+				unset($_SESSION['pc_shop']['cart']['productIndex'][$productId]);
+		}
+		$_SESSION['pc_shop']['cart']['totalQuantity'] += $qty - $old_qty;
+		return $qty;
+	}
+
+	public function Remove($ciid, $quantity=null) {
+		if (!isset($_SESSION['pc_shop']['cart']['items'][$ciid]))
+			return 0;
+		if (!is_null($quantity))
+			return $this->AddAt($ciid, -$quantity);
+		$this->_SetQuantity($ciid, 0);
+		return 0;
+	}	
+
 	public function Clear() {
-		$_SESSION['pc_shop']['cart'] = array();
+		$_SESSION['pc_shop']['cart'] = Array(
+			"nextCIID" => 1,
+			"totalQuantity" => 0,
+			"items" => Array(),
+			"productIndex" => Array()
+		);
 		return true;
 	}
+	
 	public function Order() {
 		//
 	}
+	
 	public function Count($uniqueItemsOnly=true) {
-		if (!isset($_SESSION['pc_shop']['cart'])) return 0;
-		if ($uniqueItemsOnly) return count($_SESSION['pc_shop']['cart']);
-		return array_sum($_SESSION['pc_shop']['cart']);
+		return $uniqueItemsOnly ? count($_SESSION['pc_shop']['cart']['items']) : $_SESSION['pc_shop']['cart']['totalQuantity'];
 	}
 }
