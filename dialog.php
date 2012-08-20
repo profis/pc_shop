@@ -204,17 +204,17 @@ function mod_pc_shop_click() {
 			'<p style="padding:5px;margin:2px 2px 2px 42px;border:1px solid #eee;color:#555">',
 				//------
 				'<b>Recipient information:</b><br />',
-				'Address: <i>{address}</i><br />',
-				'Comment: <i>{comment}</i><br />',
-				'Email: <i>{address}</i><br />',
 				'Name: <i>{name}</i><br />',
 				'Phone: <i>{phone}</i><br />',
+				'Email: <i>{email}</i><br />',
+				'Address: <i>{address}</i><br />',
 				//------
 				'<br /><b>Items in order:</b><br />',
-				'<tpl for="items">',
+				'<tpl for="items">', //should be table
 					'{#}. {name} - {short_description} - Quantity taken: {quantity} - Price for each: {price}<br />',
 				'</tpl>',
 				//------
+				'Comment: <i>{comment}</i><br />',
 				'<br /><b>Total price of the order:</b> {total_price}',
 			'</p>'
 			/*
