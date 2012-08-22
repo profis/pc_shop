@@ -125,7 +125,16 @@ $mod['priority'] = 100;
 <script type="text/javascript">
 PC.utils.localize('mod.pc_shop', {
 	en: {
-		name: 'Shop / Orders',
+		name: 'e-Shop',
+		tab: {
+			orders: 'Orders',
+			sales: 'Sales',
+			coupons: 'Coupons',
+			attributes: 'Attributes',
+			currencies: 'Currencies',
+			manufacturers: 'Manufacturers',
+			settings: 'Settings'
+		},
 		date_time: 'Date/time',
 		author: 'Author',
 		comment: 'Comment',
@@ -136,10 +145,21 @@ PC.utils.localize('mod.pc_shop', {
 		_delete: 'Delete',
 		show_from: 'Show from',
 		to: 'to',
-		with_phrase: 'with phrase'
+		with_phrase: 'with phrase',
+		and_status: 'and status',
+		status: 'Status'
 	},
 	lt: {
-		name: 'Parduotuvė / Užsakymai',
+		name: 'e-Parduotuvė',
+		tab: {
+			orders: 'Užsakymai',
+			sales: 'Pardavimai',
+			coupons: 'Kuponai',
+			attributes: 'Atributai',
+			currencies: 'Valiutos',
+			manufacturers: 'Gamintojai',
+			settings: 'Nustatymai'
+		},
 		date_time: 'Data/laikas',
 		author: 'Autorius',
 		comment: 'Komentaras',
@@ -150,10 +170,21 @@ PC.utils.localize('mod.pc_shop', {
 		_delete: 'Ištrinti',
 		show_from: 'Rodyti nuo',
 		to: 'iki',
-		with_phrase: 'su fraze'
+		with_phrase: 'su fraze',
+		and_status: 'ir statusu',
+		status: 'Statusas'
 	},
 	ru: {
-        name: 'Shop / Orders',
+        name: 'e-Магазин',
+		tab: {
+			orders: 'Заказы',
+			sales: 'Продажи',
+			coupons: 'Купоны',
+			attributes: 'Атрибуты',
+			currencies: 'Валюты',
+			manufacturers: 'Производители',
+			settings: 'Настройки'
+		},
         date_time: 'Дата/время',
         author: 'Автор',
         comment: 'Комментарий',
@@ -164,7 +195,9 @@ PC.utils.localize('mod.pc_shop', {
         _delete: 'Удалить',
         show_from: 'Показывать с',
         to: 'по',
-        with_phrase: 'с фразой'
+        with_phrase: 'с фразой',
+		and_status: 'and status',
+		status: 'Status'
     }
 });
 
@@ -191,10 +224,10 @@ function mod_pc_shop_click() {
 			selectionchange: function(sm) {
 				var selected = dialog.grid.selModel.getSelections();
 				if (selected.length) {
-					dialog.w.action_delete.enable();
+					dialog.grid.action_delete.enable();
 				}
 				else {
-					dialog.w.action_delete.disable();
+					dialog.grid.action_delete.disable();
 				}
 			}
 		}
@@ -254,8 +287,8 @@ function mod_pc_shop_click() {
 	});
 	
 	dialog.grid = new Ext.grid.GridPanel({
-		//layout: 'fit',
-		region: 'center',
+		title: ln.tab.orders,
+		//region: 'center',
 		border: false,
 		store: dialog.store,
 		plugins: dialog.expander,
@@ -273,28 +306,7 @@ function mod_pc_shop_click() {
             //{header: 'Statusas', dataIndex: 'status_icon', width: 80}
         ],
 		//autoExpandColumn: 'pc_shop_comment_column',
-		sm: dialog.gridSelectionModel
-        //iconCls: 'icon-grid'
-    });
-	
-	dialog.getSelectedIds = function() {
-		var selected = dialog.grid.selModel.getSelections();
-		if (!selected.length) return false;
-		var ids = '';
-		for (var a=0; selected[a]; a++) {
-			if (ids != '') ids += ',';
-			ids += selected[a].data.id;
-		}
-		return ids;
-	}
-	
-	dialog.w = new Ext.Window({
-		title: ln.name,
-		layout: 'border',
-		width: 800,
-		height: 400,
-		maximizable: true,
-		items: [dialog.grid],
+		sm: dialog.gridSelectionModel,
 		tbar: [
 			{	ref: '../action_delete',
 				disabled: true,
@@ -334,14 +346,14 @@ function mod_pc_shop_click() {
 				}
 			},
 			{xtype:'tbfill'},
-			{xtype:'tbtext', text: ln.show_from},
+			{xtype:'tbtext', text: ln.show_from, style:'margin:0 2px;'},
 			{	ref: '../date_from',
 				xtype:'datefield',
 				width: 80,
 				value: initial_date_from,
 				maxValue: new Date()
 			},
-			{xtype:'tbtext', text: ln.to, style:'margin: 0 2px;'},
+			{xtype:'tbtext', text: ln.to, style:'margin:0 2px;'},
 			{	ref: '../date_to',
 				xtype:'datefield',
 				width: 80,
@@ -350,12 +362,14 @@ function mod_pc_shop_click() {
 			},
 			{	xtype:'tbtext',
 				text: ln.with_phrase,
-				style:'margin: 0 2px;'
+				style:'margin:0 2px;'
 			},
 			{	ref: '../search_phrase',
 				xtype:'textfield',
 				width: 80
 			},
+			{xtype:'tbtext', text: ln.and_status, style:'margin:0 2px;'},
+			{xtype:'combo', width: 100},
 			{	icon:'images/zoom.png',
 				handler: function() {
 					//site
@@ -414,7 +428,48 @@ function mod_pc_shop_click() {
 			displayInfo: true,
 			pageSize: items_per_page,
 			prependButtons: true
-		}),
+		})
+        //iconCls: 'icon-grid'
+    });
+	
+	dialog.getSelectedIds = function() {
+		var selected = dialog.grid.selModel.getSelections();
+		if (!selected.length) return false;
+		var ids = '';
+		for (var a=0; selected[a]; a++) {
+			if (ids != '') ids += ',';
+			ids += selected[a].data.id;
+		}
+		return ids;
+	}
+	
+	dialog.attributes = {
+		title: ln.tab.attributes,
+		html:'Grid panel attributes'
+	}
+	
+	dialog.tab = new Ext.TabPanel({
+		region: 'center',
+		border: false,
+		items: [
+			dialog.grid,
+			{title: ln.tab.sales, html:'Under construction'},
+			{title: ln.tab.coupons, html:'Under construction'},
+			dialog.attributes,
+			{title: ln.tab.currencies, html:'Under construction'},
+			{title: ln.tab.manufacturers, html:'Under construction'},
+			{title: ln.tab.settings, html:'Under construction'}
+		],
+		activeTab: 0
+	});
+	
+	dialog.w = new Ext.Window({
+		layout: 'border',
+		title: ln.name,
+		width: 800,
+		height: 500,
+		maximizable: true,
+		items: [dialog.tab],
 		buttonAlign: 'left',
 		buttons: [
 			//{xtype: 'tbtext', text: ''},

@@ -65,7 +65,7 @@ class PC_shop_categories_manager extends PC_shop_categories {
 			unset($data['contents'], $ln, $c);
 		}
 		$this->Encode_flags($data);
-		$d['resources'] = $data['resources'];
+		if (isset($data['resources'])) $d['resources'] = $data['resources'];
 		$d['category'] = $this->db->fields->Parse('shop_categories', $data, $params);
 		if ($params->errors->Count()) return false;
 		//main data
@@ -102,7 +102,7 @@ class PC_shop_categories_manager extends PC_shop_categories {
 			continue;
 		}
 		//resources
-		if (is_array($d['resources'])) $this->shop->resources->Update($categoryId, PC_shop_resources::RF_IS_CATEGORY, $d['resources']);
+		if (isset($d['resources'])) if (is_array($d['resources'])) $this->shop->resources->Update($categoryId, PC_shop_resources::RF_IS_CATEGORY, $d['resources']);
 		return true;
 	}
 	public function Get($id=null, $parentId=null, &$params=array()) {
@@ -219,7 +219,7 @@ class PC_shop_products_manager extends PC_shop_products {
 			unset($data['contents'], $ln, $c);
 		}
 		$this->Encode_flags($data);
-		$d['resources'] = $data['resources'];
+		if (isset($data['resources'])) $d['resources'] = $data['resources'];
 		$d['product'] = $this->db->fields->Parse('shop_products', $data, $params);
 		if ($params->errors->Count()) return false;
 		//main data
@@ -257,7 +257,7 @@ class PC_shop_products_manager extends PC_shop_products {
 			continue;
 		}
 		//resources
-		if (is_array($d['resources'])) $this->shop->resources->Update($productId, null, $d['resources']);
+		if (isset($d['resources'])) if (is_array($d['resources'])) $this->shop->resources->Update($productId, null, $d['resources']);
 		return true;
 	}
 	public function Get($id=null, $categoryId=null, &$params=array()) {

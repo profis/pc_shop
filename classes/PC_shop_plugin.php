@@ -34,6 +34,46 @@ final class PC_shop_plugin extends PC_base {
 		}
 		return false;
 	}
+	public function Save_page_for_editor($params) {
+		$idData = $this->ParseID($params['id']);
+		if (!$idData) return false;
+		$changes = array('contents'=> $params['changes']['content']);
+		$pars = array();
+		switch ($idData['type']) {
+			case 'category':
+				$s = $this->Get_shop()->categories->Edit($idData['id'], $changes, $pars);
+				if ($s) {
+					$params['success'] = true;
+					$params['data'] = $this->Get_shop()->categories->Get($idData['id']);
+					$params['out']['names'] = array();
+					if (isset($params['data']['contents'])) foreach ($params['data']['contents'] as $ln=>$c) {
+						$params['out']['names'][$ln] = $c['name'];
+					}
+					$params['data']['resources'] = $this->Get_shop()->resources->Get_parsed(null, $idData['id'], PC_shop_resources::RF_IS_CATEGORY);
+					return true;
+				}
+				break;
+			case 'product':
+				$s = $this->Get_shop()->products->Edit($idData['id'], $changes, $pars);
+				if ($s) {
+					$params['success'] = true;
+					$params['data'] = $this->Get_shop()->products->Get($idData['id']);
+					$params['out']['names'] = array();
+					if (isset($params['data']['contents'])) foreach ($params['data']['contents'] as $ln=>$c) {
+						$params['out']['names'][$ln] = $c['name'];
+					}
+					$params['data']['resources'] = $this->Get_shop()->resources->Get_parsed(null, $idData['id']);
+					return true;
+				}
+				break;
+			/*case 'product':
+				$params['data'] = $this->Get_shop()->products->Get($idData['id']);
+				$params['data']['resources'] = $this->Get_shop()->resources->Get_parsed(null, $idData['id']);
+				return true;
+				break;*/
+		}
+		return false;
+	}
 	public function Get_childs_for_tree($params) {
 		$idData = $this->ParseID($params['id']);
 		if (!$idData) return false;

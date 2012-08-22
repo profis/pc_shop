@@ -32,7 +32,7 @@ switch (v($routes->Get(1))) {
 		}
 		break;
 	case 'save':
-		$d = json_decode($_POST['data'], true);
+		$d = json_decode(v($_POST['data'], '{}'), true);
 		//print_pre($d);
 		$shop = $core->Get_object('PC_shop_manager');
 		if (!isset($d['id'])) {

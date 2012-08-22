@@ -8,6 +8,91 @@ Plugin.api = {
 	Admin: PC.global.BASE_URL + PC.global.ADMIN_DIR + '/api/plugin/'+ CurrentlyParsing +'/'
 };
 
+PC.utils.localize('mod.'+ CurrentlyParsing, {
+	en: {
+		new_subcategory: 'New subcategory',
+		new_product: 'New product',
+		main_images: 'Main images',
+		attachments: 'Attachments',
+		media: 'Media',
+		add_image: 'Add image',
+		add_attachment: 'Add attachment',
+		unlink: 'Unlink',
+		info: 'Information',
+		properties: 'Properties',
+		external_id: 'External ID',
+		discount: 'Discount',
+		active: 'Active',
+		attributes: 'Attributes',
+		manufacturer: 'Manufacturer',
+		mpn: 'Manufacturer product number (MPN)',
+		quantity: 'Quantity',
+		warranty: 'Warranty',
+		price: 'Price',
+		short_description: 'Short description',
+		msg: {
+			error_products_inside: 'You can`t delete category that has products inside.',
+			error_deleting_category: 'Error deleting category',
+			error_deleting_product: 'Error deleting product.',
+		}
+	},
+	lt: {
+		new_subcategory: 'Nauja subkategorija',
+		new_product: 'Nauja prekė',
+		main_images: 'Pagrindinės nuotraukos',
+		attachments: 'Prisegti failai',
+		media: 'Medija',
+		add_image: 'Pridėti nuotrauką',
+		add_attachment: 'Prisegti failą',
+		unlink: 'Išimti',
+		info: 'Informacija',
+		properties: 'Nustatymai',
+		external_id: 'Išorinis ID kodas',
+		discount: 'Nuolaida',
+		active: 'Aktyvi',
+		attributes: 'Atributai',
+		manufacturer: 'Gamintojas',
+		mpn: 'Gamintojo kodas (MPN)',
+		quantity: 'Kiekis',
+		warranty: 'Garantija',
+		price: 'Kaina',
+		short_description: 'Trumpas aprašymas',
+		msg: {
+			error_products_inside: 'Jūs negalite ištrinti kategorijos, kurioje yra prekių.',
+			error_deleting_category: 'Nepavyko ištrinti kategorijos',
+			error_deleting_product: 'Nepavyko ištrinti prekės',
+		}
+    },
+	ru: {
+		new_subcategory: 'Новая субкатегория',
+		new_product: 'Новый товар',
+		main_images: 'Основное изображение',
+		attachments: 'Прикрепленные файлы',
+		media: 'Медиа',
+		add_image: 'Добавить изображение',
+		add_attachment: 'Добавить файл',
+		unlink: 'Отсоединить',
+		info: 'Информация',
+		properties: 'Свойства',
+		external_id: 'Внешний ID код',
+		discount: 'Скидка',
+		active: 'Активен',
+		attributes: 'Атрибуты',
+		manufacturer: 'Производитель',
+		mpn: 'Производственный код (MPN)',
+		quantity: 'Кол-во',
+		warranty: 'Гарантия',
+		price: 'Цена',
+		short_description: 'Короткое описание',
+		msg: {
+			error_products_inside: 'Вы не можете удалить категорию, в которой есть товары',
+			error_deleting_category: 'Ошибка при удалении категории',
+			error_deleting_product: 'Ошибка при удалении товара',
+		}
+	}
+});
+
+Plugin.ln = PC.i18n.mod.pc_shop;
 
 Plugin.editorId = {
 	Product: PC.editors.FormatID(CurrentlyParsing, 'product'),
@@ -32,27 +117,53 @@ Plugin.FormatId = function(type, id) {
 Plugin.tree = {
 	actions: {
 		CreateCategory: new Ext.Action({
-			text: 'New subcategory',
+			text: Plugin.ln.new_subcategory,
 			icon: 'images/add.gif',
 			handler: function() {
-				//create inactive node
 				var n = PC.tree.menus.current_node;
-				var treeId = 'new-'+ new Date().getTime();
-				var id = CurrentlyParsing +'/category/'+ treeId;
 				var parent_id = Plugin.ParseID(n.attributes.id);
 				if (parent_id.type == 'category') parent_id = parent_id.id;
 				else parent_id = 0;
-				var data = {
-					id: treeId,
-					_unsaved: true,
+				//create category
+				var d = {
+					id: 0,
 					parent_id: parent_id,
-					draggable: false,
-					allowDrop: false,
-					_empty: true,
-					_names: {},
-					pc_shop_products_count: 0
-				};
-				var afterAppend = function(node) {
+					resources: {add: [], remove: []}
+				}
+				Ext.Ajax.request({
+					url: Plugin.api.Admin +'save/category',
+					method: 'POST',
+					params: {
+						data: Ext.util.JSON.encode(d)
+					},
+					success: function(result){
+						var json = Ext.util.JSON.decode(result.responseText);
+						if (json) if (json.success) {
+							//var n = PC.tree.node;
+							var data = {
+								id: Plugin.FormatId('category', json.id),
+								parent_id: parent_id,
+								draggable: false,
+								allowDrop: false,
+								_empty: true,
+								_names: {},
+								pc_shop_products_count: 0
+							};
+							node = PC.tree.Append(n, data, function(n){
+								node_rename_menu(n, true);
+							});
+							//PC.tree.component.localizeNode(n);
+							return true;
+						}
+						alert('create error');
+					},
+					failure: function(){
+						alert('create error');
+					}
+				});
+				//var treeId = 'new-'+ new Date().getTime();
+				//var id = CurrentlyParsing +'/category/'+ treeId;
+				/*var afterAppend = function(node) {
 					if (node) {
 						node.select();
 						PC.editors.Load({
@@ -60,21 +171,21 @@ Plugin.tree = {
 							data: data
 						}, true);
 					}
-				}
-				node = PC.tree.Append(n, data, afterAppend);
+				}*/
+				
 				//open node
 				//on save - activate node
 			}
 		}),
 		DeleteCategory: new Ext.Action({
-			text: 'Delete',
+			text: PC.i18n.del,
 			icon: 'images/delete.gif',
 			handler: function() {
 				var n = PC.tree.menus.current_node;
 				if (n.attributes.pc_shop_products_count > 0) {
 					Ext.Msg.show({
 						title: PC.i18n.attention,
-						msg: 'You can`t delete category that has products inside.',
+						msg: Plugin.ln.msg.error_products_inside,
 						buttons: Ext.MessageBox.OK,
 						icon: Ext.MessageBox.WARNING
 					});
@@ -110,7 +221,7 @@ Plugin.tree = {
 										}
 										Ext.MessageBox.show({
 											title: PC.i18n.error,
-											msg: 'Error deleting category.'+ (errMsg!=undefined?' '+errMsg:''),
+											msg: Plugin.ln.error_deleting_category + (errMsg!=undefined?' '+errMsg:''),
 											buttons: Ext.MessageBox.OK,
 											icon: Ext.MessageBox.ERROR
 										});
@@ -125,40 +236,54 @@ Plugin.tree = {
 			}
 		}),
 		CreateProduct: new Ext.Action({
-			text: 'New product',
+			text: Plugin.ln.new_product,
 			icon: PC.plugins.GetUrl('pc_shop') +'product.png',
 			handler: function() {
-				//create new product in this category
-				//create inactive node
-				var n = PC.tree.menus.current_node;
-				var treeId = 'new-'+ new Date().getTime();
-				var id = CurrentlyParsing +'/product/'+ treeId;
-				/*var category_id = Plugin.ParseID(n.attributes.id);
-				if (category_id.type == 'category') category_id = category_id.id;
-				else category_id = 0;*/
-				var data = {
-					id: treeId,
-					_unsaved: true,
-					draggable: false,
-					allowDrop: false,
-					leaf: true,
-					icon: PC.plugins.GetUrl('pc_shop') +'product.png',
-					_names: {}
-				};
-				var afterAppend = function(node) {
-					if (node) {
-						node.select();
-						PC.editors.Load({
-							id: id, 
-							data: data
-						}, true);
-					}
+				var categoryNode = PC.tree.menus.current_node;
+				//category id
+				var categoryId = Plugin.ParseID(categoryNode.id);
+				if (categoryId.type != 'category') return false;
+				var d = {
+					id: 0,
+					category_id: categoryId.id,
+					resources: {add: [], remove: []}
 				}
-				node = PC.tree.Append(n, data, afterAppend);
+				Ext.Ajax.request({
+					url: Plugin.api.Admin +'save/product',
+					method: 'POST',
+					params: {
+						data: Ext.util.JSON.encode(d)
+					},
+					success: function(result){
+						var json = Ext.util.JSON.decode(result.responseText);
+						if (json) if (json.success) {
+							//var n = PC.tree.node;
+							var data = {
+								id: Plugin.FormatId('product', json.id),
+								category_id: d.category_id,
+								draggable: false,
+								allowDrop: false,
+								leaf: true,
+								_names: {},
+								icon: PC.plugins.GetUrl('pc_shop') +'product.png'
+							};
+							node = PC.tree.Append(categoryNode, data, function(n){
+								node_rename_menu(n, true);
+								n.parentNode.attributes.pc_shop_products_count++;
+							});
+							//PC.tree.component.localizeNode(n);
+							return true;
+						}
+						alert('create error');
+					},
+					failure: function(){
+						alert('create error');
+					}
+				});
 			}
 		}),
 		DeleteProduct: new Ext.Action({
-			text: 'Delete',
+			text: PC.i18n.del,
 			icon: 'images/delete.gif',
 			handler: function() {
 				//delete product ant its relatives
@@ -183,6 +308,7 @@ Plugin.tree = {
 											try {
 												var data = Ext.decode(rspns.responseText);
 												if (data.success) {
+													n.parentNode.attributes.pc_shop_products_count--;
 													n.remove();
 													return; // OK
 												}
@@ -193,7 +319,7 @@ Plugin.tree = {
 										}
 										Ext.MessageBox.show({
 											title: PC.i18n.error,
-											msg: 'Error deleting product.'+ (errMsg!=undefined?' '+errMsg:''),
+											msg: Plugin.ln.error_deleting_product + (errMsg!=undefined?' '+errMsg:''),
 											buttons: Ext.MessageBox.OK,
 											icon: Ext.MessageBox.ERROR
 										});
@@ -223,8 +349,9 @@ Plugin.tree.menus = {
 		id: 'pc_tree_menu_'+ CurrentlyParsing +'_category',
 		items: [
 			Plugin.tree.actions.CreateProduct,
-			'-',
 			Plugin.tree.actions.CreateCategory,
+			'-',
+			PC.tree.actions.Rename,
 			'-',
 			Plugin.tree.actions.DeleteCategory
 		]
@@ -234,11 +361,12 @@ Plugin.tree.menus = {
 		items: [
 			Plugin.tree.actions.CreateProduct,
 			'-',
+			PC.tree.actions.Rename,
+			'-',
 			Plugin.tree.actions.DeleteProduct
 		]
 	})
 }
-//begiu svirties laisvumas + fiksatorius
 PC.hooks.Register('core/tree/menu/'+ CurrentlyParsing, function(params){
 	var id = Plugin.ParseID(params.node.id);
 	if (id === false) {
@@ -303,8 +431,8 @@ Plugin.media.Template = new Ext.XTemplate(
 		//+'<tpl if="alert(filename)"></tpl>'
 		//+'<tpl if="alert(is_attachment)"></tpl>'
 		+'<tpl if="this.startChanged(is_attachment)">'
-			+'<tpl if="!is_attachment"><div style="clear:both;padding:10px 0 6px 0;margin-bottom:5px;border-bottom:1px solid #888;"><h2><img style="vertical-align:-2px;" src="images/image.png" alt="" /> Main images</h2></div></tpl>'
-			+'<tpl if="is_attachment"><div style="clear:both;padding:10px 0 6px 0;margin-bottom:5px;border-bottom:1px solid #888;"><h2><img style="vertical-align:-2px;" src="images/page_white_text.png" alt="" /> Attachments</h2></div></tpl>'
+			+'<tpl if="!is_attachment"><div style="clear:both;padding:10px 0 6px 0;margin-bottom:5px;border-bottom:1px solid #888;"><h2><img style="vertical-align:-2px;" src="images/image.png" alt="" /> '+ Plugin.ln.main_images +'</h2></div></tpl>'
+			+'<tpl if="is_attachment"><div style="clear:both;padding:10px 0 6px 0;margin-bottom:5px;border-bottom:1px solid #888;"><h2><img style="vertical-align:-2px;" src="images/page_white_text.png" alt="" /> '+ Plugin.ln.attachments +'</h2></div></tpl>'
 		+'</tpl>'
 		//item selector
 		+'<div class="thumb-wrap template-icons" id="{id}">'
@@ -434,12 +562,12 @@ PC.editors.Register(CurrentlyParsing, 'category', function(){
 	});
 	var ViewPanel = new Ext.Panel({
 		id: Plugin.editorId.Category +'_tab_media',
-		title: 'Media',
+		title: Plugin.ln.media,
 		items: View,
 		tbar: [
 			{xtype: 'button', text: PC.i18n.save, icon: 'images/disk.png', handler: PC.editors.Save},
 			'-',
-			{	icon: 'images/add.png', text: 'Add image',
+			{	icon: 'images/add.png', text: Plugin.ln.add_image,
 				handler: function(){
 					var params = {
 						save_fn: Plugin.media.GallerySave,
@@ -449,7 +577,7 @@ PC.editors.Register(CurrentlyParsing, 'category', function(){
 					PC.dialog.gallery.show(params);
 				}
 			},
-			{	icon: 'images/page_white_text.png', text: 'Add attachment',
+			{	icon: 'images/page_white_text.png', text: Plugin.ln.add_attachment,
 				handler: function(){
 					var params = {
 						save_fn: Plugin.media.GallerySave,
@@ -459,7 +587,7 @@ PC.editors.Register(CurrentlyParsing, 'category', function(){
 				}
 			},
 			{	icon: 'images/link_break.png',
-				text: 'Unlink',
+				text: Plugin.ln.unlink,
 				handler: function(){
 					var media = PC.editors.Get()._media;
 					var records = media.getSelectedRecords();
@@ -467,7 +595,7 @@ PC.editors.Register(CurrentlyParsing, 'category', function(){
 				}
 			},
 			'-',
-			{icon: 'images/delete.png', text: 'Delete'}
+			{icon: 'images/delete.png', text: PC.i18n.del}
 		]
 	});
 	return {
@@ -477,7 +605,7 @@ PC.editors.Register(CurrentlyParsing, 'category', function(){
 		tbar: new PC.ux.LanguageBar(),
 		//deferredRender: true,
 		items: [
-			{	title: 'Information',
+			{	title: Plugin.ln.info,
 				ref: '_information',
 				layout: 'hbox',
 				layoutConfig: {
@@ -620,7 +748,7 @@ PC.editors.Register(CurrentlyParsing, 'category', function(){
 					}
 				]
 			},
-			{	title: 'Properties',
+			{	title: Plugin.ln.properties,
 				ref: '_properties',
 				id: Plugin.editorId.Category +'_tab_properties',
 				layout: 'form',
@@ -634,13 +762,13 @@ PC.editors.Register(CurrentlyParsing, 'category', function(){
 				border: false,
 				tbar: [{xtype: 'button', text: PC.i18n.save, icon: 'images/disk.png', handler: PC.editors.Save}],
 				items: [
-					{ref: '_external_id', fieldLabel: 'External ID', xtype: 'textfield'},
-					{ref: '_discount', fieldLabel: 'Discount', xtype: 'numberfield'},
-					{ref: '_percentage_discount', fieldLabel: 'Discount, %', xtype: 'numberfield'},
-					{ref: '_active', fieldLabel: 'Active', xtype: 'checkbox'}
+					{ref: '_external_id', fieldLabel: Plugin.ln.external_id, xtype: 'textfield'},
+					{ref: '_discount', fieldLabel: Plugin.ln.discount, xtype: 'numberfield'},
+					{ref: '_percentage_discount', fieldLabel: Plugin.ln.discount +', %', xtype: 'numberfield'},
+					{ref: '_active', fieldLabel: Plugin.ln.active, xtype: 'checkbox'}
 				]
 			},
-			{	title: 'Description',
+			{	title: PC.i18n.desc,
 				ref: '_description',
 				xtype: 'container',
 				layout: 'fit',
@@ -650,7 +778,7 @@ PC.editors.Register(CurrentlyParsing, 'category', function(){
 				}]
 			},
 			ViewPanel/*,
-			{	title: 'Attributes',
+			{	title: Plugin.ln.attributes,
 				id: Plugin.editorId.Category +'_tab_attributes',
 				//layout: 'form',
 				//bodyCssClass: 'x-border-layout-ct',
@@ -710,7 +838,7 @@ PC.editors.Register(CurrentlyParsing, 'category', function(){
 					var mediaStore = media.store;
 					media.is_attachment = null;
 					mediaStore.loadData(data.resources);
-					media.refresh();
+					if (media.rendered) media.refresh();
 				}
 				//contents
 				if (data.contents != undefined) if (typeof data.contents[ln] == 'object') {
@@ -825,12 +953,12 @@ PC.editors.Register(CurrentlyParsing, 'product', function(){
 	});
 	var ViewPanel = new Ext.Panel({
 		id: Plugin.editorId.Product +'_tab_media',
-		title: 'Media',
+		title: Plugin.ln.media,
 		items: View,
 		tbar: [
 			{xtype: 'button', text: PC.i18n.save, icon: 'images/disk.png', handler: PC.editors.Save},
 			'-',
-			{	icon: 'images/add.png', text: 'Add image',
+			{	icon: 'images/add.png', text: Plugin.ln.add_image,
 				handler: function(){
 					var params = {
 						save_fn: Plugin.media.GallerySave,
@@ -840,7 +968,7 @@ PC.editors.Register(CurrentlyParsing, 'product', function(){
 					PC.dialog.gallery.show(params);
 				}
 			},
-			{	icon: 'images/page_white_text.png', text: 'Add attachment',
+			{	icon: 'images/page_white_text.png', text: Plugin.ln.add_attachment,
 				handler: function(){
 					var params = {
 						save_fn: Plugin.media.GallerySave,
@@ -850,7 +978,7 @@ PC.editors.Register(CurrentlyParsing, 'product', function(){
 				}
 			},
 			{	icon: 'images/link_break.png',
-				text: 'Unlink',
+				text: Plugin.ln.unlink,
 				handler: function(){
 					var media = PC.editors.Get()._media;
 					var records = media.getSelectedRecords();
@@ -858,7 +986,7 @@ PC.editors.Register(CurrentlyParsing, 'product', function(){
 				}
 			},
 			'-',
-			{icon: 'images/delete.png', text: 'Delete'}
+			{icon: 'images/delete.png', text: PC.i18n.del}
 		]
 	});
 	return {
@@ -868,7 +996,7 @@ PC.editors.Register(CurrentlyParsing, 'product', function(){
 		tbar: new PC.ux.LanguageBar(),
 		//deferredRender: true,
 		items: [
-			{	title: 'Information',
+			{	title: Plugin.ln.info,
 				ref: '_information',
 				layout: 'hbox',
 				layoutConfig: {
@@ -1011,7 +1139,7 @@ PC.editors.Register(CurrentlyParsing, 'product', function(){
 					}
 				]
 			},
-			{	title: 'Properties',
+			{	title: Plugin.ln.properties,
 				ref: '_properties',
 				id: Plugin.editorId.Product +'_tab_properties',
 				layout: 'form',
@@ -1025,17 +1153,17 @@ PC.editors.Register(CurrentlyParsing, 'product', function(){
 				border: false,
 				tbar: [{xtype: 'button', text: PC.i18n.save, icon: 'images/disk.png', handler: PC.editors.Save}],
 				items: [
-					{ref: '_manufacturer', fieldLabel: 'Manufacturer', xtype: 'textfield'},
-					{ref: '_mpn', fieldLabel: 'Manufacturer product number (MPN)', xtype: 'textfield'},
-					{ref: '_quantity', fieldLabel: 'Quantity', xtype: 'numberfield'},
-					{ref: '_warranty', fieldLabel: 'Warranty', xtype: 'numberfield'},
-					{ref: '_price', fieldLabel: 'Price', xtype: 'numberfield'},
-					{ref: '_discount', fieldLabel: 'Discount', xtype: 'numberfield'},
-					{ref: '_percentage_discount', fieldLabel: 'Discount, %', xtype: 'numberfield'},
-					{ref: '_active', fieldLabel: 'Active', xtype: 'checkbox'}
+					{ref: '_manufacturer', fieldLabel: Plugin.ln.manufacturer, xtype: 'textfield'},
+					{ref: '_mpn', fieldLabel: Plugin.ln.mpn, xtype: 'textfield'},
+					{ref: '_quantity', fieldLabel: Plugin.ln.quantity, xtype: 'numberfield'},
+					{ref: '_warranty', fieldLabel: Plugin.ln.warranty, xtype: 'numberfield'},
+					{ref: '_price', fieldLabel: Plugin.ln.price, xtype: 'numberfield'},
+					{ref: '_discount', fieldLabel: Plugin.ln.discount, xtype: 'numberfield'},
+					{ref: '_percentage_discount', fieldLabel: Plugin.ln.discount +', %', xtype: 'numberfield'},
+					{ref: '_active', fieldLabel: Plugin.ln.active, xtype: 'checkbox'}
 				]
 			},
-			{	title: 'Description',
+			{	title: PC.i18n.desc,
 				ref: '_description',
 				xtype: 'container',
 				layout: 'fit',
@@ -1044,7 +1172,7 @@ PC.editors.Register(CurrentlyParsing, 'product', function(){
 					ref: '_description'
 				}]
 			},
-			{	title: 'Short description',
+			{	title: Plugin.ln.short_description,
 				ref: '_short_description',
 				xtype: 'container',
 				layout: 'fit',
@@ -1054,7 +1182,7 @@ PC.editors.Register(CurrentlyParsing, 'product', function(){
 				}]
 			},
 			ViewPanel/*,
-			{	title: 'Attributes',
+			{	title: Plugin.ln.attributes,
 				id: Plugin.editorId.Product +'_tab_attributes',
 				//layout: 'form',
 				//bodyCssClass: 'x-border-layout-ct',
@@ -1121,6 +1249,7 @@ PC.editors.Register(CurrentlyParsing, 'product', function(){
 					var mediaStore = media.store;
 					media.is_attachment = null;
 					mediaStore.loadData(data.resources);
+					if (media.rendered) media.refresh();
 				}
 				//contents
 				if (data.contents != undefined) if (typeof data.contents[ln] == 'object') {
