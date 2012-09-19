@@ -19,103 +19,8 @@ require_once '../../admin/admin.php';
 $site->Identify();
 if (isset($_GET['ln'])) $site->Set_language($_GET['ln']);
 
-$items_per_page = 10;
-$plugin_path = $cfg['url']['base'].$cfg['directories']['plugins'].'/'.$plugins->Get_currently_parsing().'/'.basename(__FILE__);
-
-if (isset($_GET['action'])) {
-	header('Content-Type: application/json');
-	header('Cache-Control: no-cache');
-	$out = array();
-	switch ($_GET['action']) {
-		case 'get':
-			$start = (int)v($_POST['start']);
-			$limit = (int)v($_POST['limit']);
-			if ($start < 0) $start = 0;
-			if ($limit < 1) $limit = $items_per_page;
-			$date_from = v($_POST['date_from']);
-			$date_to = v($_POST['date_to']);
-			$search_phrase = v($_POST['search_phrase']);
-			$site_id = v($_POST['site']);
-			if (!ctype_digit($site_id)) $site_id = 0; //all sites
-			//---
-			//
-			$where = array();
-			$parameters = array();
-			//---
-			if (!empty($date_from)) {
-				if (!empty($date_to)) {
-					$where[] = 'date between ? and ?';
-					array_push($parameters, strtotime($date_from), strtotime($date_to)+86400);
-				}
-				else {
-					$where[] = 'date >= ?';
-					$parameters[] = strtotime($date_from);
-				}
-			}
-			elseif (!empty($date_to)) {
-				$where[] = 'date <= ?';
-				$parameters[] = strtotime($date_to)+86400;
-			}
-			//---
-			if (!empty($search_phrase)) {
-				$where[] = 'comment like ?';
-				$parameters[] = '%'.$search_phrase.'%';
-			};
-			if ($site_id>0) {
-				$where[] = 'site=?';
-				$parameters[] = $site_id;
-			}
-			$shop = $core->Get_object('PC_shop_manager');
-			$paging = array(
-				'page'=> v($additional['page'], 1),
-				'perPage'=> v($additional['perPage'], 30)
-			);
-			$params = array(
-				'paging'=> &$paging
-			);
-			$out['list'] = $shop->orders->Get(null, $params);
-			$out['total'] = $paging->Get_total();
-			//---
-			break;
-		case 'confirm':
-			$ids = v($_POST['ids']);
-			$confirm = v($_POST['confirm'], 1);
-			if (!empty($ids)) {
-				$ids = explode(',', $ids);
-				if (count($ids)) {
-					if ($pc_comments->Confirm($ids, $confirm)) {
-						$out = array('success'=> true);
-						break;
-					}
-					$error = 'Database error';
-				}
-				else $error = 'These comments was not found in the database.';
-			}
-			else $error = 'No comments were selected.';
-			$out['error'] = (!empty($error)?$error:'');
-			break;
-		case 'delete':
-			$ids = v($_POST['ids']);
-			if (!empty($ids)) {
-				$ids = explode(',', $ids);
-				if (count($ids)) {
-					if ($pc_comments->Delete($ids)) {
-						$out = array('success'=> true);
-						break;
-					}
-					$error = 'Database error';
-				}
-				else $error = 'These comments was not found in the database.';
-			}
-			else $error = 'No comments were selected.';
-			$out['error'] = (!empty($error)?$error:'');
-			break;
-		default:
-			$out['error'] = 'Unknown action';
-	}
-	echo json_encode($out);
-	return;
-}
+$apiUrl = $cfg['url']['base'].'admin/api/plugin/'.$plugins->Get_currently_parsing().'/';
+$pluginUrl = $cfg['url']['base'].$cfg['directories']['plugins'].'/'.$plugins->Get_currently_parsing().'/';
 
 $mod['name'] = 'Shop / Orders';
 $mod['onclick'] = 'mod_pc_shop_click()';
@@ -204,9 +109,9 @@ PC.utils.localize('mod.pc_shop', {
 Ext.namespace('PC.plugins');
 
 function mod_pc_shop_click() {
-	var dialog = PC.plugin.pc_shop;
+	PC.plugin.pc_shop.dialog = {};
+	var dialog = PC.plugin.pc_shop.dialog;
 	var ln = PC.i18n.mod.pc_shop;
-	var items_per_page = <?php echo $items_per_page; ?>;
 	var initial_date_from = '';
 	var initial_date_to = '';
 	
@@ -217,21 +122,19 @@ function mod_pc_shop_click() {
 		return;
 	}
 	
-	var plugin_path = '<?php echo $plugin_path; ?>';
+	var pluginUrl = '<?php echo $pluginUrl; ?>';
+	var apiUrl = '<?php echo $apiUrl; ?>';
 	
-	dialog.gridSelectionModel = new Ext.grid.CheckboxSelectionModel({
-		listeners: {
-			selectionchange: function(sm) {
-				var selected = dialog.grid.selModel.getSelections();
-				if (selected.length) {
-					dialog.grid.action_delete.enable();
-				}
-				else {
-					dialog.grid.action_delete.disable();
-				}
-			}
+	dialog.selectionChange = function(selModel){
+		var del = selModel.grid.action_delete;
+		if (selModel.grid.action_delete == undefined) return;
+		var selected = selModel.getSelections();
+		if (selected.length) {
+			del.enable();
 		}
-	});
+		else del.disable();
+	}
+	
 	dialog.expander = new Ext.ux.grid.RowExpander({
 		tpl : new Ext.XTemplate(
 			'<p style="padding:5px;margin:2px 2px 2px 42px;border:1px solid #eee;color:#555">',
@@ -270,7 +173,7 @@ function mod_pc_shop_click() {
 	}
 	
 	dialog.store = new Ext.data.JsonStore({
-		url: plugin_path +'?action=get&ln='+ PC.global.ln,
+		url: apiUrl +'orders/get/'+ PC.global.ln,
 		remoteSort: true,
 		fields: [
 			'id', 'address', 'comment', 'date', 'email', 'name', 'phone', 'user_id', 'items', 'total_price',
@@ -294,7 +197,7 @@ function mod_pc_shop_click() {
 		plugins: dialog.expander,
         columns: [
 			//uzsakovas, adresas, data, prekiu skaicius, suma
-			dialog.gridSelectionModel,
+			//dialog.selModel,
 			dialog.expander,
 			{header: 'Data', dataIndex: 'dateFormatted', width: 100},
 			{header: 'Name', dataIndex: 'name', width: 150},
@@ -306,7 +209,7 @@ function mod_pc_shop_click() {
             //{header: 'Statusas', dataIndex: 'status_icon', width: 80}
         ],
 		//autoExpandColumn: 'pc_shop_comment_column',
-		sm: dialog.gridSelectionModel,
+		//sm: dialog.selModel,
 		tbar: [
 			{	ref: '../action_delete',
 				disabled: true,
@@ -316,7 +219,7 @@ function mod_pc_shop_click() {
 					var ids = dialog.getSelectedIds();
 					if (!ids) return;
 					Ext.Ajax.request({
-						url: plugin_path +'?action=delete',
+						url: apiUrl +'orders/delete',
 						method: 'POST',
 						params: {ids: ids},
 						callback: function(opts, success, response) {
@@ -426,7 +329,7 @@ function mod_pc_shop_click() {
 		bbar: new Ext.PagingToolbar({
 			store: dialog.store,
 			displayInfo: true,
-			pageSize: items_per_page,
+			pageSize: 10,
 			prependButtons: true
 		})
         //iconCls: 'icon-grid'
@@ -443,10 +346,632 @@ function mod_pc_shop_click() {
 		return ids;
 	}
 	
+	/* Attributes Tab */
+	
 	dialog.attributes = {
-		title: ln.tab.attributes,
-		html:'Grid panel attributes'
+		_getCurrentId: function() {
+			var attribute = dialog.attributes.grid.selModel.getSelected();
+			if (!attribute) return false;
+			return attribute.data.id;
+		}
+	};
+	
+	dialog.attributes.store = new Ext.data.JsonStore({
+		url: apiUrl +'attributes/get',
+		method: 'POST',
+		autoLoad: true,
+		remoteSort: true,
+		root: 'list',
+		totalProperty: 'total',
+		idProperty: 'id',
+		fields: [
+			'id', 'is_category_attribute', 'is_custom', 'is_searchable', 'names',
+			{name: 'name', mapping: 'names', convert: function(names, n){return PC.utils.extractName(names);}}
+		],
+		perPage: 1000
+	});
+	
+	dialog.attributes.selModel = new Ext.grid.RowSelectionModel({
+		listeners: {
+			selectionchange: function(selModel) {
+				dialog.selectionChange(selModel);
+				var n = selModel.getSelected();
+				if (n == undefined) return;
+				if (n.data.is_custom == 1) {
+					dialog.attributes.values.disable(n.data.id);
+				}
+				else dialog.attributes.values.enable(n.data.id);
+			}
+		}
+	});
+	
+	dialog.attributes.grid = new Ext.grid.GridPanel({
+		store: dialog.attributes.store,
+		//plugins: dialog.expander,
+        columns: [
+			//dialog.expander,
+			{header: 'Name', dataIndex: 'name', width: 200},
+			{header: 'Attribute for', dataIndex: 'is_category_attribute', 
+				renderer: function(value, metaData, record, rowIndex, colIndex, store) {
+					if (value == 1) return 'Category';
+					return 'Item';
+				}
+			},
+			{header: 'Searchable', dataIndex: 'is_searchable', 
+				renderer: function(value, metaData, record, rowIndex, colIndex, store) {
+					if (value == 1) return 'Yes';
+					return 'No';
+				}
+			},
+			{header: 'Type', dataIndex: 'is_custom',
+				renderer: function(value, metaData, record, rowIndex, colIndex, store) {
+					if (value == 1) return 'Custom';
+					return 'Predefined';
+				}
+			}
+        ],
+		//autoExpandColumn: 'pc_shop_comment_column',
+		sm: dialog.attributes.selModel,
+		tbar: [
+			{	ref: '../action_add',
+				text: PC.i18n.add,
+				icon: 'images/add.png',
+				handler: function() {
+					PC.dialog.multilnedit.show({
+						title: PC.i18n.menu.rename,
+						fields: [
+							{	_fld: 'is_category_attribute',
+								fieldLabel: 'Attribute for',
+								anchor: '100%',
+								xtype: 'combo',
+								mode: 'local',
+								store: {
+									xtype: 'arraystore',
+									fields: ['value', 'name'],
+									idIndex: 0,
+									data: [
+										['0', 'Item'],
+										['1', 'Category']
+									]
+								},
+								displayField: 'name',
+								valueField: 'value',
+								editable: false,
+								forceSelection: true,
+								triggerAction: 'all',
+								value: null
+							}
+						],
+						Save: function(data, w, dlg) {
+							Ext.Ajax.request({
+								url: apiUrl +'attributes/create',
+								method: 'POST',
+								params: {names: Ext.util.JSON.encode(data.names), is_category_attribute: data.other.is_category_attribute},
+								callback: function(opts, success, response) {
+									if (success && response.responseText) {
+										try {
+											var data = Ext.decode(response.responseText);
+											if (data.success) {
+												var store = dialog.attributes.store;
+												var n = new store.recordType({
+													id: data.id,
+													names: data.names,
+													is_searchable: data.is_searchable,
+													is_category_attribute: data.is_category_attribute,
+													is_custom: data.is_custom
+												});
+												store.addSorted(n);
+												n.set('name', PC.utils.extractName(data.names));
+												//refresh attribute selection store
+												PC.plugin.pc_shop.attributes.Store.reload();
+												return;
+											}
+											else error = data.error;
+										}
+										catch(e) {
+											var error = 'Invalid JSON data returned.';
+										};
+									}
+									else var error = 'Connection error.';
+									Ext.MessageBox.show({
+										title: PC.i18n.error,
+										msg: (error?'<b>'+ error +'</b>':''),
+										buttons: Ext.MessageBox.OK,
+										icon: Ext.MessageBox.ERROR
+									});
+								}
+							});
+							return true;
+						}
+					});
+				}
+			},
+			{	ref: '../action_delete',
+				disabled: true,
+				text: PC.i18n.del,
+				icon: 'images/delete.png',
+				handler: function() {
+					var n = dialog.attributes.grid.selModel.getSelected();
+					if (!n) return false;
+					Ext.MessageBox.show({
+						title: PC.i18n.msg.title.confirm,
+						msg: String.format(PC.i18n.msg.confirm_delete, '"'+n.data.name+'"'),
+						buttons: Ext.MessageBox.YESNO,
+						icon: Ext.MessageBox.WARNING,
+						fn: function(r) {
+							if (r == 'yes') {
+								Ext.Ajax.request({
+									url: apiUrl +'attributes/delete',
+									method: 'POST',
+									params: {id: n.id},
+									callback: function(opts, success, response) {
+										if (success && response.responseText) {
+											try {
+												var data = Ext.decode(response.responseText);
+												if (data.success) {
+													dialog.attributes.values.disable();
+													//remove attribute from selection in editors
+													var toDel = PC.plugin.pc_shop.attributes.Store.getById(n.id);
+													if (toDel) PC.plugin.pc_shop.attributes.Store.remove(toDel);
+													//remove attribute
+													dialog.attributes.store.remove(n);
+													return;
+												}
+												else error = data.error;
+											}
+											catch(e) {
+												var error = 'Invalid JSON data returned.';
+											};
+										}
+										else var error = 'Connection error.';
+										Ext.MessageBox.show({
+											title: PC.i18n.error,
+											msg: (error?'<b>'+ error +'</b>':''),
+											buttons: Ext.MessageBox.OK,
+											icon: Ext.MessageBox.ERROR
+										});
+									}
+								});
+							}
+						}
+					});
+				}
+			}
+		],
+		bbar: new Ext.PagingToolbar({
+			store: dialog.attributes.store,
+			displayInfo: true,
+			pageSize: dialog.attributes.store.perPage,
+			prependButtons: true
+		}),
+		renameCell: function(n, ev) {
+			if (!n || !ev) return false;
+			var xy = ev.getXY();
+			PC.dialog.multilnedit.show({
+				title: PC.i18n.menu.rename,
+				values: n.data.names,
+				pageX: xy[0], pageY: xy[1],
+				fields: [
+					{	_fld: 'is_category_attribute',
+						fieldLabel: 'Attribute for',
+						anchor: '100%',
+						xtype: 'combo',
+						mode: 'local',
+						store: {
+							xtype: 'arraystore',
+							fields: ['value', 'name'],
+							idIndex: 0,
+							data: [
+								['0', 'Item'],
+								['1', 'Category']
+							]
+						},
+						displayField: 'name',
+						valueField: 'value',
+						editable: false,
+						forceSelection: true,
+						triggerAction: 'all',
+						value: n.data.is_category_attribute
+					},
+					{	_fld: 'is_searchable',
+						fieldLabel: 'Searchable',
+						anchor: '100%',
+						xtype: 'combo',
+						mode: 'local',
+						store: {
+							xtype: 'arraystore',
+							fields: ['value', 'name'],
+							idIndex: 0,
+							data: [
+								['0', PC.i18n.no],
+								['1', PC.i18n.yes]
+							]
+						},
+						displayField: 'name',
+						valueField: 'value',
+						editable: false,
+						forceSelection: true,
+						triggerAction: 'all',
+						value: n.data.is_searchable
+					},
+					{	_fld: 'is_custom',
+						fieldLabel: 'Type',
+						anchor: '100%',
+						xtype: 'combo',
+						mode: 'local',
+						store: {
+							xtype: 'arraystore',
+							fields: ['value', 'name'],
+							idIndex: 0,
+							data: [
+								['1', 'Custom'],
+								['0', 'Predefined']
+							]
+						},
+						displayField: 'name',
+						valueField: 'value',
+						editable: false,
+						forceSelection: true,
+						triggerAction: 'all',
+						value: n.data.is_custom
+					}
+				],
+				Save: function(data, renameWindow, renameDialog) {
+					var params =  {
+						id: n.data.id,
+						is_custom: data.other.is_custom,
+						is_searchable: data.other.is_searchable,
+						is_category_attribute: data.other.is_category_attribute,
+						names: Ext.util.JSON.encode(data.names)
+					}
+					Ext.Ajax.request({
+						url: apiUrl +'attributes/save',
+						method: 'POST',
+						params: params,
+						callback: function(opts, success, response) {
+							if (success && response.responseText) {
+								try {
+									var responseData = Ext.decode(response.responseText);
+									if (responseData.success) {
+										//is_category_attribute
+										n.set('is_category_attribute', data.other.is_category_attribute);
+										//is_custom
+										if (n.data.is_custom != 1) {
+											if (data.other.is_custom == 1) dialog.attributes.values.disable();
+										}
+										else if (data.other.is_custom != 1) {
+											dialog.attributes.values.enable();
+										}
+										n.set('is_custom', data.other.is_custom);
+										//is_searchable
+										n.set('is_searchable', data.other.is_searchable);
+										//names
+										n.set('names', data.names);
+										n.set('name', PC.utils.extractName(data.names));
+										n.commit();
+										renameWindow.close();
+										//refresh attribute selection store
+										PC.plugin.pc_shop.attributes.Store.reload();
+										return;
+									}
+									else error = responseData.error;
+								} catch(e) {
+									var error = 'Invalid JSON data returned.';
+								};
+							}
+							else {
+								var error = 'Connection error.';
+							}
+							Ext.MessageBox.show({
+								title: PC.i18n.error,
+								msg: (error?'<b>'+ error +'</b><br />':'') +'Attribute has not been saved.',
+								buttons: Ext.MessageBox.OK,
+								icon: Ext.MessageBox.ERROR
+							});
+						}
+					});
+				}
+			});
+		},
+		listeners: {
+			cellcontextmenu: function(grid, rowIndex, cellIndex, ev) {
+				ev.preventDefault();
+				var n = dialog.attributes.store.getAt(rowIndex);
+				if (!n) return false;
+				var menu = new Ext.menu.Menu({
+					items: [{
+						text: PC.i18n.menu.rename,
+						icon: 'images/edit.gif',
+						handler: function(){
+							grid.renameCell(n, ev);
+						}
+					}]
+				});
+				return menu.showAt(ev.getXY());
+			},
+			containercontextmenu: function(grid, ev){
+				ev.preventDefault();
+			},
+			celldblclick: function(grid, rowIndex, cellIndex, ev) {
+				var n = dialog.attributes.store.getAt(rowIndex);
+				if (!n) return false;
+				grid.renameCell(n, ev);
+				return false;
+			}
+		}
+    });
+	
+	dialog.attributes.center = {
+		xtype: 'panel',
+		region: 'center',
+		layout: 'fit',
+		width: 400,
+		padding: '6px 0 6px 6px',
+		bodyCssClass: 'x-border-layout-ct',
+		split: true,
+		border: false,
+		items: dialog.attributes.grid
 	}
+	
+	dialog.attributes.values = {};
+	
+	dialog.attributes.values.enable = function(attributeId) {
+		dialog.attributes.values.grid.enable();
+		if (attributeId == undefined) {
+			var n = dialog.attributes.grid.selModel.getSelected();
+			if (!n) return false;
+			var attributeId = n.data.id;
+		}
+		dialog.attributes.values.store.setBaseParam('attribute_id', attributeId);
+		dialog.attributes.values.store.load();
+	}
+	dialog.attributes.values.disable = function(attributeId) {
+		dialog.attributes.values.grid.disable();
+		dialog.attributes.values.store.removeAll();
+	}
+					
+	dialog.attributes.values.storeFields = ['id', 'attribute_id', 'names'];
+	PC.sites.languages.ext.FillStoreFields(dialog.attributes.values.storeFields, 'value_');
+	
+	dialog.attributes.values.store = new Ext.data.JsonStore({
+		url: apiUrl +'attributes/values/get',
+		remoteSort: true,
+		fields: dialog.attributes.values.storeFields,
+		totalProperty: 'total',
+		root: 'list',
+		idProperty: 'id',
+		perPage: 1000
+	});
+	
+	dialog.attributes.values.selModel = new Ext.grid.CheckboxSelectionModel({
+		listeners: {
+			selectionchange: dialog.selectionChange
+		},
+		editable: false
+	});
+	
+	dialog.attributes.values.gridCols = PC.sites.languages.ext.GetGridColumns('value_');
+	//dialog.attributes.values.gridCols.unshift(dialog.attributes.values.selModel);
+	
+	dialog.attributes.values.editor = new Ext.ux.grid.RowEditor({
+		saveText: PC.i18n.save,
+		cancelText: PC.i18n.cancel,
+		clicksToEdit: 2,
+		listeners: {
+			beforeedit: function(editor) {
+				editor.justCancelled = false;
+			},
+			canceledit: function(editor, button, record) {
+				if (record.phantom) dialog.attributes.values.store.remove(record);
+				editor.justCancelled = true;
+			},
+			hide: function(editor){
+				if (editor.justCancelled) return;
+				var record = editor.record;
+				var names = {};
+				Ext.iterate(record.data, function(key, value){
+					if (key.substr(0,6) == 'value_') {
+						var ln = key.substring(6);
+						names[ln] = value;
+					}
+				});
+				record.set('names', names);
+				if (record.data._new != undefined) {
+					var attributeId = dialog.attributes._getCurrentId();
+					if (!attributeId) return false;
+					//create new
+					var values = record.data.names;
+					Ext.Ajax.request({
+						url: apiUrl +'attributes/values/create',
+						method: 'POST',
+						params: {attribute_id: attributeId, values: Ext.util.JSON.encode(values)},
+						callback: function(opts, success, response) {
+							if (success && response.responseText) {
+								try {
+									var data = Ext.decode(response.responseText);
+									if (data.success) {
+										record.set('id', data.id);
+										record.id = data.id;
+										record.phantom = false;
+										delete record.data._new;
+										delete record.data.phantom;
+										//refresh attribute selection store
+										PC.plugin.pc_shop.attributes.Store.reload();
+										return;
+									}
+									else error = data.error;
+								} catch(e) {
+									var error = 'Invalid JSON data returned.';
+								};
+							}
+							else {
+								var error = 'Connection error.';
+							}
+							Ext.MessageBox.show({
+								title: PC.i18n.error,
+								msg: (error?'<b>'+ error +'</b><br />':'') +'Attribute has not been created.',
+								buttons: Ext.MessageBox.OK,
+								icon: Ext.MessageBox.ERROR
+							});
+						}
+					});
+				}
+				else {
+					//edit existing
+					var values = record.data.names;
+					Ext.Ajax.request({
+						url: apiUrl +'attributes/values/save',
+						method: 'POST',
+						params: {id: record.data.id, values: Ext.util.JSON.encode(values)},
+						callback: function(opts, success, response) {
+							if (success && response.responseText) {
+								try {
+									var data = Ext.decode(response.responseText);
+									if (data.success) {
+										record.commit();
+										//refresh attribute selection store
+										PC.plugin.pc_shop.attributes.Store.reload();
+										return;
+									}
+									else error = data.error;
+								} catch(e) {
+									var error = 'Invalid JSON data returned.';
+								};
+							}
+							else {
+								var error = 'Connection error.';
+							}
+							//record.rejectChanges();
+							Ext.MessageBox.show({
+								title: PC.i18n.error,
+								msg: (error?'<b>'+ error +'</b><br />':'') +'Error while editing attribute value.',
+								buttons: Ext.MessageBox.OK,
+								icon: Ext.MessageBox.ERROR
+							});
+						}
+					});
+				}
+			},
+			afteredit: function(rowEditor, changes, record, rowIndex) {
+				//
+			}
+		}
+	});
+	
+	dialog.attributes.values.grid = new Ext.grid.EditorGridPanel({
+		disabled: true,
+		store: dialog.attributes.values.store,
+		plugins: dialog.attributes.values.editor,//dialog.expander,
+        columns: dialog.attributes.values.gridCols,
+		/*[
+			dialog.attributes.values.selModel,
+			//dialog.expander,
+			{header: 'English', dataIndex: 'address'},
+			{header: 'Lietuvių', dataIndex: 'comment'},
+			{header: 'Русский', dataIndex: 'comment'}
+        ],*/
+		//autoExpandColumn: 'pc_shop_comment_column',
+		sm: dialog.attributes.values.selModel,
+		tbar: [
+			{	ref: '../action_add',
+				text: PC.i18n.add,
+				icon: 'images/add.png',
+				handler: function() {
+					var attributeId = dialog.attributes._getCurrentId();
+					if (!attributeId) return false;
+					var selModel = dialog.attributes.values.grid.selModel;
+					var currentNode = selModel.getSelected();
+					var attributes = {
+						attribute_id: attributeId,
+						names: {},
+						_new: true,
+						phantom: true
+					};
+					var store = dialog.attributes.values.store;
+					if (dialog.attributes.values.editor.editing) dialog.attributes.values.store.removeAt(dialog.attributes.values.editor.rowIndex);
+					var n = new store.recordType(attributes);
+					store.addSorted(n);
+					return dialog.attributes.values.editor.startEditing(dialog.attributes.values.store.getCount()-1);
+				}
+			},
+			{	ref: '../action_delete',
+				disabled: true,
+				text: PC.i18n.del,
+				icon: 'images/delete.png',
+				handler: function() {
+					var n = dialog.attributes.values.grid.selModel.getSelected();
+					if (!n) return false;
+					Ext.MessageBox.show({
+						title: PC.i18n.msg.title.confirm,
+						msg: String.format(PC.i18n.msg.confirm_delete, '"'+ PC.utils.extractName(n.data.names) +'"'),
+						buttons: Ext.MessageBox.YESNO,
+						icon: Ext.MessageBox.WARNING,
+						fn: function(r) {
+							if (r == 'yes') {
+								Ext.Ajax.request({
+									url: apiUrl +'attributes/values/delete',
+									method: 'POST',
+									params: {id: n.id},
+									callback: function(opts, success, response) {
+										if (success && response.responseText) {
+											try {
+												var data = Ext.decode(response.responseText);
+												if (data.success) {
+													//remove attribute value from selection store in editors
+													var valueAttribute = PC.plugin.pc_shop.attributes.Store.getById(n.data.attribute_id);
+													if (valueAttribute) {
+														delete valueAttribute.data.values[n.id]
+													}
+													dialog.attributes.values.store.remove(n);
+													return;
+												}
+												else error = data.error;
+											}
+											catch(e) {
+												var error = 'Invalid JSON data returned.';
+											};
+										}
+										else var error = 'Connection error.';
+										Ext.MessageBox.show({
+											title: PC.i18n.error,
+											msg: (error?'<b>'+ error +'</b>':''),
+											buttons: Ext.MessageBox.OK,
+											icon: Ext.MessageBox.ERROR
+										});
+									}
+								});
+							}
+						}
+					});
+				}
+			}
+		],
+		bbar: new Ext.PagingToolbar({
+			store: dialog.attributes.values.store,
+			displayInfo: true,
+			pageSize: dialog.attributes.values.store.perPage,
+			prependButtons: true
+		})
+    });
+	
+	dialog.attributes.east = {
+		xtype: 'panel',
+		region: 'east',
+		layout: 'fit',
+		padding: '6px 6px 6px 0',
+		bodyCssClass: 'x-border-layout-ct',
+		split: true,
+		border: false,
+		items: dialog.attributes.values.grid
+	}
+	
+	dialog.attributes.tab = {
+		title: ln.tab.attributes,
+		layout: 'border',
+		items: [dialog.attributes.center, dialog.attributes.east]
+	}
+	
+	/* Window Layout */
 	
 	dialog.tab = new Ext.TabPanel({
 		region: 'center',
@@ -455,19 +980,19 @@ function mod_pc_shop_click() {
 			dialog.grid,
 			{title: ln.tab.sales, html:'Under construction'},
 			{title: ln.tab.coupons, html:'Under construction'},
-			dialog.attributes,
+			dialog.attributes.tab,
 			{title: ln.tab.currencies, html:'Under construction'},
 			{title: ln.tab.manufacturers, html:'Under construction'},
 			{title: ln.tab.settings, html:'Under construction'}
 		],
-		activeTab: 0
+		activeTab: 3
 	});
 	
 	dialog.w = new Ext.Window({
 		layout: 'border',
 		title: ln.name,
-		width: 800,
-		height: 500,
+		width: 900,
+		height: 550,
 		maximizable: true,
 		items: [dialog.tab],
 		buttonAlign: 'left',
@@ -483,13 +1008,16 @@ function mod_pc_shop_click() {
 		],
 		closeAction: 'hide'
 	});
+	
 	dialog.w.show();
 }
 
-PC.plugin.pc_shop = {
+Ext.ns('PC.plugin.pc_shop');
+var cfg = {
 	name: PC.i18n.mod.pc_shop.name,
 	onclick: mod_pc_shop_click,
 	icon: <?php echo json_encode(get_plugin_icon()) ?>,
 	priority: <?php echo $mod['priority'] ?>
 };
+Ext.apply(PC.plugin.pc_shop, cfg);
 </script>

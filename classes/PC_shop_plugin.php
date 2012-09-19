@@ -84,6 +84,7 @@ final class PC_shop_plugin extends PC_base {
 		
 		if (empty($idData['type'])) {
 			$parentId = 0;
+			$pid = $idData['id'];
 			$idData['type'] = 'category';
 		}
 		else $parentId = $idData['id'];
@@ -95,7 +96,7 @@ final class PC_shop_plugin extends PC_base {
 				'perPage'=> v($additional['perPage'], 30)
 			);
 			$cParams = array('paging'=> &$paging);
-			$categories = $shop->categories->Get(null, $parentId, $cParams);
+			$categories = $shop->categories->Get(null, $parentId, v($pid), $cParams);
 			$this->Parse_category_nodes($categories, $list);
 			//list products
 			//$paging->Set_initial_offset(count($list));
@@ -122,7 +123,10 @@ final class PC_shop_plugin extends PC_base {
 				'id'=> $this->plugin.'/category/'.$d['id'],
 				'_names'=> $names,
 				'draggable' => false,
-				'allowDrop'=> false
+				'allowDrop'=> false,
+				'hot'=> $d['hot'],
+				'nomenu'=> $d['nomenu'],
+				'published'=> $d['published']
 			);
 			if ($d['rgt'] - $d['lft'] == 1) {
 				$listData['_empty'] = 1;
@@ -147,7 +151,10 @@ final class PC_shop_plugin extends PC_base {
 				'_names'=> $names,
 				'leaf'=> true,
 				'draggable' => false,
-				'allowDrop'=> false
+				'allowDrop'=> false,
+				'hot'=> $d['hot'],
+				'nomenu'=> $d['nomenu'],
+				'published'=> $d['published']
 			);
 		}
 		return true;

@@ -3,7 +3,7 @@ Category template
 //$shop = $this->core->Get_object('PC_shop_site');
 //$shop = $this->shop (controller already got this property by calling Get_object);
 echo '<h2>Current path</h2><hr />';
-$path = $this->Get_full_path();
+$path = $this->site->Get_page_path();
 for ($a=0; isset($path[$a]); $a++) {
 	$i =& $path[$a];
 	//print_pre($i);

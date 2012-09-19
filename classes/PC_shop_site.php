@@ -1,7 +1,7 @@
 <?php
 class PC_shop_site extends PC_shop {}
 class PC_shop_categories_site extends PC_shop_categories {
-	public function Get($id=null, $parentId=null, &$params=array()) {
+	public function Get($id=null, $parentId=null, $pid=null, &$params=array()) {
 		$this->core->Init_params($params);
 		$returnOne = !is_null($id);
 		//format query params and parse filters
@@ -17,6 +17,10 @@ class PC_shop_categories_site extends PC_shop_categories {
 			if (!is_null($parentId)) {
 				$queryParams[] = $parentId;
 				$where[] = 'c.parent_id=?';
+				if (!is_null($pid)) {
+					$queryParams[] = $pid;
+					$where[] = 'c.pid=?';
+				}
 			}
 			if ($params->Has_paging()) {
 				$limit = " LIMIT {$params->paging->Get_offset()},{$params->paging->Get_limit()}";
@@ -64,24 +68,30 @@ class PC_shop_categories_site extends PC_shop_categories {
 	public function Parse(&$d) {
 		$this->Decode_flags($d);
 		if (isset($d['description'])) $this->page->Parse_html_output($d['description']);
+		//parse attributes
+		
 		//$d['path'] = $this->Get_path($d);
 		//$d['resources'] = $this->
 	}
 	public function Load_path(&$c) {
+		if ($c['parent_id'] == 0) {
+			$c['path'] = array($c);
+			return true;
+		}
 		if (!is_array($c)) return false;
 		if (!isset($c['id'])) return false;
-		$r = $this->prepare("SELECT p.id,p.flags,cc.name,cc.route,"
+		$r = $this->prepare("SELECT path.id,path.pid,path.flags,cc.name,cc.route,path.external_id,"
 		.' concat('.$this->sql_parser->group_concat('link_cc.route', array('distinct'=>true,'separator'=>'/','order'=>array('by'=>'link_c.lft'))).",'/') link, count(cp.id) products"
 		." FROM {$this->db_prefix}shop_categories c"
-		." LEFT JOIN {$this->db_prefix}shop_categories p ON c.lft between p.lft and p.rgt"
-		." LEFT JOIN {$this->db_prefix}shop_category_contents cc ON cc.category_id=p.id and cc.ln=?"
+		." LEFT JOIN {$this->db_prefix}shop_categories path ON c.lft between path.lft and path.rgt"
+		." LEFT JOIN {$this->db_prefix}shop_category_contents cc ON cc.category_id=path.id and cc.ln=?"
 		//count products in this category
-		." LEFT JOIN {$this->db_prefix}shop_products cp ON cp.category_id=p.id"
+		." LEFT JOIN {$this->db_prefix}shop_products cp ON cp.category_id=path.id"
 		//generate full route path
-		." LEFT JOIN {$this->db_prefix}shop_categories link_c ON p.lft BETWEEN link_c.lft and link_c.rgt"
+		." LEFT JOIN {$this->db_prefix}shop_categories link_c ON path.lft BETWEEN link_c.lft and link_c.rgt"
 		." LEFT JOIN {$this->db_prefix}shop_category_contents link_cc ON link_cc.category_id = link_c.id and link_cc.ln=cc.ln"
 		." WHERE c.id=?"
-		." GROUP BY p.id ORDER BY p.lft");
+		." GROUP BY path.id ORDER BY path.lft");
 		$s = $r->execute(array($this->site->ln, $c['id']));
 		if (!$s) return false;
 		$list = array();
@@ -131,12 +141,19 @@ class PC_shop_products_site extends PC_shop_products {
 		//query!
 		$r = $this->prepare($qry = "SELECT ".($params->Has_paging()?'SQL_CALC_FOUND_ROWS ':'')."p.*,pc.*,"
 		.' concat('.$this->sql_parser->group_concat('link_cc.route', array('distinct'=>true,'separator'=>'/')).",'/',pc.route,'/') link"
+		//." group_concat() attributes"
 		." FROM {$this->db_prefix}shop_products p"
 		." LEFT JOIN {$this->db_prefix}shop_product_contents pc ON pc.product_id=p.id and pc.ln=?"
 		//generate full route path
 		." LEFT JOIN {$this->db_prefix}shop_categories c ON c.id=p.category_id"
 		." LEFT JOIN {$this->db_prefix}shop_categories link_c ON c.lft BETWEEN link_c.lft and link_c.rgt"
 		." LEFT JOIN {$this->db_prefix}shop_category_contents link_cc ON link_cc.category_id = link_c.id and link_cc.ln=pc.ln"
+		//attributes
+		/*." LEFT JOIN {$this->db_prefix}shop_item_attributes ia ON ia.item_id=? and (flags & ?)=0"
+		." LEFT JOIN {$this->db_prefix}shop_attributes a ON a.id=ia.attribute_id"
+		." LEFT JOIN {$this->db_prefix}shop_attribute_contents ac ON ac.attribute_id=a.id and ln=?"
+		." LEFT JOIN {$this->db_prefix}shop_attributes_values av ON av.attribute_id=a.id"
+		." LEFT JOIN {$this->db_prefix}shop_attribute_value_contents avc ON avc.value_id=av.id and ln=?"*/
 		//filters
 		.(count($where)?' WHERE '.implode(' and ', $where):'')
 		." GROUP BY p.id".$limit);

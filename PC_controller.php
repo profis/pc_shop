@@ -122,10 +122,13 @@ final class PC_controller_pc_shop extends PC_controller {
 					$this->currentProduct = $d;
 					$this->currentCategory = $this->shop->categories->Get($d['category_id']);
 					$this->shop->categories->Load_path($this->currentCategory);
-					$this->currentPath = $this->currentCategory['path'];
-					//$this->site->Use_component('js/hooks');
-					$this->site->Add_script($this->core->Get_url('plugins','','pc_shop')."js/products.js");
-					$this->Render('product');
+					if ($this->site->Is_opened($this->currentCategory['path'][0]['pid'])) {
+						$this->Set_current_path($this->currentCategory['path']);
+						//$this->site->Use_component('js/hooks');
+						$this->site->Add_script($this->core->Get_url('plugins','','pc_shop')."js/products.js");
+						$this->Render('product');
+					}
+					else $this->core->Do_action('show_error', 404);
 				}
 				else {
 					//invalid product path
@@ -134,13 +137,13 @@ final class PC_controller_pc_shop extends PC_controller {
 			}
 			else {
 				$params = array('filter'=> array('cc.route'=> $last), 'load_path'=> true);
-				$d = $this->shop->categories->Get(null, null, $params);
+				$d = $this->shop->categories->Get(null, null, null, $params);
 				if ($d) {
 					$d = $d[0];
-					if ($d['link'] == $path) {
+					if ($d['link'] == $path && $this->site->Is_opened($d['path'][0]['pid'])) {
 						$this->type = 'category';
 						$this->currentCategory = $d;
-						$this->currentPath = $d['path'];
+						$this->Set_current_path($d['path']);
 						$this->Render('category');
 					}
 					else {
@@ -162,6 +165,15 @@ final class PC_controller_pc_shop extends PC_controller {
 			*/
 		}
 	}
+	public function Set_current_path($path) {
+		if (!is_array($path)) return false;
+		if (count($path)) {
+			foreach ($path as $i) {
+				$this->site->Path_append($this->name, $i);
+			}
+		}
+		return true;
+	}
 	public function Get_full_path() {
 		if (is_null($this->currentProduct)) return $this->currentPath;
 		$path = $this->currentPath;
@@ -169,12 +181,6 @@ final class PC_controller_pc_shop extends PC_controller {
 		$pr['type'] = 'product';
 		$path[] = $pr;
 		return $path;
-	}
-	public function Is_category_opened($id) {
-		foreach ($this->currentPath as &$i) {
-			if ($i['id'] === $id) return true;
-		}
-		return false;
 	}
 	public function Is_product_opened($id) {
 		if (!is_array($this->currentProduct)) return false;

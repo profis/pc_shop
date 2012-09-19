@@ -1,17 +1,37 @@
 <?php
 abstract class PC_shop extends PC_base {
 	public $categories, $products, $resources;
+	
+	/**
+	 *
+	 * @var PC_shop_attributes 
+	 */
+	public $attributes;
+	
+	/**
+	 *
+	 * @var PC_shop_cart 
+	 */
+	public $cart;
+	
+	/**
+	 *
+	 * @var PC_shop_orders 
+	 */
+	public $orders;
+	
 	final public function Init($admin=false) {
 		if ($admin || is_a($this, 'PC_shop_manager')) $clsSuffix = 'manager';
 		else $clsSuffix = 'site';
 		$this->categories = $this->core->Get_object('PC_shop_categories_'.$clsSuffix, array($this));
 		$this->products = $this->core->Get_object('PC_shop_products_'.$clsSuffix, array($this));
 		$this->resources = $this->core->Get_object('PC_shop_resources'.($clsSuffix=='manager'?"_".$clsSuffix:""), array($this));
+		$this->attributes = $this->core->Get_object('PC_shop_attributes', array($this));
 		$this->cart = $this->core->Get_object('PC_shop_cart', array($this));
 		$this->orders = $this->core->Get_object('PC_shop_orders', array($this));
 		//register database fields
 		$fields = array();
-		$fields['categories'] = array('flags', 'discount', 'percentage_discount', 'external_id'); //parent_id, active ?
+		$fields['categories'] = array('flags', 'discount', 'percentage_discount', 'external_id');
 		$fields['category_contents'] = array('name', 'description', 'seo_title', 'seo_description', 'seo_keywords', 'route');
 		$fields['products'] = array('manufacturer_id', 'mpn', 'quantity', 'flags', 'warranty', 'discount', 'percentage_discount', 'price', 'external_id');
 		$fields['product_contents'] = array('name', 'short_description', 'description', 'seo_title', 'seo_description', 'seo_keywords', 'route');
@@ -40,7 +60,7 @@ abstract class PC_shop extends PC_base {
 			case 'ln': return $this->site->Language_exists($value);
 			case 'name': 
 				if (empty($value)) return true;
-				return Validate('name', $value, array('length'=>array('to'=> 255)));
+				return Validate('name', $value, true, array('length'=>array('from'=> 1, 'to'=> 255)));
 			case 'description': return true;
 			case 'seo_title': return true;
 			case 'seo_description': return true;
@@ -54,7 +74,9 @@ abstract class PC_shop extends PC_base {
 			case 'external_id':
 				if (empty($value)) $value = null;
 				return true;
-			case 'route': return true;
+			case 'route': 
+				//$value = Sanitize('route', $value);
+				return true;
 			default: return false;
 		}
 		return false;
@@ -65,7 +87,13 @@ abstract class PC_shop extends PC_base {
 }
 class PC_shop_categories extends PC_base {
 	protected $shop;
-	const CF_DEFAULT = 0x1, CF_IS_ACTIVE = 0x1;
+	const CF_DEFAULT = 0x1, CF_PUBLISHED = 0x1, CF_HOT = 0x2, CF_NOMENU = 0x4, CF_ROUTE_LOCK = 0x8;
+	private $flagsMap = array(
+		'hot'=> self::CF_HOT,
+		'nomenu'=> self::CF_NOMENU,
+		'published'=> self::CF_PUBLISHED,
+		'route_lock'=> self::CF_ROUTE_LOCK
+	);
 	public function Init(PC_shop $shop) {
 		$this->shop = $shop;
 	}
@@ -75,20 +103,18 @@ class PC_shop_categories extends PC_base {
 		if (!$s) return false;
 		return (bool)$r->rowCount();
 	}
-	public function Is_active($id) {
-		$r = $this->prepare("SELECT active FROM {$this->db_prefix}shop_categories WHERE id=? LIMIT 1");
+	public function Is_published($id) {
+		$r = $this->prepare("SELECT flags FROM {$this->db_prefix}shop_categories WHERE id=? LIMIT 1");
 		$s = $r->execute(array($id));
 		if (!$s) return false;
-		return (bool)$r->fetchColumn();
+		$flags = $r->fetchColumn();
+		return ($flags & self::CF_PUBLISHED > 0);
 	}
 	public function Encode_flags(&$data, $createMode=true) {
 		if (!isset($data['flags'])) {
 			if ($createMode) $data['flags'] = self::CF_DEFAULT;
 		}
-		$fields = array(
-			'active'=> self::CF_IS_ACTIVE
-		);
-		foreach ($fields as $field=>$flag) {
+		foreach ($this->flagsMap as $field=>$flag) {
 			if (isset($data[$field])) {
 				if ((bool)$data[$field]) $data['flags'] |= $flag; //activate
 				else $data['flags'] &= ~$flag;
@@ -99,10 +125,7 @@ class PC_shop_categories extends PC_base {
 	}
 	public function Decode_flags(&$data) {
 		if (!isset($data['flags'])) return false;
-		$fields = array(
-			'active'=> self::CF_IS_ACTIVE
-		);
-		foreach ($fields as $field => $flag) {
+		foreach ($this->flagsMap as $field => $flag) {
 			if (($data['flags'] & $flag) != 0) $data[$field] = true;
 			else $data[$field] = false;
 		}
@@ -111,8 +134,16 @@ class PC_shop_categories extends PC_base {
 }
 class PC_shop_products extends PC_base {
 	protected $shop;
-	const PF_DEFAULT = 0x1, PF_IS_ACTIVE = 0x1,
-	PF_IS_PRODUCT_GROUP = 0x2, PF_PARENT_IS_PRODUCT = 0x4;
+	const PF_DEFAULT = 0x1, PF_PUBLISHED = 0x1,
+	PF_IS_PRODUCT_GROUP = 0x2, PF_PARENT_IS_PRODUCT = 0x4, PF_HOT = 0x8, PF_NOMENU = 0x16, PF_ROUTE_LOCK = 0x32;
+	private $flagsMap = array(
+		'hot'=> self::PF_HOT,
+		'nomenu'=> self::PF_NOMENU,
+		'published'=> self::PF_PUBLISHED,
+		'is_product_group'=> self::PF_IS_PRODUCT_GROUP,
+		'parent_is_product'=> self::PF_PARENT_IS_PRODUCT,
+		'route_lock'=> self::PF_ROUTE_LOCK
+	);
 	public function Init(PC_shop $shop) {
 		$this->shop = $shop;
 	}
@@ -122,11 +153,12 @@ class PC_shop_products extends PC_base {
 		if (!$s) return false;
 		return (bool)$r->rowCount();
 	}
-	public function Is_active($id) {
-		$r = $this->prepare("SELECT active FROM {$this->db_prefix}shop_products WHERE id=? LIMIT 1");
+	public function Is_published($id) {
+		$r = $this->prepare("SELECT flags FROM {$this->db_prefix}shop_products WHERE id=? LIMIT 1");
 		$s = $r->execute(array($id));
 		if (!$s) return false;
-		return (bool)$r->fetchColumn();
+		$flags = $r->fetchColumn();
+		return ($flags & self::PF_PUBLISHED > 0);
 	}
 	public function Count($categoryId=null) {
 		$r = $this->prepare("SELECT count(*) FROM {$this->db_prefix}shop_products".(!is_null($categoryId)?" WHERE category_id=?":""));
@@ -141,12 +173,7 @@ class PC_shop_products extends PC_base {
 			if ($createMode) $data['flags'] = self::PF_DEFAULT;
 			//else $data['flags'] = self::PF_UPDATE;
 		}
-		$fields = array(
-			'active'=> self::PF_IS_ACTIVE,
-			'is_product_group'=> self::PF_IS_PRODUCT_GROUP,
-			'parent_is_product'=> self::PF_PARENT_IS_PRODUCT
-		);
-		foreach ($fields as $field=>$flag) {
+		foreach ($this->flagsMap as $field=>$flag) {
 			if (isset($data[$field])) {
 				if ((bool)$data[$field]) $data['flags'] |= $flag; //activate
 				else $data['flags'] &= ~$flag;
@@ -157,12 +184,7 @@ class PC_shop_products extends PC_base {
 	}
 	public function Decode_flags(&$data) {
 		if (!isset($data['flags'])) return false;
-		$fields = array(
-			'active'=> self::PF_IS_ACTIVE,
-			'is_product_group'=> self::PF_IS_PRODUCT_GROUP,
-			'parent_is_product'=> self::PF_PARENT_IS_PRODUCT
-		);
-		foreach ($fields as $field => $flag) {
+		foreach ($this->flagsMap as $field => $flag) {
 			if( ($data['flags'] & $flag) != 0) $data[$field] = true;
 			else $data[$field] = false;
 		}
@@ -289,6 +311,370 @@ class PC_shop_item_resources extends PC_base {
 		}
 		//save in cache and return
 		return $this->cache->Cache($cachePath, $list);
+	}
+}
+class PC_shop_attributes extends PC_base {
+	const ITEM_IS_CATEGORY = 0x1, ITEM_IS_PRODUCT = 0x2;
+	//related_to_category
+	/**
+	 * attributes
+	 * @param type $id
+	 * @param type $params
+	 * @return boolean
+	 */
+	public function Get($id=null, &$params=array()) { //main
+		$this->core->Init_params($params);
+		$where = $queryParams = array();
+		$returnOne = false;
+		//paging
+		if (!is_null($id)) {
+			if (is_array($id)) {
+				$where[] = 'a.id '.$this->sql_parser->in($id);
+				$queryParams = array_merge($queryParams, $id);
+			}
+			else {
+				$returnOne = true;
+				$queryParams[] = $id;
+				$where[] = 'a.id=?';
+				$limit = ' LIMIT 1';
+			}
+		}
+		elseif ($params->Has_paging()) {
+			$limit = " LIMIT {$params->paging->Get_offset()},{$params->paging->Get_limit()}";
+		}
+		if (isset($params->filter)) if (is_array($params->filter)) if (count($params->filter)) {
+			foreach ($params->filter as $field=>$value) {
+				$where[] = $field.'=?';
+				$queryParams[] = $value;
+			}
+		}
+		$r = $this->prepare("SELECT ".($params->Has_paging()?'SQL_CALC_FOUND_ROWS ':'')."a.*,"
+		.$this->sql_parser->group_concat($this->sql_parser->concat_ws('░', 'c.ln', 'c.name'), array('separator'=>'▓', 'distinct'=> true))." names"
+		.($params->Get('includeValues')?
+			','.$this->sql_parser->group_concat($this->sql_parser->concat_ws('░', 'avc.value_id', 'avc.ln', 'avc.value'), array('separator'=>'▓'))." attrValues"
+		:"")
+		." FROM {$this->db_prefix}shop_attributes a"
+		." LEFT JOIN {$this->db_prefix}shop_attribute_contents c ON c.attribute_id=a.id"
+		.($params->Get('includeValues')?
+			//join attribute values
+			" LEFT JOIN {$this->db_prefix}shop_attribute_values av ON av.attribute_id=a.id"
+			." LEFT JOIN {$this->db_prefix}shop_attribute_value_contents avc ON avc.value_id=av.id"
+		:"")
+		.(count($where)?' WHERE '.implode(' and ', $where):'')." GROUP BY a.id".v($limit ,''));
+		$s = $r->execute($queryParams);
+		if (!$s) return !$params->errors->Add('database', '');
+		if ($params->Has_paging()) {
+			$rTotal = $this->query("SELECT FOUND_ROWS()");
+			if ($rTotal) $params->paging->Set_total($rTotal->fetchColumn());
+		}
+		$list = array();
+		//print_pre($r);
+		//print_pre($r->fetchAll());
+		//exit;
+		while ($d = $r->fetch()) {
+			if (is_null($d['id'])) continue;
+			$this->core->Parse_data_str($d['names'], '▓', '░');
+			if ($params->Get('includeValues')) {
+				$tmp = explode('▓', $d['attrValues']);
+				unset($d['attrValues']);
+				$d['values'] = array();
+				if (count($tmp) && strpos($tmp[0], '░')) {
+					for ($a=0; isset($tmp[$a]); $a++) {
+						$temp = explode('░', $tmp[$a]);
+						$d['values'][$temp[0]][$temp[1]] = $temp[2];
+					}
+				}
+				unset($tmp);
+			}
+			$list[] = $d;
+		}
+		if ($returnOne) {
+			if (!count($list)) return false;
+			return $list[0];
+		}
+		else return $list;
+	}
+	
+	/**
+	 * 
+	 * @param type $id
+	 * @param type $data
+	 * @param type $params
+	 * @return boolean
+	 */
+	public function Edit($id, $data, &$params) {
+		$this->core->Init_params($params);
+		$set = $queryParams = array();
+		if (isset($data['is_category_attribute'])) {
+			$set[] = 'is_category_attribute=?';
+			$queryParams[] = $data['is_category_attribute'];
+		}
+		if (isset($data['is_searchable'])) {
+			$set[] = 'is_searchable=?';
+			$queryParams[] = $data['is_searchable'];
+		}
+		if (isset($data['is_custom'])) {
+			$set[] = 'is_custom=?';
+			$queryParams[] = $data['is_custom'];
+		}
+		//main attribute data
+		if (count($set)) {
+			$queryParams[] = $id;
+			$r = $this->prepare("UPDATE {$this->db_prefix}shop_attributes SET ".implode(',', $set)." WHERE id=?");
+			$s = $r->execute($queryParams);
+			if (!$s) return !$params->errors->Add('database', '');
+		}
+		//save names
+		if (is_array($data['names'])) if (count($data['names'])) {
+			$rContents = $this->prepare("UPDATE {$this->db_prefix}shop_attribute_contents SET name=? WHERE attribute_id=? and ln=?");
+			foreach ($data['names'] as $ln=>$name) {
+				$rContents->execute(array($name, $id, $ln));
+			}
+		}
+		return true;
+	}
+	
+	/**
+	 * 
+	 * @param type $names
+	 * @return type
+	 */
+	public function Create($isCategoryAttribute=false, $names=array(), &$params=array()) { //manager
+		$this->core->Init_params($params);
+		//create empty attribute
+		$r = $this->prepare("INSERT INTO {$this->db_prefix}shop_attributes (id,is_category_attribute) VALUES (null,?)");
+		$s = $r->execute(array($isCategoryAttribute));
+		if (!$s) return !$params->errors->Add('database', '');
+		$attributeId = $this->db->lastInsertId($this->sql_parser->Get_sequence('shop_attributes'));
+		//insert contents
+		$vals = $queryParams = array();
+		if (count($names)) foreach ($names as $ln=>$name) {
+			$vals[] = '('.$attributeId.',?,?)';
+			$queryParams[] = $ln;
+			$queryParams[] = $name;
+		}
+		$r = $this->prepare("INSERT INTO {$this->db_prefix}shop_attribute_contents (attribute_id,ln,name) VALUES ".implode(',', $vals));
+		$s = $r->execute($queryParams);
+		return $attributeId;
+	}
+	
+	/**
+	 * 
+	 * @param type $id
+	 * @return boolean
+	 */
+	public function Delete($id) { //manager
+		$r = $this->prepare("DELETE FROM {$this->db_prefix}shop_attributes WHERE id=?");
+		$s = $r->execute(array($id));
+		if (!$s) return false;
+		$r = $this->prepare("DELETE FROM {$this->db_prefix}shop_attribute_contents WHERE attribute_id=?");
+		$r->execute(array($id));
+		$r = $this->prepare("SELECT id FROM {$this->db_prefix}shop_attribute_values WHERE attribute_id=?");
+		$s = $r->execute(array($id));
+		if ($s) {
+			$valueIds = array();
+			while ($d = $r->fetchColumn()) {
+				$valueIds[] = $d;
+			}
+			$this->DeleteValue($valueIds);
+		}
+		return true;
+	}
+	
+	/**
+	 * 
+	 * @param type $id
+	 * @return boolean
+	 */
+	public function DeleteValue($id) {
+		$queryParams = array();
+		if (!is_array($id)) $queryParams[] = $id;
+		else $queryParams = array_merge($queryParams, $id);
+		$r = $this->prepare("DELETE FROM {$this->db_prefix}shop_attribute_values WHERE ".(is_array($id)?'id '.$this->sql_parser->in($id):'id=?'));
+		$s = $r->execute($queryParams);
+		if (!$s) return false;
+		//delete value contents
+		$this->prepare("DELETE FROM {$this->db_prefix}shop_attribute_value_contents"
+		." WHERE ".(is_array($id)?'value_id '.$this->sql_parser->in($id):'value_id=?'))
+		->execute($queryParams);
+		return true;
+	}
+	/**
+	 * attribute values
+	 * @param type $attributeId
+	 * @param type $params
+	 * @return boolean
+	 */
+	public function Get_values($attributeId, &$params=array()) {
+		$this->core->Init_params($params);
+		$where = $queryParams = array();
+		$returnOne = false;
+		$limit = '';
+		//paging
+		if (!is_null($attributeId)) {
+			if (is_array($attributeId)) {
+				$where[] = 'attribute_id '.$this->sql_parser->in($attributeId);
+				$queryParams = array_merge($queryParams, $attributeId);
+			}
+			else {
+				$queryParams[] = $attributeId;
+				$where[] = 'attribute_id=?';
+			}
+		}
+		elseif ($params->Has_paging()) {
+			$limit = " LIMIT {$params->paging->Get_offset()},{$params->paging->Get_limit()}";
+		}
+		if (isset($params->filter)) if (is_array($params->filter)) if (count($params->filter)) {
+			foreach ($params->filter as $field=>$value) {
+				$where[] = $field.'=?';
+				$queryParams[] = $value;
+			}
+		}
+		$r = $this->prepare("SELECT ".($params->Has_paging()?'SQL_CALC_FOUND_ROWS ':'')."v.*,"
+		.$this->sql_parser->group_concat($this->sql_parser->concat_ws('░', 'ln', 'value'), array('separator'=>'▓'))." names"
+		." FROM {$this->db_prefix}shop_attribute_values v"
+		." LEFT JOIN {$this->db_prefix}shop_attribute_value_contents c ON c.value_id=v.id"
+		.(count($where)?' WHERE '.implode(' and ', $where):'')." GROUP BY v.id".$limit);
+		$s = $r->execute($queryParams);
+		if (!$s) return !$params->errors->Add('database', '');
+		if ($params->Has_paging()) {
+			$rTotal = $this->query("SELECT FOUND_ROWS()");
+			if ($rTotal) $params->paging->Set_total($rTotal->fetchColumn());
+		}
+		$list = array();
+		while ($d = $r->fetch()) {
+			if (is_null($d['id'])) continue;
+			$this->core->Parse_data_str($d['names'], '▓', '░');
+			$list[] = $d;
+		}
+		if ($returnOne) {
+			if (!count($list)) return false;
+			return $list[0];
+		}
+		else return $list;
+	}
+	
+	/**
+	 * 
+	 * @param type $attributeId
+	 * @param type $values
+	 * @param type $params
+	 * @return type
+	 */
+	public function Assign_value($attributeId, $values=array(), &$params=array()) {
+		$this->core->Init_params($params);
+		$r = $this->prepare("INSERT INTO {$this->db_prefix}shop_attribute_values (attribute_id) VALUES(?)");
+		$s = $r->execute(array($attributeId));
+		if (!$s) return !$params->errors->Add('database', '');
+		$id = $this->db->lastInsertId($this->sql_parser->Get_sequence('shop_attribute_values'));
+		if (is_array($values)) if (count($values)) {
+			$r = $this->prepare("INSERT INTO {$this->db_prefix}shop_attribute_value_contents (value_id,ln,value) VALUES(?,?,?)");
+			foreach ($values as $ln=>$value) {
+				$r->execute(array($id, $ln, $value));
+			}
+		}
+		return $id;
+	}
+	
+	/**
+	 * 
+	 * @param type $id
+	 * @param type $values
+	 * @return boolean
+	 */
+	public function Edit_value($id, $values) {
+		$r = $this->prepare("SELECT id FROM {$this->db_prefix}shop_attribute_values WHERE id=?");
+		$s = $r->execute(array($id));
+		if (!$s) return false;
+		if (!$r->rowCount()) return false;
+		if (is_array($values)) if (count($values)) {
+			$rExists = $this->prepare("SELECT value_id FROM {$this->db_prefix}shop_attribute_value_contents WHERE value_id=? and ln=?");
+			$rInsert = $this->prepare("INSERT INTO {$this->db_prefix}shop_attribute_value_contents (value_id,ln,value) VALUES(?,?,?)");
+			$rUpdate = $this->prepare("UPDATE {$this->db_prefix}shop_attribute_value_contents SET value=? WHERE value_id=? and ln=?");
+			foreach ($values as $ln=>$value) {
+				$s = $rExists->execute(array($id, $ln));
+				if ($s) {
+					if ($rExists->rowCount()) {
+						$rUpdate->execute(array($value, $id, $ln));
+					}
+					else $rInsert->execute(array($id, $ln, $value));
+				}
+			}
+		}
+		return true;
+	}
+	
+	/* Item attributes */
+	public function Get_for_item($itemId, $itemType=self::ITEM_IS_PRODUCT, &$params) {
+		if (is_null($itemType)) $itemType = self::ITEM_IS_PRODUCT;
+		$this->core->Init_params($params);
+		$flags = $itemType;
+		$queryParams = array($itemId, $flags, $flags);
+		$r = $this->prepare("SELECT * FROM {$this->db_prefix}shop_item_attributes WHERE item_id=? AND (flags&?)=?");
+		$s = $r->execute($queryParams);
+		if (!$s) return false;
+		$list = array();
+		while ($d = $r->fetch()) $list[] = $d;
+		return $list;
+	}
+	public function Assign_to_item($itemId, $itemType=self::ITEM_IS_PRODUCT, $attributeId, $valueId=null, $value=null) {
+		$r = $this->prepare("INSERT INTO {$this->db_prefix}shop_item_attributes (item_id,attribute_id,flags,value_id,value) VALUES(?,?,?,?,?)");
+		$s = $r->execute(array($itemId, $attributeId, $itemType, $valueId, $value));
+		if (!$s) return false;
+		return $this->db->lastInsertId($this->sql_parser->Get_sequence('shop_item_attributes'));
+	}
+	public function Edit_for_item($id, $valueId=null, $value=null) {
+		$r = $this->prepare("UPDATE {$this->db_prefix}shop_item_attributes SET value_id=?, value=? WHERE id=?");
+		$s = $r->execute(array($valueId, $value, $id));
+		return $s;
+	}
+	public function Remove_from_item($id=null, $itemId=null, $itemType=self::ITEM_IS_PRODUCT) {
+		$queryParams = $where = array();
+		if (!is_null($id)) {
+			if (is_array($id)) {
+				$where[] = 'id '.$this->sql_parser->in($id);
+				$queryParams = array_merge($queryParams, $id);
+			}
+			else {
+				$where[] = 'id=?';
+				$queryParams[] = $id;
+			}
+		}
+		else if (!is_null($itemId)) {
+			$where[] = 'item_id=? and flags&?=?';
+			array_push($queryParams, $itemId, $itemType, $itemType);
+		}
+		if (!count($where)) return false;
+		$r = $this->prepare("DELETE FROM {$this->db_prefix}shop_item_attributes WHERE ".implode(' and ', $where));
+		$s = $r->execute($queryParams);
+		return $s;
+	}
+	public function Save_for_item($itemId, $itemType=self::ITEM_IS_PRODUCT, $data) {
+		if (!is_array($data)) return false;
+		if (count(v($data['save'], array()))) foreach ($data['save'] as $i) {
+			if ($i['id'] == 0) {
+				$this->Assign_to_item($itemId, $itemType, $i['attribute_id'], $i['value_id'], $i['value']);
+			}
+			else {
+				$this->Edit_for_item($i['id'], $i['value_id'], $i['value']);
+			}
+		}
+		if (count(v($data['remove'], array()))) foreach ($data['remove'] as $id) {
+			$this->Remove_from_item($id);
+		}
+		return true;
+	}
+	public function Get_suggestions($id) {
+		$r = $this->prepare("SELECT value FROM {$this->db_prefix}shop_item_attributes WHERE attribute_id=?");
+		$s = $r->execute(array($id));
+		if (!$s) return false;
+		$list = array();
+		while ($d = $r->fetchColumn()) {
+			if (is_null($d)) continue;
+			if (in_array($d, $list)) continue;
+			$list[] = $d;
+		}
+		return $list;
 	}
 }
 class PC_shop_orders extends PC_base {
@@ -455,7 +841,6 @@ class PC_shop_orders extends PC_base {
 }
 class PC_shop_cart extends PC_base {
 	private $shop;
-	
 	public function Init(PC_shop $shop) {
 		$this->shop = $shop;
 		if (!isset($_SESSION['pc_shop']) || !is_array($_SESSION['pc_shop']))
@@ -464,6 +849,11 @@ class PC_shop_cart extends PC_base {
 			$this->Clear();
 	}
 	
+	/**
+	 * 
+	 * @param boolean $raw
+	 * @return type
+	 */
 	public function Get($raw=false) {
 		if ($raw) {
 			return $_SESSION['pc_shop']['cart'];
@@ -486,11 +876,10 @@ class PC_shop_cart extends PC_base {
 			$p = &$products[$cartItemInfo[0]];
 			$d['items'][$ciid] = &$p;
 			// $d['totalPrice'] += $p['totalPrice'] = $shop->products->Get_price($cartItemInfo[0], $cartItemInfo[1]);
-			$d['totalPrice'] += $p['totalPrice'] = $p['price'] * ($p["quantity"] = $cartItemInfo[1]);			
+			$d['totalPrice'] += $p['totalPrice'] = $p['price'] * ($p["quantity"] = $cartItemInfo[1]);
 		}
 		return $d;
 	}
-	
 	/** Finds a product entry CIID by productId and attributes */
 	public function Find($productId, $attributes=null) {
 		if( empty($_SESSION['pc_shop']['cart']['productIndex'][$productId]) )
@@ -506,6 +895,13 @@ class PC_shop_cart extends PC_base {
 		return key($_SESSION['pc_shop']['cart']['productIndex'][$productId]);
 	}
 	
+	/**
+	 * 
+	 * @param type $productId
+	 * @param type $quantity
+	 * @param type $attributes
+	 * @return boolean|int
+	 */
 	public function Add($productId, $quantity=1, $attributes=null) {
 		if (!$this->shop->products->Exists($productId)) return false;
 		if (!isset($_SESSION['pc_shop']['cart']['productIndex'][$productId]))
@@ -537,7 +933,6 @@ class PC_shop_cart extends PC_base {
 		
 		return $qty;
 	}
-	
 	/** Add a quantity to item in cart
 	*
 	* This method adds a specified quantity to an item already placed in the
@@ -553,12 +948,17 @@ class PC_shop_cart extends PC_base {
 		return $this->_SetQuantity($ciid, $_SESSION['pc_shop']['cart']['items'][$ciid][1] + intval($quantity));
 	}
 	
+	/**
+	 * 
+	 * @param type $ciid
+	 * @param type $quantity
+	 * @return int
+	 */
 	public function Set($ciid, $quantity=1) {
 		if (!isset($_SESSION['pc_shop']['cart']['items'][$ciid]))
 			return 0;
 		return $this->_SetQuantity($ciid, intval($quantity));
 	}
-	
 	/** Sets the quantity to an item in the cart (internal use only)
 	*
 	* This method assumes that item already exists in the cart so it does not
@@ -579,7 +979,13 @@ class PC_shop_cart extends PC_base {
 		$_SESSION['pc_shop']['cart']['totalQuantity'] += $qty - $old_qty;
 		return $qty;
 	}
-
+	
+	/**
+	 * Method used to remove item from cart
+	 * @param type $ciid
+	 * @param type $quantity
+	 * @return int
+	 */
 	public function Remove($ciid, $quantity=null) {
 		if (!isset($_SESSION['pc_shop']['cart']['items'][$ciid]))
 			return 0;
@@ -588,7 +994,11 @@ class PC_shop_cart extends PC_base {
 		$this->_SetQuantity($ciid, 0);
 		return 0;
 	}	
-
+	
+	/**
+	 * Method used to clear cart session data
+	 * @return boolean
+	 */
 	public function Clear() {
 		$_SESSION['pc_shop']['cart'] = Array(
 			"nextCIID" => 1,
@@ -598,11 +1008,9 @@ class PC_shop_cart extends PC_base {
 		);
 		return true;
 	}
-	
 	public function Order() {
 		//
 	}
-	
 	public function Count($uniqueItemsOnly=true) {
 		return $uniqueItemsOnly ? count($_SESSION['pc_shop']['cart']['items']) : $_SESSION['pc_shop']['cart']['totalQuantity'];
 	}

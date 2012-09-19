@@ -1,17 +1,18 @@
-Ext.ns('PC.plugin.'+ CurrentlyParsing);
-var Plugin = PC.plugin[CurrentlyParsing];
+var Plugin = Ext.ns('PC.plugin.'+ CurrentlyParsing);
+Plugin.Name = CurrentlyParsing;
 
 Plugin.productsPerPage = 5;
-Plugin.URL = PC.plugins.GetUrl(CurrentlyParsing);
+Plugin.URL = PC.plugins.GetUrl(Plugin.Name);
 Plugin.api = {
-	Public: PC.global.BASE_URL + '/api/plugin/'+ CurrentlyParsing +'/',
-	Admin: PC.global.BASE_URL + PC.global.ADMIN_DIR + '/api/plugin/'+ CurrentlyParsing +'/'
+	Public: PC.global.BASE_URL + '/api/plugin/'+ Plugin.Name +'/',
+	Admin: PC.global.BASE_URL + PC.global.ADMIN_DIR + '/api/plugin/'+ Plugin.Name +'/'
 };
 
-PC.utils.localize('mod.'+ CurrentlyParsing, {
+
+PC.utils.localize('mod.'+ Plugin.Name, {
 	en: {
 		new_subcategory: 'New subcategory',
-		new_product: 'New product',
+		new_product: 'New item',
 		main_images: 'Main images',
 		attachments: 'Attachments',
 		media: 'Media',
@@ -22,7 +23,6 @@ PC.utils.localize('mod.'+ CurrentlyParsing, {
 		properties: 'Properties',
 		external_id: 'External ID',
 		discount: 'Discount',
-		active: 'Active',
 		attributes: 'Attributes',
 		manufacturer: 'Manufacturer',
 		mpn: 'Manufacturer product number (MPN)',
@@ -31,10 +31,11 @@ PC.utils.localize('mod.'+ CurrentlyParsing, {
 		price: 'Price',
 		short_description: 'Short description',
 		msg: {
-			error_products_inside: 'You can`t delete category that has products inside.',
+			error_products_inside: 'You can`t delete category that has items inside.',
 			error_deleting_category: 'Error deleting category',
-			error_deleting_product: 'Error deleting product.',
-		}
+			error_deleting_product: 'Error deleting item.'
+		},
+		addAttribute: 'Add attribute'
 	},
 	lt: {
 		new_subcategory: 'Nauja subkategorija',
@@ -49,7 +50,6 @@ PC.utils.localize('mod.'+ CurrentlyParsing, {
 		properties: 'Nustatymai',
 		external_id: 'Išorinis ID kodas',
 		discount: 'Nuolaida',
-		active: 'Aktyvi',
 		attributes: 'Atributai',
 		manufacturer: 'Gamintojas',
 		mpn: 'Gamintojo kodas (MPN)',
@@ -60,8 +60,9 @@ PC.utils.localize('mod.'+ CurrentlyParsing, {
 		msg: {
 			error_products_inside: 'Jūs negalite ištrinti kategorijos, kurioje yra prekių.',
 			error_deleting_category: 'Nepavyko ištrinti kategorijos',
-			error_deleting_product: 'Nepavyko ištrinti prekės',
-		}
+			error_deleting_product: 'Nepavyko ištrinti prekės'
+		},
+		addAttribute: 'Add attribute'
     },
 	ru: {
 		new_subcategory: 'Новая субкатегория',
@@ -76,7 +77,6 @@ PC.utils.localize('mod.'+ CurrentlyParsing, {
 		properties: 'Свойства',
 		external_id: 'Внешний ID код',
 		discount: 'Скидка',
-		active: 'Активен',
 		attributes: 'Атрибуты',
 		manufacturer: 'Производитель',
 		mpn: 'Производственный код (MPN)',
@@ -87,24 +87,25 @@ PC.utils.localize('mod.'+ CurrentlyParsing, {
 		msg: {
 			error_products_inside: 'Вы не можете удалить категорию, в которой есть товары',
 			error_deleting_category: 'Ошибка при удалении категории',
-			error_deleting_product: 'Ошибка при удалении товара',
-		}
+			error_deleting_product: 'Ошибка при удалении товара'
+		},
+		addAttribute: 'Add attribute'
 	}
 });
 
 Plugin.ln = PC.i18n.mod.pc_shop;
 
 Plugin.editorId = {
-	Product: PC.editors.FormatID(CurrentlyParsing, 'product'),
-	Category: PC.editors.FormatID(CurrentlyParsing, 'category')
+	Product: PC.editors.FormatID(Plugin.Name, 'product'),
+	Category: PC.editors.FormatID(Plugin.Name, 'category')
 }
 Plugin.ParseID = function(id) {
 	var types = ['category', 'product'];
 	for (var a=0; types[a] != undefined; a++) {
-		if (new RegExp('^('+ CurrentlyParsing +'\/)?'+ types[a] +'\/').test(id)) {
+		if (new RegExp('^('+ Plugin.Name +'\/)?'+ types[a] +'\/').test(id)) {
 			var params = {type: types[a]};
 			var cutFrom = types[a].length + 1;
-			if (new RegExp('^'+ CurrentlyParsing +'\/').test(id)) cutFrom += CurrentlyParsing.length + 1;
+			if (new RegExp('^'+ Plugin.Name +'\/').test(id)) cutFrom += Plugin.Name.length + 1;
 			params.id = id.substring(cutFrom);
 			return params;
 		}
@@ -112,7 +113,7 @@ Plugin.ParseID = function(id) {
 	return false;
 }
 Plugin.FormatId = function(type, id) {
-	return CurrentlyParsing +'/'+ type +'/'+ id;
+	return Plugin.Name +'/'+ type +'/'+ id;
 }
 Plugin.tree = {
 	actions: {
@@ -130,6 +131,9 @@ Plugin.tree = {
 					parent_id: parent_id,
 					resources: {add: [], remove: []}
 				}
+				if (parent_id == 0) {
+					d.pid = n.attributes.id;
+				}
 				Ext.Ajax.request({
 					url: Plugin.api.Admin +'save/category',
 					method: 'POST',
@@ -139,9 +143,9 @@ Plugin.tree = {
 					success: function(result){
 						var json = Ext.util.JSON.decode(result.responseText);
 						if (json) if (json.success) {
-							//var n = PC.tree.node;
+							var newId = Plugin.FormatId('category', json.id);
 							var data = {
-								id: Plugin.FormatId('category', json.id),
+								id: newId,
 								parent_id: parent_id,
 								draggable: false,
 								allowDrop: false,
@@ -152,7 +156,6 @@ Plugin.tree = {
 							node = PC.tree.Append(n, data, function(n){
 								node_rename_menu(n, true);
 							});
-							//PC.tree.component.localizeNode(n);
 							return true;
 						}
 						alert('create error');
@@ -162,7 +165,7 @@ Plugin.tree = {
 					}
 				});
 				//var treeId = 'new-'+ new Date().getTime();
-				//var id = CurrentlyParsing +'/category/'+ treeId;
+				//var id = Plugin.Name +'/category/'+ treeId;
 				/*var afterAppend = function(node) {
 					if (node) {
 						node.select();
@@ -337,7 +340,7 @@ Plugin.tree = {
 }
 Plugin.tree.menus = {
 	shop: new Ext.menu.Menu({
-		id: 'pc_tree_menu_'+ CurrentlyParsing +'_shop',
+		id: 'pc_tree_menu_'+ Plugin.Name +'_shop',
 		items: [
 			Plugin.tree.actions.CreateCategory,
 			'-',
@@ -346,7 +349,7 @@ Plugin.tree.menus = {
 		]
 	}),
 	category: new Ext.menu.Menu({
-		id: 'pc_tree_menu_'+ CurrentlyParsing +'_category',
+		id: 'pc_tree_menu_'+ Plugin.Name +'_category',
 		items: [
 			Plugin.tree.actions.CreateProduct,
 			Plugin.tree.actions.CreateCategory,
@@ -357,7 +360,7 @@ Plugin.tree.menus = {
 		]
 	}),
 	product: new Ext.menu.Menu({
-		id: 'pc_tree_menu_'+ CurrentlyParsing +'_product',
+		id: 'pc_tree_menu_'+ Plugin.Name +'_product',
 		items: [
 			Plugin.tree.actions.CreateProduct,
 			'-',
@@ -367,7 +370,7 @@ Plugin.tree.menus = {
 		]
 	})
 }
-PC.hooks.Register('core/tree/menu/'+ CurrentlyParsing, function(params){
+PC.hooks.Register('core/tree/menu/'+ Plugin.Name, function(params){
 	var id = Plugin.ParseID(params.node.id);
 	if (id === false) {
 		params.menu = Plugin.tree.menus.shop;
@@ -379,7 +382,7 @@ PC.hooks.Register('core/tree/menu/'+ CurrentlyParsing, function(params){
 		params.menu = Plugin.tree.menus.product;
 	}
 });
-PC.hooks.Register('core/editors/identify/'+ CurrentlyParsing, function(params){
+PC.hooks.Register('core/editors/identify/'+ Plugin.Name, function(params){
 	var id = Plugin.ParseID(params.id);
 	if (id !== false) {
 		params.editor = id.type;
@@ -389,6 +392,23 @@ PC.hooks.Register('core/editors/unload', function(params){
 	if (params.data != undefined) if (params.data.data != undefined) if (params.data.data._unsaved === true) {
 		var n = PC.tree.component.getNodeById(params.data.data.id);
 		if (n) n.remove();
+	}
+});
+PC.hooks.Register('core/tree/node/renderIcon/'+ Plugin.Name, function(params){
+	var id = Plugin.ParseID(params.id);
+	if (id) {
+		if (id.type == 'product') {
+			var n = params.node, attr = n.attributes, icon = 'product';
+			if (attr.published != 1) {
+				if (attr.published != undefined) icon = 'product_inactive';
+			}
+			else if (attr.hot == 1) {
+				if (attr.nomenu == 1) icon = 'nomenu_hot';
+				else icon = 'hot';
+			}
+			else if (attr.nomenu == 1) icon = 'nomenu';
+			params.icon = Plugin.URL +'images/'+ icon +'.png';
+		}
 	}
 });
 //category editor
@@ -551,7 +571,349 @@ Plugin.media.GallerySave = function(link, rec, callback, params){
 	}
 	callback();
 }
-PC.editors.Register(CurrentlyParsing, 'category', function(){
+Plugin.attributes = {};
+Plugin.attributes.Store = new Ext.data.JsonStore({
+	autoLoad: true,
+	url: Plugin.api.Admin +'attributes/getWithValues',
+	baseParams: {api: true},
+	fields: [
+		'id', 'is_category_attribute', 'is_custom', 'is_searchable', 'names', 'values',
+		{name: 'name', mapping: 'names', convert: function(names, n){return PC.utils.extractName(names);}},
+		{name: 'nameClean', mapping: 'names', convert: function(names, n){return PC.utils.extractName(names, null, {greyOut:false});}}
+	],
+	idProperty: 'id'
+});
+Plugin.attributes.ParseAttributeName = function(id, n) {
+	var attributeNode = Plugin.attributes.Store.getById(id);
+	if (!attributeNode) return;
+	return attributeNode.data.name;
+};
+Plugin.attributes.ParseAttributeValue = function(id, n) {
+	if (id == null) {
+		if (typeof n.data == 'object') return n.data.value;
+		return n.value;
+	}
+	if (typeof n == 'object') var attributeId = n.attribute_id;
+	else var attributeId = n;
+	var attributeNode = Plugin.attributes.Store.getById(attributeId);
+	if (!attributeNode) return;
+	if (attributeNode.data.values[id] == undefined) return;
+	return PC.utils.extractName(attributeNode.data.values[id]);
+};
+Plugin.attributes.ItemStore = new Ext.data.JsonStore({
+	url: Plugin.api.Admin +'attributes/getForItem',
+	fields: [
+		'id', 'item_id', 'attribute_id', 'flags', 'value_id', 'value',
+		{name: 'attributeName', mapping: 'attribute_id', convert: Plugin.attributes.ParseAttributeName},
+		{name: 'displayValue', mapping: 'value_id', convert: Plugin.attributes.ParseAttributeValue}
+	],
+	listeners: {
+		load: function(store, records, options){
+			store.commitChanges();
+			store._deletedFields = {};
+		},
+		remove: function(store, record, index){
+			store._deletedFields[record.id] = record;
+		}
+	},
+	_deletedFields: [],
+	_getDeletedFields: function(){
+		return this._deletedFields;
+	},
+	_getSaveData: function() {
+		//attribute_id, value_id, value
+		//item_id
+		var list = {save:[], remove:[]};
+		
+		Ext.iterate(Plugin.attributes.ItemStore.getModifiedRecords(), function(rec){
+			if (Plugin.attributes.ItemStore._deletedFields[rec.id] != undefined) return;
+			list.save.push({
+				id: rec.data.id,
+				attribute_id: rec.data.attribute_id,
+				value_id: rec.data.value_id,
+				value: rec.data.value
+			});
+		});
+		Ext.iterate(Plugin.attributes.ItemStore._deletedFields, function(id, rec){
+			if (rec.data.id == 0) return;
+			list.remove.push(rec.data.id);
+		});
+		return list;
+	},
+	_getAttributeData: function(id) {
+		if (typeof id == 'object') {
+			if (id.data == undefined) return false;
+			if (id.data.attribute_id == undefined) return false;
+			var id = id.data.attribute_id;
+		}
+		return Plugin.attributes.Store.getById(id);
+	}
+});
+Plugin.attributes.Grid = {
+	ref: '../attributesGrid',
+	border: false,
+	store: Plugin.attributes.ItemStore,
+	//plugins: dialog.expander, //expander could be used here to identify what effects on price attributes does
+	columns: [
+		//dialog.expander,
+		{header: 'Attribute', dataIndex: 'attributeName', width: 200},
+		{header: 'Value', dataIndex: 'displayValue', id: 'pc_shop_item_attribute_value_col'}
+	],
+	autoExpandColumn: 'pc_shop_item_attribute_value_col',
+	_insertRecord: function(rec, cfg) {
+		if (typeof cfg != 'object') var cfg = {};
+		var grid = (cfg.grid != undefined?cfg.grid:this);
+		var ev = (cfg.ev != undefined?cfg.ev:Ext.EventObject);
+		var attrRec = grid.store._getAttributeData(rec);
+		if (!attrRec) return false;
+		var isCustom = parseInt(attrRec.data.is_custom);
+		var items = [];
+		var initialValue = (isCustom?rec.data.value:rec.data.value_id);
+		var initialValueIsSelected = (initialValue != null && initialValue != '');
+		if (isCustom) {
+			items.push(
+				{	fieldLabel: 'Enter value',
+					ref: '_value',
+					anchor: '100%',
+					value: initialValue,
+					listeners: {
+						change: function(field, value, old) {
+							if (value != '') {
+								initialValueIsSelected = true;
+								w._saveBtn.enable();
+							}
+							else {
+								w._saveBtn.disable();
+							}
+						},
+						specialkey: function(fld, e) {
+							if (e.getKey() == e.ENTER) {
+								w.Save();
+							}
+						}
+					}
+				},
+				{	xtype: 'compositefield',
+					ref: '_suggestions',
+					hidden: true,
+					fieldLabel: 'Suggestions',
+					items: [
+						{xtype: 'textfield', hidden: true},
+						{xtype: 'label', ref: '_list', text: '-', style: 'margin-top:3px;padding-bottom:3px;'}
+					]
+				}
+			);
+		}
+		else {
+			var storeData = [];
+			Ext.iterate(attrRec.data.values, function(id, value){
+				storeData.push([id, PC.utils.extractName(value)]);
+			});
+			items.push(
+				{	fieldLabel: 'Choose value',
+					xtype: 'combo',
+					ref: '_value_id',
+					anchor: '100%',
+					mode: 'local',
+					store: {
+						xtype: 'arraystore',
+						fields: ['id', 'name'],
+						idIndex: 0,
+						data: storeData
+					},
+					displayField: 'name',
+					valueField: 'id',
+					value: rec.data.value_id,
+					editable: false,
+					forceSelection: true,
+					triggerAction: 'all',
+					listeners: {
+						change: function(field, value, old) {
+							if (value != '') {
+								initialValueIsSelected = true;
+								w._saveBtn.enable();
+							}
+						},
+						specialkey: function(fld, e) {
+							if (e.getKey() == e.ENTER) {
+								w.Save();
+							}
+						},
+						select: function(field, record, index) {
+							field.fireEvent('change', field, record.data.id);
+						}
+					}
+				}
+			);
+		}
+		var windowCfg = {
+			title: (isCustom?'Editing':'Choose') +' value for "'+ attrRec.data.nameClean +'"',
+			layout: 'form',
+			labelWidth: 70,
+			labelAlign: 'right',
+			padding: '6px 6px 2px',
+			defaultType: 'textfield',
+			autoScroll: true,
+			items: items,
+			width: 300,
+			modal: true,
+			resizable: false,
+			pageX: ev.getPageX(),
+			pageY: ev.getPageY(),
+			Save: function(){
+				if (isCustom) {
+					rec.set('value', w._value.getValue());
+					rec.set('displayValue', Plugin.attributes.ParseAttributeValue(null, rec));
+				}
+				else {
+					var newId = w._value_id.getValue();
+					rec.set('value_id', newId);
+					rec.set('displayValue', Plugin.attributes.ParseAttributeValue(newId, rec.data.attribute_id));
+				}
+				w.close();
+			},
+			buttons: [
+				{	ref: '../_saveBtn',
+					text: Ext.Msg.buttonText.ok,
+					handler: function() {
+						w.Save();
+					},
+					disabled: !initialValueIsSelected
+				},
+				{	ref: '../_cancelBtn',
+					text: Ext.Msg.buttonText.cancel,
+					handler: function() {
+						if (cfg.isNew) Plugin.attributes.ItemStore.remove(rec);
+						w.close();
+					}
+				}
+			],
+			listeners: {
+				afterrender: function(w){
+					if (isCustom) {
+						Ext.Ajax.request({
+							url: Plugin.api.Admin +'attributes/getSuggestions',
+							method: 'POST',
+							params: {attributeId: attrRec.data.id},
+							success: function(result){
+								var data = Ext.util.JSON.decode(result.responseText);
+								if (data) {
+									if (typeof data == 'object') {
+										var options = [];
+										Ext.iterate(data, function(i) {
+											if (i == rec.data.value) return;
+											options.push('<a class="pc_shop_attribute_value_suggestion" href="#">'+ i +'</a>');
+										});
+										if (options.length) w._suggestions.innerCt._list.setText(options.join(', '), false);
+										var els = Ext.query('a.pc_shop_attribute_value_suggestion', w._suggestions.innerCt._list.el.dom);
+										if (els.length) {
+											Ext.iterate(els, function(el){
+												var extEl = Ext.get(el);
+												extEl.on('click', function(ev, el){
+													var oldValue = w._value.getValue();
+													w._value.setValue(el.innerHTML);
+													w._value.fireEvent('change', w._value, el.innerHTML, oldValue);
+												});
+											});
+											w._suggestions.show();
+											return true;
+										}
+									}
+									return true;
+								}
+							}
+						});
+					}
+				}
+			}
+		};
+		var w = new Ext.Window(windowCfg);
+		w.show();
+	},
+	listeners: {
+		celldblclick: function(grid, rowIndex, columnIndex, ev) {
+			if (columnIndex == 1) {
+				var rec = Plugin.attributes.ItemStore.getAt(rowIndex);
+				grid._insertRecord(rec, {
+					grid: grid,
+					ev: ev
+				});
+			}
+		}
+	},
+	tbar: [
+		{xtype: 'button', text: PC.i18n.save, icon: 'images/disk.png', handler: PC.editors.Save},
+		'-',
+		{	xtype: 'combo', mode: 'local',
+			ref: '../_attribute_id',
+			store: Plugin.attributes.Store,
+			valueField: 'id',
+			displayField: 'nameClean',
+			triggerAction: 'all',
+			//tpl: '<tpl for="."><div class="x-combo-list-item">{'+ this.displayField +'}</div></tpl>',
+			tpl: '<tpl for="."><div class="x-combo-list-item">{[PC.utils.extractName(values.names)]}</div></tpl>',
+			editable: false,
+			listeners: {
+				change: function(field, value, ovalue) {},
+				select: function(cb, rec, idx) {
+					cb.fireEvent('change', cb, cb.value, cb.originalValue);
+				},
+				expand: function(field){
+					Plugin.attributes.Store.filter('is_category_attribute', (PC.editors.Current[1]=='category'?'1':'0'));
+				}
+			}
+		},
+		{	icon: 'images/add.png', text: PC.i18n.add,// text: Plugin.ln.addAttribute,
+			handler: function(){
+				var attField = PC.editors.Get().attributesGrid._attribute_id;
+				var id = attField.getValue();
+				var rec = attField.store.getById(id);
+				if (!rec) return;
+				var gridRec = new Plugin.attributes.ItemStore.recordType({
+					id: 0,
+					//item_id: rec.data.,
+					attribute_id: id,
+					value_id: null,
+					value: null
+				});
+				gridRec.set('attributeName', Plugin.attributes.ParseAttributeName(id, gridRec));
+				gridRec.markDirty();
+				Plugin.attributes.ItemStore.add(gridRec);
+				//init edit
+				PC.editors.Get().attributesGrid._insertRecord(gridRec, {
+					isNew: true
+				});
+			}
+		},
+		'-',
+		{	icon: 'images/delete.png',
+			text: PC.i18n.del,
+			handler: function(){
+				var grid = PC.editors.Get().attributesGrid;
+				var records = grid.selModel.getSelections();
+				if (!records.length) return;
+				Ext.MessageBox.show({
+					title: PC.i18n.msg.title.confirm,
+					msg: String.format(PC.i18n.msg.confirm_delete, 'selected attributes'),
+					buttons: Ext.MessageBox.YESNO,
+					icon: Ext.MessageBox.WARNING,
+					fn: function(clicked) {
+						if (clicked == 'yes') {
+							grid.store.remove(records);
+							Ext.Msg.hide();
+						}
+					}
+				});
+			}
+		}
+	]
+};
+Plugin.attributes.Load = function(type, itemId){
+	Plugin.attributes.ItemStore.setBaseParam('type', type);
+	Plugin.attributes.ItemStore.setBaseParam('itemId', itemId);
+	Plugin.attributes.ItemStore.reload();
+}
+PC.editors.Register(Plugin.Name, 'category', function(){
 	var View = new PC.ux.gallery.files.View({
 		ref: '../_media',
 		//xtype: 'pc_gallery_files_view',
@@ -598,6 +960,7 @@ PC.editors.Register(CurrentlyParsing, 'category', function(){
 			{icon: 'images/delete.png', text: PC.i18n.del}
 		]
 	});
+	var attributesGrid = new Ext.grid.GridPanel(Plugin.attributes.Grid);
 	return {
 		xtype: 'tabpanel',
 		bodyCssClass: 'x-border-layout-ct',
@@ -765,7 +1128,9 @@ PC.editors.Register(CurrentlyParsing, 'category', function(){
 					{ref: '_external_id', fieldLabel: Plugin.ln.external_id, xtype: 'textfield'},
 					{ref: '_discount', fieldLabel: Plugin.ln.discount, xtype: 'numberfield'},
 					{ref: '_percentage_discount', fieldLabel: Plugin.ln.discount +', %', xtype: 'numberfield'},
-					{ref: '_active', fieldLabel: Plugin.ln.active, xtype: 'checkbox'}
+					{ref: '_hot', fieldLabel: PC.i18n.page.hot, xtype: 'checkbox'},
+					{ref: '_nomenu', fieldLabel: PC.i18n.page.nomenu, xtype: 'checkbox'},
+					{ref: '_published', fieldLabel: PC.i18n.page.published, xtype: 'checkbox'}
 				]
 			},
 			{	title: PC.i18n.desc,
@@ -777,20 +1142,15 @@ PC.editors.Register(CurrentlyParsing, 'category', function(){
 					ref: '_description'
 				}]
 			},
-			ViewPanel/*,
+			ViewPanel,
 			{	title: Plugin.ln.attributes,
 				id: Plugin.editorId.Category +'_tab_attributes',
-				//layout: 'form',
-				//bodyCssClass: 'x-border-layout-ct',
-				padding: 6,
-				//labelWidth: 200,
-				//labelAlign: 'right',
-				/*defaults: {
-					anchor: '100%'
-				},* /
+				xtype: 'container',
+				layout: 'fit',
+				items: [attributesGrid],
 				border: false,
 				tbar: [{xtype: 'button', text: PC.i18n.save, icon: 'images/disk.png', handler: PC.editors.Save}]
-			}*/
+			}
 		],
 		listeners: {
 			beforetabchange: function(panel, tab, currentTab) {
@@ -813,11 +1173,14 @@ PC.editors.Register(CurrentlyParsing, 'category', function(){
 				editor._information._description,
 				editor._information._keywords,
 				editor._information._route,
+				editor._information._route_lock,
 				editor._description._description,
 				editor._properties._discount,
 				editor._properties._percentage_discount,
-				editor._properties._active,
-				editor._properties._external_id
+				editor._properties._external_id,
+				editor._properties._hot,
+				editor._properties._nomenu,
+				editor._properties._published
 			];
 			for (var a=0; fields[a] != undefined; a++) {
 				fields[a].setValue('');
@@ -828,9 +1191,17 @@ PC.editors.Register(CurrentlyParsing, 'category', function(){
 				description.ed.undoManager.clear();
 				description.ed.isNotDirty = 1;
 			}
+			Plugin.attributes.ItemStore.clearData();
+			//Plugin.attributes.Store.clearFilter();
 		},
 		Load: function(editor, data, ln, freshLoad, callback) {
 			if (data != undefined) {
+				if (freshLoad) {
+					var idData = Plugin.ParseID(data.id);
+					if (idData) Plugin.attributes.Load(idData.type, idData.id);
+					else Plugin.attributes.ItemStore.reload();
+					Plugin.attributes.Store.filter('is_category_attribute', '1');
+				}
 				data = data.data;
 				var media = PC.editors.Get()._media;
 				//resources
@@ -857,7 +1228,10 @@ PC.editors.Register(CurrentlyParsing, 'category', function(){
 				editor._properties._external_id.setValue(data.external_id);
 				editor._properties._discount.setValue(data.discount);
 				editor._properties._percentage_discount.setValue(data.percentage_discount);
-				editor._properties._active.setValue(data.active);
+				editor._properties._hot.setValue(data.hot);
+				editor._properties._nomenu.setValue(data.nomenu);
+				editor._properties._published.setValue(data.published);
+				editor._information._route_lock.setValue(data.route_lock);
 			}
 			if (typeof callback == 'function') callback();
 		},
@@ -867,7 +1241,10 @@ PC.editors.Register(CurrentlyParsing, 'category', function(){
 			d.external_id = editor._properties._external_id.getValue();
 			d.discount = editor._properties._discount.getValue();
 			d.percentage_discount = editor._properties._percentage_discount.getValue();
-			d.active = editor._properties._active.getValue();
+			d.hot = editor._properties._hot.getValue();
+			d.nomenu = editor._properties._nomenu.getValue();
+			d.published = editor._properties._published.getValue();
+			d.route_lock = editor._information._route_lock.getValue();
 			
 			var ln = PC.global.ln;
 			if (typeof d.contents != 'object') d.contents = {};
@@ -883,7 +1260,7 @@ PC.editors.Register(CurrentlyParsing, 'category', function(){
 			
 			if (typeof callback == 'function') callback(true);
 		},
-		Save: function() {
+		Save: function(callback) {
 			var d = PC.editors.Data.data;
 			var ed = PC.editors.Get();
 			//parse resources
@@ -902,6 +1279,8 @@ PC.editors.Register(CurrentlyParsing, 'category', function(){
 			});
 			d.resources = resources;
 			delete d.loader;
+			//save attributes
+			d.attributes = Plugin.attributes.ItemStore._getSaveData();
 			//save data
 			Ext.Ajax.request({
 				url: Plugin.api.Admin +'save/category',
@@ -921,12 +1300,15 @@ PC.editors.Register(CurrentlyParsing, 'category', function(){
 						Ext.iterate(json.data.contents, function(ln, cData){
 							if (cData.name != undefined) names[ln] = cData.name;
 						});
+						n.attributes.hot = json.data.hot;
+						n.attributes.nomenu = json.data.nomenu;
+						n.attributes.published = json.data.published;
 						n.attributes._names = names;
-						PC.tree.component.localizeNode(n);
 						PC.editors.Fill({
 							id: json.id,
 							data: json.data
 						}, null, true);
+						if (typeof callback == 'function') callback();
 						return true;
 					}
 					alert('save error');
@@ -942,7 +1324,7 @@ PC.editors.Register(CurrentlyParsing, 'category', function(){
 	};
 });
 //product editor
-PC.editors.Register(CurrentlyParsing, 'product', function(){
+PC.editors.Register(Plugin.Name, 'product', function(){
 	var View = new PC.ux.gallery.files.View({
 		ref: '../_media',
 		//xtype: 'pc_gallery_files_view',
@@ -989,6 +1371,7 @@ PC.editors.Register(CurrentlyParsing, 'product', function(){
 			{icon: 'images/delete.png', text: PC.i18n.del}
 		]
 	});
+	var attributesGrid = new Ext.grid.GridPanel(Plugin.attributes.Grid);
 	return {
 		xtype: 'tabpanel',
 		bodyCssClass: 'x-border-layout-ct',
@@ -1153,6 +1536,7 @@ PC.editors.Register(CurrentlyParsing, 'product', function(){
 				border: false,
 				tbar: [{xtype: 'button', text: PC.i18n.save, icon: 'images/disk.png', handler: PC.editors.Save}],
 				items: [
+					{ref: '_external_id', fieldLabel: Plugin.ln.external_id, xtype: 'textfield'},
 					{ref: '_manufacturer', fieldLabel: Plugin.ln.manufacturer, xtype: 'textfield'},
 					{ref: '_mpn', fieldLabel: Plugin.ln.mpn, xtype: 'textfield'},
 					{ref: '_quantity', fieldLabel: Plugin.ln.quantity, xtype: 'numberfield'},
@@ -1160,7 +1544,9 @@ PC.editors.Register(CurrentlyParsing, 'product', function(){
 					{ref: '_price', fieldLabel: Plugin.ln.price, xtype: 'numberfield'},
 					{ref: '_discount', fieldLabel: Plugin.ln.discount, xtype: 'numberfield'},
 					{ref: '_percentage_discount', fieldLabel: Plugin.ln.discount +', %', xtype: 'numberfield'},
-					{ref: '_active', fieldLabel: Plugin.ln.active, xtype: 'checkbox'}
+					{ref: '_hot', fieldLabel: PC.i18n.page.hot, xtype: 'checkbox'},
+					{ref: '_nomenu', fieldLabel: PC.i18n.page.nomenu, xtype: 'checkbox'},
+					{ref: '_published', fieldLabel: PC.i18n.page.published, xtype: 'checkbox'}
 				]
 			},
 			{	title: PC.i18n.desc,
@@ -1181,20 +1567,15 @@ PC.editors.Register(CurrentlyParsing, 'product', function(){
 					ref: '_short_description'
 				}]
 			},
-			ViewPanel/*,
+			ViewPanel,
 			{	title: Plugin.ln.attributes,
 				id: Plugin.editorId.Product +'_tab_attributes',
-				//layout: 'form',
-				//bodyCssClass: 'x-border-layout-ct',
-				padding: 6,
-				//labelWidth: 200,
-				//labelAlign: 'right',
-				/*defaults: {
-					anchor: '100%'
-				},* /
+				xtype: 'container',
+				layout: 'fit',
+				items: [attributesGrid],
 				border: false,
 				tbar: [{xtype: 'button', text: PC.i18n.save, icon: 'images/disk.png', handler: PC.editors.Save}]
-			}*/
+			}
 		],
 		listeners: {
 			beforetabchange: function(panel, tab, currentTab) {
@@ -1212,9 +1593,11 @@ PC.editors.Register(CurrentlyParsing, 'product', function(){
 			var fields = [
 				editor._information._name,
 				editor._information._route,
+				editor._information._route_lock,
 				editor._information._title,
 				editor._information._description,
 				editor._information._keywords,
+				editor._properties._external_id,
 				editor._properties._manufacturer,
 				editor._properties._mpn,
 				editor._properties._price,
@@ -1222,7 +1605,9 @@ PC.editors.Register(CurrentlyParsing, 'product', function(){
 				editor._properties._percentage_discount,
 				editor._properties._warranty,
 				editor._properties._quantity,
-				editor._properties._active
+				editor._properties._hot,
+				editor._properties._nomenu,
+				editor._properties._published
 			];
 			for (var a=0; fields[a] != undefined; a++) {
 				fields[a].setValue('');
@@ -1239,9 +1624,17 @@ PC.editors.Register(CurrentlyParsing, 'product', function(){
 				shortDescription.ed.undoManager.clear();
 				shortDescription.ed.isNotDirty = 1;
 			}
+			Plugin.attributes.ItemStore.clearData();
+			Plugin.attributes.Store.clearFilter();
 		},
 		Load: function(editor, data, ln, freshLoad, callback) {
 			if (data != undefined) {
+				if (freshLoad) {
+					var idData = Plugin.ParseID(data.id);
+					if (idData) Plugin.attributes.Load(idData.type, idData.id);
+					else Plugin.attributes.ItemStore.reload();
+					Plugin.attributes.Store.filter('is_category_attribute', '0');
+				}
 				data = data.data;
 				//resources
 				var media = PC.editors.Get()._media;
@@ -1271,6 +1664,7 @@ PC.editors.Register(CurrentlyParsing, 'product', function(){
 						shortDescription.ed.isNotDirty = 1;
 					}
 				}
+				editor._properties._external_id.setValue(data.external_id);
 				editor._properties._manufacturer.setValue(data.manufacturer);
 				editor._properties._mpn.setValue(data.mpn);
 				editor._properties._price.setValue(data.price);
@@ -1278,7 +1672,10 @@ PC.editors.Register(CurrentlyParsing, 'product', function(){
 				editor._properties._percentage_discount.setValue(data.percentage_discount);
 				editor._properties._warranty.setValue(data.warranty);
 				editor._properties._quantity.setValue(data.quantity);
-				editor._properties._active.setValue(data.active);
+				editor._properties._hot.setValue(data.hot);
+				editor._properties._nomenu.setValue(data.nomenu);
+				editor._properties._published.setValue(data.published);
+				editor._information._route_lock.setValue(data.route_lock);
 			}
 			if (typeof callback == 'function') callback();
 		},
@@ -1286,6 +1683,7 @@ PC.editors.Register(CurrentlyParsing, 'product', function(){
 			//save editor data to data store (this.Data = );
 			var d = data;
 			
+			d.external_id = editor._properties._external_id.getValue();
 			d.manufacturer = editor._properties._manufacturer.getValue();
 			d.mpn = editor._properties._mpn.getValue();
 			d.price = editor._properties._price.getValue();
@@ -1293,7 +1691,10 @@ PC.editors.Register(CurrentlyParsing, 'product', function(){
 			d.percentage_discount = editor._properties._percentage_discount.getValue();
 			d.quantity = editor._properties._quantity.getValue();
 			d.warranty = editor._properties._warranty.getValue();
-			d.active = editor._properties._active.getValue();
+			d.hot = editor._properties._hot.getValue();
+			d.nomenu = editor._properties._nomenu.getValue();
+			d.published = editor._properties._published.getValue();
+			d.route_lock = editor._information._route_lock.getValue();
 			
 			var ln = PC.global.ln;
 			if (typeof d.contents != 'object') d.contents = {};
@@ -1312,7 +1713,7 @@ PC.editors.Register(CurrentlyParsing, 'product', function(){
 			
 			if (typeof callback == 'function') callback(true);
 		},
-		Save: function() {
+		Save: function(callback) {
 			var d = PC.editors.Data.data;
 			var ed = PC.editors.Get();
 			//parse resources
@@ -1354,12 +1755,15 @@ PC.editors.Register(CurrentlyParsing, 'product', function(){
 						Ext.iterate(json.data.contents, function(ln, cData){
 							if (cData.name != undefined) names[ln] = cData.name;
 						});
+						n.attributes.hot = json.data.hot;
+						n.attributes.nomenu = json.data.nomenu;
+						n.attributes.published = json.data.published;
 						n.attributes._names = names;
-						PC.tree.component.localizeNode(n);
 						PC.editors.Fill({
 							id: json.id,
 							data: json.data
 						}, null, true);
+						if (typeof callback == 'function') callback();
 						return true;
 					}
 					alert('save error');
@@ -1420,49 +1824,6 @@ Plugin.RenderPaging = function(node, productsCount) {
 				pageSize: Plugin.productsPerPage,
 				store: node.pagingStore
 			});
-			/*node.datepicker = new Ext.DatePickerProfis({
-				renderTo: pagingEl,
-				format: 'Y-m-d',
-				cls: 'x-profis-datepicker',
-				handler: function(picker, date, callback){
-					var formattedDate = date.format('Y-m-d');
-					var statusEl = Ext.get(pagingBlockId +'-status');
-					statusEl.update('<img style="vertical-align:-2px;margin-right:3px" src="images/calendar.gif" alt="" />'+ formattedDate);
-					tree.addLoaderParam(module_name, 'date', formattedDate);
-					node.reload();
-					node.attributes.dateFilter = formattedDate;
-					if (typeof callback == 'function') callback();
-				},
-				listeners: {
-					afterrender: function(picker){
-						picker.el.dom.style.marginBottom = '5px';
-						//get list of dates that has news
-						Plugin.Refresh_enabled_dates(picker, ctrl, node.attributes.id);
-						//create filter status element
-						var filterStatusEl = document.createElement('div');
-						filterStatusEl.setAttribute('id', pagingBlockId +'-status');
-						filterStatusEl.innerHTML = '<img style="vertical-align:-2px;margin-right:3px" src="images/calendar.gif" alt="" />'+ ln.no_date;
-						pagingEl.appendChild(filterStatusEl);
-						var filterStatusExtEl = Ext.get(filterStatusEl);
-						filterStatusExtEl.setVisibilityMode(Ext.Element.DISPLAY);
-						if (!node.childNodes.length) filterStatusExtEl.hide();
-						/* //create 'remove date filter' button
-						Ext.get(pagingEl).child('.x-date-bottom');* /
-					}
-				}
-			});*/
-			/*node.addListener('append', function(tree, node, appended, index){
-				Plugin.Refresh_status_element(
-					Ext.get(pagingBlockId +'-status'),
-					node.childNodes.length
-				);
-			});
-			node.addListener('remove', function(tree, node, removed){
-				Plugin.Refresh_status_element(
-					Ext.get(pagingBlockId +'-status'),
-					node.childNodes.length
-				);
-			});*/
 			pagingEl.style.marginLeft = node.getDepth()*16 +'px';
 			pagingEl.style.marginTop = '2px';
 			node.addListener('move', function(tree, node, oldParent, newParent, index){
@@ -1481,7 +1842,7 @@ Plugin.RenderPaging = function(node, productsCount) {
 
 Plugin.IsValidPagingContainer = function(n) {
 	var ctrl = n.attributes.controller;
-	if (ctrl !== CurrentlyParsing) {
+	if (ctrl !== Plugin.Name) {
 		var id = this.ParseID(n.id);
 		if (id === false) return false;
 		if (id.type != 'category') return false;
@@ -1490,7 +1851,7 @@ Plugin.IsValidPagingContainer = function(n) {
 }
 
 PC.hooks.Register('tree.load', function(params){
-	var ln = PC.i18n.mod[CurrentlyParsing];
+	var ln = PC.i18n.mod[Plugin.Name];
 	var tree = params.tree;
 	var n = params.node;
 	if (!Plugin.IsValidPagingContainer(n)) return false;
@@ -1500,7 +1861,7 @@ PC.hooks.Register('tree.load', function(params){
 });
 
 PC.hooks.Register('tree.beforeload', function(params){
-	var ln = PC.i18n.mod[CurrentlyParsing];
+	var ln = PC.i18n.mod[Plugin.Name];
 	var tree = params.tree;
 	var n = params.node;
 	if (!Plugin.IsValidPagingContainer(n)) return false;
@@ -1510,6 +1871,6 @@ PC.hooks.Register('tree.beforeload', function(params){
 	var start = 0;
 	if (n.paging != undefined) start = n.pagingStore.lastOptions.params.start;
 	var page = Math.ceil((start + limit) / limit);
-	tree.addLoaderParam(CurrentlyParsing, 'page', page);
-	tree.addLoaderParam(CurrentlyParsing, 'perPage', limit);
+	tree.addLoaderParam(Plugin.Name, 'page', page);
+	tree.addLoaderParam(Plugin.Name, 'perPage', limit);
 });

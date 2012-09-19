@@ -3,6 +3,5 @@ $(document).ready(function(){
 		//get quantity
 		//send request
 		//change quantity in cart element
-		
 	});
 });

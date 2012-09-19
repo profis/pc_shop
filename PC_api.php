@@ -9,6 +9,7 @@ if (isset($_POST['ln'])) {
 switch (v($routes->Get(1))) {
 	case 'cart':
 		$shop = $core->Get_object('PC_shop_site');
+		/* @var $shop PC_shop_site */
 		$sendCartState = false;
 		$ciid = null;
 		switch (v($routes->Get(2))) {

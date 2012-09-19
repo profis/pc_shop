@@ -13,7 +13,7 @@ class PC_shop_manager extends PC_shop {
 	}
 }
 class PC_shop_categories_manager extends PC_shop_categories {
-	public function Create($parentId=0, $position=0, $data, &$params=array()) {
+	public function Create($parentId=0, $pid=null, $position=0, $data, &$params=array()) {
 		$this->core->Init_params($params);
 		$d = array();
 		if (isset($data['contents'])) {
@@ -23,15 +23,19 @@ class PC_shop_categories_manager extends PC_shop_categories {
 			unset($data['contents'], $ln, $c);
 		}
 		//parse flags
-		if (!isset($data['flags'])) $data['flags'] = self::CF_IS_ACTIVE;
-		if (isset($data['active'])) {
-			if ((bool)$data['active']) $data['flags'] |= self::CF_IS_ACTIVE; //activate
-			else $data['flags'] &= ~self::CF_IS_ACTIVE;
-			unset($data['active']);
+		if (!isset($data['flags'])) $data['flags'] = self::CF_PUBLISHED;
+		if (isset($data['published'])) {
+			if ((bool)$data['published']) $data['flags'] |= self::CF_PUBLISHED; //activate
+			else $data['flags'] &= ~self::CF_PUBLISHED;
+			unset($data['published']);
 		}
 		//$this->Concat_flags($data, $params);
 		$d['resources'] = $data['resources'];
 		$d['category'] = $this->db->fields->Parse('shop_categories', $data, $params);
+		if ($parentId == 0) {
+			if (!is_null($pid)) $d['category']['pid'] = $pid;
+			else return false;
+		}
 		//$d['resources'] = $this->db->fields->Parse('shop_resources', $data, $params);
 		if ($params->errors->Count()) return false;
 		
@@ -44,6 +48,7 @@ class PC_shop_categories_manager extends PC_shop_categories {
 		if ($id) {
 			//contents
 			if (isset($d['contents']))  foreach ($d['contents'] as $ln=>$c) {
+				if (!isset($c['route'])) if (isset($c['name'])) $c['route'] = Sanitize('route', $c['name']);
 				$r = $this->prepare("INSERT INTO {$this->db_prefix}shop_category_contents (category_id,ln,".implode(',', array_keys($c)).") VALUES(?,?,".implode(',', array_fill(0, count($c), '?')).")");
 				$s = $r->execute(array_merge(array($id, $ln), array_values($c)));
 				if (!$s) {
@@ -66,6 +71,7 @@ class PC_shop_categories_manager extends PC_shop_categories {
 		}
 		$this->Encode_flags($data);
 		if (isset($data['resources'])) $d['resources'] = $data['resources'];
+		if (isset($data['attributes'])) $d['attributes'] = $data['attributes'];
 		$d['category'] = $this->db->fields->Parse('shop_categories', $data, $params);
 		if ($params->errors->Count()) return false;
 		//main data
@@ -80,7 +86,29 @@ class PC_shop_categories_manager extends PC_shop_categories {
 		$s = $r->execute($qparams);
 		if (!$s) return !$params->errors->Add('update_category', '');
 		//contents
-		if (isset($d['contents']))  foreach ($d['contents'] as $ln=>$cdata) {
+		$routeLock = (bool)($d['category']['flags'] & self::CF_ROUTE_LOCK);
+		if (isset($d['contents'])) foreach ($d['contents'] as $ln=>$cdata) {
+			$r = $this->prepare("SELECT * FROM {$this->db_prefix}shop_category_contents WHERE category_id=? and ln=? LIMIT 1");
+			$s = $r->execute(array($categoryId, $ln));
+			if (!$s) continue;
+			$doUpdate = $r->rowCount();
+			$oldContentData = $r->fetch();
+			//parse route
+			if (isset($cdata['route'])) {
+				if (empty($cdata['route'])) {
+					if (isset($cdata['name'])) $cdata['route'] = Sanitize('route', $cdata['name']);
+					else $cdata['route'] = Sanitize('route', $oldContentData['name']);
+				}
+				else if ($cdata['route'] == $oldContentData['route']) unset($cdata['route']);
+				else $cdata['route'] = Sanitize('route', $cdata['route']);
+			}
+			if (!isset($cdata['route']) && !$routeLock) {
+				if (isset($cdata['name'])) {
+					if ($cdata['name'] != $oldContentData['name']) {
+						$cdata['route'] = Sanitize('route', $cdata['name']);
+					}
+				}
+			}
 			$updates = $qparams = $updateFields = array();
 			foreach ($cdata as $field=>&$value) {
 				$updates[] = $field.'=?';
@@ -89,10 +117,8 @@ class PC_shop_categories_manager extends PC_shop_categories {
 			}
 			unset($field, $value);
 			array_push($qparams, $categoryId, $ln);
-			$r = $this->prepare("SELECT 1 FROM {$this->db_prefix}shop_category_contents WHERE category_id=? and ln=? LIMIT 1");
-			$s = $r->execute(array($categoryId, $ln));
-			if (!$s) continue;
-			if ($r->rowCount()) {
+			
+			if ($doUpdate) {
 				$r = $this->prepare("UPDATE {$this->db_prefix}shop_category_contents SET ".implode(',', array_values($updates))." WHERE category_id=? and ln=?");
 				$s = $r->execute($qparams);
 				continue;
@@ -103,11 +129,13 @@ class PC_shop_categories_manager extends PC_shop_categories {
 		}
 		//resources
 		if (isset($d['resources'])) if (is_array($d['resources'])) $this->shop->resources->Update($categoryId, PC_shop_resources::RF_IS_CATEGORY, $d['resources']);
+		//attributes
+		if (isset($d['attributes'])) if (is_array($d['attributes'])) $this->shop->attributes->Save_for_item($categoryId, PC_shop_attributes::ITEM_IS_CATEGORY, $d['attributes']);
 		return true;
 	}
-	public function Get($id=null, $parentId=null, &$params=array()) {
+	public function Get($id=null, $parentId=null, $pid=null, &$params=array()) {
 		$this->core->Init_params($params);
-		$r_category = $this->prepare("SELECT ".($params->Has_paging()?'SQL_CALC_FOUND_ROWS ':'')."* FROM {$this->db_prefix}shop_categories ".(!is_null($id)?'WHERE id'.(is_array($id)?' '.$this->sql_parser->in($id):'=? LIMIT 1'):(!is_null($parentId)?'WHERE parent_id=?':'').($params->Has_paging()?" LIMIT {$params->paging->Get_offset()},{$params->paging->Get_limit()}":'')));
+		$r_category = $this->prepare("SELECT ".($params->Has_paging()?'SQL_CALC_FOUND_ROWS ':'')."* FROM {$this->db_prefix}shop_categories ".(!is_null($id)?'WHERE id'.(is_array($id)?' '.$this->sql_parser->in($id):'=? LIMIT 1'):(!is_null($parentId)?'WHERE parent_id=?'.(!is_null($pid)?' and pid=?':''):'').($params->Has_paging()?" LIMIT {$params->paging->Get_offset()},{$params->paging->Get_limit()}":'')));
 		$r_contents = $this->prepare("SELECT * FROM {$this->db_prefix}shop_category_contents WHERE category_id=?");
 		$queryParams = array();
 		if (!is_null($id)) {
@@ -116,7 +144,10 @@ class PC_shop_categories_manager extends PC_shop_categories {
 			}
 			else $queryParams[] = $id;
 		}
-		else if (!is_null($parentId)) $queryParams[] = $parentId;
+		else if (!is_null($parentId)) {
+			$queryParams[] = $parentId;
+			if (!is_null($pid)) $queryParams[] = $pid;
+		}
 		$s = $r_category->execute($queryParams);
 		if (!$s) return false;
 		if ($params->Has_paging()) {
