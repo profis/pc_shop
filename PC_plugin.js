@@ -1150,6 +1150,21 @@ PC.editors.Register(Plugin.Name, 'category', function(){
 				items: [attributesGrid],
 				border: false,
 				tbar: [{xtype: 'button', text: PC.i18n.save, icon: 'images/disk.png', handler: PC.editors.Save}]
+			},
+			{	title: 'Import/Export',
+				id: Plugin.editorId.Category +'_tab_export',
+				tbar: [
+					{	text: PC.i18n.save,
+						icon: 'images/disk.png',
+						handler: PC.editors.Save
+					},
+					{	text: 'Export',
+						//icon: 'images/disk.png',
+						handler: function() {
+							
+						}
+					}
+				]
 			}
 		],
 		listeners: {
@@ -1157,6 +1172,7 @@ PC.editors.Register(Plugin.Name, 'category', function(){
 				var tabId = tab.getId();
 				if (tabId == Plugin.editorId.Category +'_tab_properties'
 					|| tabId == Plugin.editorId.Category +'_tab_media'
+					|| tabId == Plugin.editorId.Category +'_tab_export'
 					|| tabId == Plugin.editorId.Category +'_tab_attributes') {
 					panel.getTopToolbar().hide();
 				}
@@ -1732,6 +1748,8 @@ PC.editors.Register(Plugin.Name, 'product', function(){
 			});
 			d.resources = resources;
 			delete d.loader;
+			//save attributes
+			d.attributes = Plugin.attributes.ItemStore._getSaveData();
 			//category id
 			var categoryId = Plugin.ParseID(PC.tree.node.parentNode.id);
 			if (categoryId.type != 'category') return false;

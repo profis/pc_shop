@@ -251,6 +251,7 @@ class PC_shop_products_manager extends PC_shop_products {
 		}
 		$this->Encode_flags($data);
 		if (isset($data['resources'])) $d['resources'] = $data['resources'];
+		if (isset($data['attributes'])) $d['attributes'] = $data['attributes'];
 		$d['product'] = $this->db->fields->Parse('shop_products', $data, $params);
 		if ($params->errors->Count()) return false;
 		//main data
@@ -289,6 +290,8 @@ class PC_shop_products_manager extends PC_shop_products {
 		}
 		//resources
 		if (isset($d['resources'])) if (is_array($d['resources'])) $this->shop->resources->Update($productId, null, $d['resources']);
+		//attributes
+		if (isset($d['attributes'])) if (is_array($d['attributes'])) $this->shop->attributes->Save_for_item($productId, PC_shop_attributes::ITEM_IS_PRODUCT, $d['attributes']);
 		return true;
 	}
 	public function Get($id=null, $categoryId=null, &$params=array()) {
