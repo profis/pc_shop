@@ -3,6 +3,11 @@ $orderSubmitted = $this->site->Get_data('createOrderSubmitted');
 $orderResult = $this->site->Get_data('createOrderResult');
 $orderParams = $this->site->Get_data('createOrderParams');
 $isFastOrder = $this->site->Get_data('isFastOrder');
+
+
+echo $this->site->Get_widget_text('PC_plugin_pc_shop_order_widget');
+return;
+
 if ($orderSubmitted) {
 	if ($orderResult) {
 		echo 'Order was placed successfully.';

@@ -1,8 +1,15 @@
 <?php
-final class PC_controller_pc_shop extends PC_controller {
+class PC_controller_pc_shop extends PC_controller {
 	public $currentProduct = null, $currentCategory = null;
-	private $shop;
+	
+	/**
+	 *
+	 * @var PC_shop_site
+	 */
+	protected $shop;
+	
 	protected $type = null;
+	
 	public function Init() {
 		global $shop_controller;
 		$shop_controller = $this; // DIRTY HACK SINCE PC_core::Get_object() returns a new instance, not an existing one!
@@ -12,159 +19,774 @@ final class PC_controller_pc_shop extends PC_controller {
 	public function Process($params) {
 		//available page types: category/product/register/activate/cart/order/ order/fast
 		//fast-order must enter this data: address, recipient, email (for order data to send)
+		$this->payment_logger = new PC_debug();
+		$this->payment_logger->debug = true;
+		$this->payment_logger->set_instant_debug_to_file($this->cfg['path']['logs'] . 'pc_shop/payments.html', false, 500);
+				
+		if (isset($_GET['debug'])) {
+			$this->debug = true;
+			$this->set_instant_debug_to_file($this->cfg['path']['logs'] . 'pc_shop/controller_log.html', false, 5);
+			$this->shop->orders->debug = $this->shop->attributes->debug = $this->shop->products->debug = $this->shop->categories->debug = $this->debug;
+		}
+		$this->click('Controller process started');
+		
+		$this->logger = new PC_debug();
+		$this->logger->absorb_debug_settings($this);
+		
+		$this->product_was_added_to_cart = false;
+		if (false and isset($_POST['add_to_basket']) and isset($_POST['product_id'])) {
+			$this->shop->cart->Add(intval($_POST['product_id']), 1, null, true);
+			$this->shop->product_was_added_to_cart = $this->product_was_added_to_cart = true;
+		}
+		
 		$this->site->force_headings = false;
+		$this->action = '';
 		if ($this->routes->Get_count() > 1) {
 			if ($this->routes->Get_count() >= 2) {
+				$this->action = $this->route[2];
 				if ($this->route[2] == 'activation') {
-					$user = $this->core->Get_object('PC_user');
-					$code = (isset($this->route[3])?$this->route[3]:(isset($_POST['activationCode'])?$_POST['activationCode']:false));
-					if ($code) {
-						$s = $user->Activate($code);
-						if ($s) {
-							$type = $user->Get_meta_data('type');
-							if ($type != 'person' && $type != 'entity') $type = 'person';
-							$this->Render('order_'.$type);
-							return true;
-						}
-					}
-					$this->Render('activate');
+					$this->activation_action();
 					return true;
 				}
 				elseif ($this->route[2] == 'cart') {
-					$this->Render('cart');
+					$this->cart_action();
 					return true;
 				}
 				elseif ($this->route[2] == 'order') {
-					if ($this->routes->Get(3) == 'fast') {
-						$this->site->Register_data('isFastOrder', true);
-						if (isset($_POST['order'])) {
-							$this->site->Register_data('createOrderSubmitted', true);
-							$name = v($_POST['name']);
-							$email = v($_POST['email']);
-							$address = v($_POST['address']);
-							$phone = v($_POST['phone']);
-							$params = array();
-							$r = $this->shop->orders->Create(null, $name, $address, $phone, $email, null, $params);
-							$this->site->Register_data('createOrderResult', $r);
-							$this->site->Register_data('createOrderParams', $params);
-						}
-						$this->Render('order');
-						return true;
-					}
-					$user = $this->core->Get_object('PC_user');
-					if (!$user->Logged_in) {
-						if (isset($_POST['register'])) {
-							$login = v($_POST['login']);
-							$email = v($_POST['email']);
-							$pass = v($_POST['pass']);
-							$pass2 = v($_POST['pass2']);
-							$address = v($_POST['address']);
-							$phone = v($_POST['phone']);
-							$type = v($_POST['_registerType']);
-							$user = $this->core->Get_object('PC_user');
-							if ($type == 'person') {
-								$name = v($_POST['name']);
-								$r = $user->Create($email, $pass, $pass2, $name, true, null, $login, array(
-									'type'=> $type,
-									'address'=> $address,
-									'phone'=> $phone
-								));
-							}
-							elseif ($type == 'entity') {
-								$name = v($_POST['title']);
-								$organization = v($_POST['organization']);
-								$domicile = v($_POST['domicile']);
-								$inn = v($_POST['inn']);
-								$kpp = v($_POST['kpp']);
-								$okpo = v($_POST['okpo']);
-								$r = $user->Create($email, $pass, $pass2, $name, true, null, $login, array(
-									'type'=> $type,
-									'address'=> $address,
-									'phone'=> $phone,
-									'organization'=> $organization,
-									'domicile'=> $domicile,
-									'inn'=> $inn,
-									'kpp'=> $kpp,
-									'okpo'=> $okpo
-								));
-							}
-							if (v($r['success'])) {
-								$_POST['user_login'] = $login;
-								$_POST['user_password'] = $pass;
-								$this->Render('activate');
-								return true;
-							}
-							else $this->site->Register_data('pc_shop_register_result', v($r, array()));
-						}
-						$this->Render('register');
-						return true;
-					}
-					else {
-						$metaData = $user->Get_meta_data();
-						$params = array();
-						$r = $this->shop->orders->Create($user->ID, $user->Data['name'], $metaData['address'], $metaData['phone'], $user->Data['email'], null, $params);
-						$this->site->Register_data('createOrderSubmitted', true);
-						$this->site->Register_data('createOrderResult', $r);
-						$this->site->Register_data('createOrderParams', $params);
-						$this->Render('order');
-						return true;
-					}
+					$this->order_action();
+					return true;
+				}
+				elseif ($this->route[2] == 'ordered') {
+					$this->ordered_action();
+					return true;
 				}
 			}
-			$last = $this->routes->Get_last();
-			$path = $this->routes->Get_range(2);
-			$params = array('filter'=> array('pc.route'=> $last));
-			$d = $this->shop->products->Get(null, null, $params);
-			if ($d) {
-				$d = $d[0];
-				if ($d['link'] == $path) {
+			$this->last_route = $last_route = $this->routes->Get_last();
+			$this->route_path = $route_path = $this->routes->Get_range(2);
+			if (v($this->cfg['router']['no_trailing_slash'])) {
+				pc_remove_trailing_slash($route_path);
+			}
+
+			$this->debug('last:');
+			$this->debug($last_route);
+			$this->debug('path:');
+			$this->debug($route_path);
+			$params = array('filter'=> array('pc.route'=> $last_route));
+			$products = $this->shop->products->Get(null, null, $params);
+			$product_action = false;
+			$this->click('Tried to fetch products');
+			$this->debug('Products data:');
+			$this->debug($products);
+			if ($products) {
+				$this->debug('Products where found:');
+				$d = false;
+				foreach ($products as $key => $product) {
+					$this->debug('   $product[link]:' . $product['link']);
+					if ($product['link'] == $route_path) {
+						$this->debug('BINGO!');
+						$d = $product;
+						break;
+					}
+				}
+				if ($d) {
 					$this->type = 'product';
 					$this->currentProduct = $d;
 					$this->currentCategory = $this->shop->categories->Get($d['category_id']);
 					$this->shop->categories->Load_path($this->currentCategory);
+					$this->debug('$this->currentCategory:');
+					$this->debug($this->currentCategory);
 					if ($this->site->Is_opened($this->currentCategory['path'][0]['pid'])) {
-						$this->Set_current_path($this->currentCategory['path']);
-						//$this->site->Use_component('js/hooks');
-						$this->site->Add_script($this->core->Get_url('plugins','','pc_shop')."js/products.js");
-						$this->Render('product');
-					}
-					else $this->core->Do_action('show_error', 404);
-				}
-				else {
-					//invalid product path
-					$this->core->Do_action('show_error', 404);
-				}
-			}
-			else {
-				$params = array('filter'=> array('cc.route'=> $last), 'load_path'=> true);
-				$d = $this->shop->categories->Get(null, null, null, $params);
-				if ($d) {
-					$d = $d[0];
-					if ($d['link'] == $path && $this->site->Is_opened($d['path'][0]['pid'])) {
-						$this->type = 'category';
-						$this->currentCategory = $d;
-						$this->Set_current_path($d['path']);
-						$this->Render('category');
+						$product_action = true;
+						$this->product_action($d['id']);
 					}
 					else {
-						//invalid category path
+						$this->debug('404');
+						$this->_before_action_finish();
 						$this->core->Do_action('show_error', 404);
 					}
 				}
 				else {
-					//invalid route specified
+					//invalid product path
+					//$this->debug('invalid product path');
+					//$this->_before_action_finish();
+					//$this->core->Do_action('show_error', 404);
+				}
+			}
+			if (!$product_action) {
+				$this->debug('Products were not found. Looking for gategories');
+				$category_id = $this->_detect_category($this->last_route, $route_path);
+				$this->click('Category was detected');
+				if ($category_id) {
+					$this->category_action($category_id);
+				}
+				else {
 					$this->core->Do_action('show_error', 404);
 				}
 			}
 		}
 		else {
-			$this->core->Do_action('show_error', 404);
-			/*
-			$this->type = 'home';
-			$this->Render();
-			*/
+			//$this->core->Do_action('show_error', 404);
+			$this->shop->products->set_new_debug($this->debug);
+			
+			if ($this->Is_search()) {
+				$this->type = 'search';
+				$this->Render('search');
+			}
+			else {
+				$this->type = 'home';
+				$this->Render();
+			}
+		}
+		$this->_before_action_finish();
+	}
+	
+	protected function _detect_product() {
+		
+	}
+	
+
+	/**
+	 * Method finds id of category that is published, is in current page and satisfies the following conditions (arguments).
+	 * @param type $last_route route of category
+	 * @param type $route_path route path of category (without page route)
+	 * @return boolean
+	 */
+	protected function _detect_category($last_route, $route_path) {
+		$this->debug("_detect_category(last_route: $last_route, route_path: $route_path) [current page is ]" . $this->page->get_id());
+		$categories = $this->shop->categories->Get_id_by_content('route', $last_route, $this->site->ln, false);
+		$this->debug('Categories by route ' . $last_route . ':', 1);
+		$this->debug($categories, 2);
+		$category_id = false;
+		if ($categories) {
+			foreach ($categories as $cat_id) {
+				$page_id = $this->shop->categories->Get_page_id($cat_id);
+				$this->debug('category page is ' . $page_id, 2);
+				if ($page_id == $this->page->get_id()) {
+					$native_link = true;
+					$cat_route_path = $this->shop->categories->Get_link_by_id($cat_id, $this->site->ln, $some_page_id, $native_link);
+					$this->debug('category route path is ' . $cat_route_path, 3);
+					if ($cat_route_path == $route_path) {
+						$this->debug(':) category detected ' . $cat_id, 4);
+						return $cat_id;
+					}
+				}
+			}
+		}
+		return $category_id;
+	}
+	
+	public function get_link_to_cart() {
+		return 'cart';
+	}
+	
+	public function get_link_to_order() {
+		return 'order';
+	}
+	
+	public function get_link_to_order_fast() {
+		return 'order/fast';
+	}
+	
+	public function activation_action() {
+		$user = $this->core->Get_object('PC_user');
+		$code = (isset($this->route[3])?$this->route[3]:(isset($_POST['activationCode'])?$_POST['activationCode']:false));
+		if ($code) {
+			$s = $user->Activate($code);
+			if ($s) {
+				$type = $user->Get_meta_data('type');
+				if ($type != 'person' && $type != 'entity') $type = 'person';
+				$this->Render('order_'.$type);
+				return true;
+			}
+		}
+		$this->Render('activate');
+	}
+	
+	public function cart_action() {
+		$this->site->Set_url_suffix_callback(
+			$this, 
+			'get_link_to_cart', 
+			array()
+		);
+		$this->Render('cart');
+	}
+	
+	protected function _validate_fast_order() {
+		if (!trim($_POST['name'])) {
+			return false;
+		}
+		if (!trim($_POST['email'])) {
+			return false;
+		}
+		if (v($_POST['is_company'])) {
+			if (!trim(v($_POST['company_name']))) {
+				return false;
+			}
+			if (!trim(v($_POST['company_code']))) {
+				return false;
+			}
+			if (!trim(v($_POST['company_pvm_code']))) {
+				return false;
+			}
+		}
+		return true;
+	}
+	
+	protected function _get_payment_option_data() {
+		$payment_option_model = $this->core->Get_object('PC_shop_payment_option_model');
+		return $payment_option_model->get_one(array(
+			'where' => array(
+				'code' => $this->order_data['payment_option'],
+				'enabled' => 1
+			)
+		));
+	}
+	
+	protected function _get_payment_method_object() {
+		$payment_option_data = $this->_get_payment_option_data();
+		if ($payment_option_data) {
+			$class_name = 'PC_shop_' . $payment_option_data['code'] . '_payment_method';
+			$payment_method_class_path = $this->cfg['path']['plugins'] . 'pc_shop_payment_' . $payment_option_data['code'] . '/' . $class_name . '.php';
+			if (file_exists($payment_method_class_path)) {
+				require_once $this->cfg['path']['plugins'] . 'pc_shop/classes/PC_shop_payment_method.php';
+				require_once $payment_method_class_path;
+				return $this->payment_method = $this->core->Get_object($class_name, array($payment_option_data, $this->order_data));
+			}
+		}
+		return false;
+	}
+	
+	protected function _make_payment() {
+		$this->debug('_make_payment()');
+		
+		if ($this->_get_payment_method_object()) {
+			$this->payment_method->make_online_payment();
+		}
+		else {
+			$this->ordered_action();
 		}
 	}
+	
+	protected function _make_online_payment() {
+		include_once $this->cfg['path']['libs'] . 'web2pay/WebToPay.php';
+		//list($first_name, $last_name) = explode(' ', )
+		$langs = array(
+			'lt' => 'LIT', 
+			'lv' => 'LAV',
+			'ee' => 'EST',
+			'ru' => 'RUS',
+			'en' => 'ENG',
+			'de' => 'GER',
+			'pl' => 'POL'
+		);
+		$payment_params = array(
+			'projectid'     => $this->cfg['pc_shop']['web2pay_project_id'],
+			'sign_password' => $this->cfg['pc_shop']['web2pay_signature'],
+
+			'orderid'       => $this->order_id,
+			'amount'        => ($this->order_data['total_price'] * 100),
+			'currency'      => $this->order_data['currency'],
+			//'lang'          => ($languageCode == 'LT') ? 'LTU' : 'ENG',
+
+			'accepturl'     => $this->core->Absolute_url(pc_append_route($this->page->Get_current_page_link(), 'order/online_payment_accept')),
+			'cancelurl'     => $this->core->Absolute_url(pc_append_route($this->page->Get_current_page_link(), 'order/online_payment_cancel')),
+			'callbackurl'   => $this->core->Absolute_url(pc_append_route($this->page->Get_current_page_link(), 'order/online_payment_callback')),
+			//'payment'       => (isset($_POST['payment'])) ? $_POST['payment'] : '',
+
+			//'p_firstname'   => $customer->firstname,
+			//'p_lastname'    => $customer->lastname,
+			'p_email'       => $this->order_data['email'],
+			//'p_street'      => $address->address1,
+			//'p_city'        => $address->city,
+			//'p_zip'         => $address->postcode,
+			//'p_countrycode' => $country->iso_code,
+			//'test'          => false,
+		);
+		if (isset($langs[$this->site->ln])) {
+			$payment_params['lang'] = $langs[$this->site->ln];
+		}
+		if ($this->cfg['pc_shop']['web2pay_test']) {
+			$payment_params['test'] = 1;
+		}
+		try {
+			$request = WebToPay::redirectToPayment($payment_params, true);
+		} catch (WebToPayException $e) {
+			echo get_class($e).': '.$e->getMessage();
+		}
+	}
+	
+	protected function _order_online_payment_cancel() {
+		$this->core->Redirect_local(pc_append_route($this->page->Get_current_page_link(), 'cart'));
+	}
+	
+	protected function _order_online_payment_accept() {
+		$this->payment_logger->debug('Accept');
+		include_once $this->cfg['path']['libs'] . 'web2pay/WebToPay.php';
+		$payment_succesful = false;
+		try {
+			$response = WebToPay::checkResponse($_REQUEST, array(
+				'projectid'     => $this->cfg['pc_shop']['web2pay_project_id'],
+				'sign_password' => $this->cfg['pc_shop']['web2pay_signature']
+			));
+			
+			$this->payment_logger->debug($response, 1);
+			
+			if ($response['type'] !== 'macro') {
+				throw new Exception('Only macro payment callbacks are accepted');
+			}
+			
+			if ($response['status'] == 1) {
+				$payment_succesful = $this->_order_online_payment_successful($response);
+			}
+			elseif($response['status'] == 2) {
+				$this->render('order.online_payment.waiting');
+			}
+			elseif($response['status'] == 0) {
+				$this->render('order.online_payment.failed');
+			}
+			
+		} catch (Exception $e) {
+			$message = $e->getMessage();
+			if ($message == 'is_paid') {
+				$payment_succesful = true;
+			}
+			else {
+				$this->_online_payment_error = get_class($e) . ': ' . $message;
+				$this->render('order.online_payment.error');
+			}
+		}
+		if ($payment_succesful) {
+			$this->render('order.online_payment.success');
+		}
+	}
+	
+	protected function _order_online_payment_callback() {
+		$this->payment_logger->debug('Callback');
+		include_once $this->cfg['path']['libs'] . 'web2pay/WebToPay.php';
+		try {
+			$response = WebToPay::checkResponse($_REQUEST, array(
+				'projectid'     => $this->cfg['pc_shop']['web2pay_project_id'],
+				'sign_password' => $this->cfg['pc_shop']['web2pay_signature']
+			));
+			$this->payment_logger->debug($response, 1);
+			if ($response['type'] !== 'macro') {
+				throw new Exception('Only macro payment callbacks are accepted');
+			}
+			
+			$payment_succesful = $this->_order_online_payment_successful($response);
+			if ($payment_succesful) {
+				$this->payment_logger->debug('Displaying "OK"', 2);
+				echo 'OK';
+			}
+		} catch (Exception $e) {
+			//echo get_class($e) . ': ' . $e->getMessage();
+			$this->payment_logger->debug('Displaying exception' . $e->getMessage(), 2);
+			echo $e->getMessage();
+		}
+		exit;
+	}
+	
+	protected function _order_online_payment_successful($response) {
+		if ($response['status'] != 1) {
+			throw new Exception("Payment hasn't been accepted yet");
+		}
+			
+		$this->order_id = $response['orderid'];
+		$this->order_data = $this->shop->orders->get($this->order_id);
+
+		if (!$this->order_data) {
+			throw new Exception('Order was not found');
+		}
+		
+		if ($this->order_data['is_paid']) {
+			throw new Exception('is_paid');
+		}
+		
+		if (!$this->cfg['pc_shop']['web2pay_test'] and $response['test'] !== '0') {
+			throw new Exception('Testing, real payment was not made');
+		}
+
+		$total_price = $this->order_data['total_price'];
+
+		$order_currency = $this->order_data['currency'];
+		
+		if (number_format($response['amount'], 0, '', '') != number_format(($total_price*100), 0, '', '')) {
+			throw new Exception('Bad amount: ' . $response['amount']);
+		}
+
+		if ($response['currency'] != $order_currency) {
+			throw new Exception('Bad currency: ' . $response['currency']);
+		}
+		$this->_order_set_is_paid();
+		$this->_inform_about_order(true);
+		return true;
+	}
+	
+	protected function _order_set_is_paid() {
+		$this->payment_logger->debug('Setting is_paid for order ' . $this->order_id, 2);
+		$this->shop->orders->Set_is_paid($this->order_id);
+	}
+	
+	protected function _insert_order() {
+		$this->debug("_insert_order()");
+		$this->site->Register_data('createOrderSubmitted', true);
+		$this->shop->orders->Preserve_order_data($_POST);
+		$name = v($_POST['name']);
+		$email = v($_POST['email']);
+		$comment = v($_POST['comment']);
+		$address = v($_POST['address']);
+		$phone = v($_POST['phone']);
+		$payment_option = v($_POST['payment_option']);
+		$delivery_option = v($_POST['delivery_option']);
+		$params = array();
+		$data = PC_utils::getRequestData(array('country', 'city', 'post_index', 'is_company', 'company_name', 'company_code', 'company_pvm_code'));
+		if (isset($_POST['order_data']) and is_array($_POST['order_data'])) {
+			$data = array_merge($data, $_POST['order_data']);
+		}
+		//$data = pc_sanitize_value($data, 'strip_tags');
+		$this->debug('Additional data:', 1);
+		$this->debug($data, 1);
+		$clear_cart = false;
+		$r = $this->shop->orders->Create(null, $name, $address, $phone, $email, $comment, $params, $clear_cart, $payment_option, $delivery_option, 0, $data);
+		$this->order_id = $this->shop->orders->last_order_id;
+		$this->payment_option = $payment_option;
+		$this->site->Register_data('createOrderResult', $r);
+		$this->site->Register_data('createOrderParams', $params);
+	}
+
+	public function order_action() {
+		if ($this->routes->Get(3) == 'online_payment_cancel') {
+			$this->_order_online_payment_cancel();
+			return;
+		}
+		if ($this->routes->Get(3) == 'online_payment_accept') {
+			$this->_order_online_payment_accept();
+			return;
+		}
+		if ($this->routes->Get(3) == 'online_payment_callback') {
+			$this->_order_online_payment_callback();
+			return;
+		}
+		
+		if ($this->shop->cart->Is_empty()) {
+			$this->core->Redirect_local(pc_append_route($this->page->Get_current_page_link(), 'cart'));
+			return;
+		}
+				
+		$this->debug('order_action()');
+		
+		if ($this->routes->Get(3) == 'fast') {
+			$this->site->Set_url_suffix_callback(
+				$this, 
+				'get_link_to_order_fast', 
+				array()
+			);
+			$this->site->Register_data('isFastOrder', true);
+			//print_r($_POST);
+			if (isset($_POST['order']) and $this->_validate_fast_order()) {
+				//$this->payment_method = new $();
+				$this->_insert_order();
+				$this->order_data = $this->shop->orders->get($this->order_id);
+				$this->_make_payment();
+			}
+			if (!v($this->action_rendered)) {
+				$this->Render('order');
+				$this->_before_action_finish();
+			}
+			return true;
+		}
+		$this->site->Set_url_suffix_callback(
+			$this, 
+			'get_link_to_order', 
+			array()
+		);
+		$user = $this->core->Get_object('PC_user');
+		if (!$user->Logged_in) {
+			if (isset($_POST['register'])) {
+				$login = v($_POST['login']);
+				$email = v($_POST['email']);
+				$pass = v($_POST['pass']);
+				$pass2 = v($_POST['pass2']);
+				$address = v($_POST['address']);
+				$phone = v($_POST['phone']);
+				$type = v($_POST['_registerType']);
+				$user = $this->core->Get_object('PC_user');
+				if ($type == 'person') {
+					$name = v($_POST['name']);
+					$r = $user->Create($email, $pass, $pass2, $name, true, null, $login, array(
+						'type'=> $type,
+						'address'=> $address,
+						'phone'=> $phone
+					));
+				}
+				elseif ($type == 'entity') {
+					$name = v($_POST['title']);
+					$organization = v($_POST['organization']);
+					$domicile = v($_POST['domicile']);
+					$inn = v($_POST['inn']);
+					$kpp = v($_POST['kpp']);
+					$okpo = v($_POST['okpo']);
+					$r = $user->Create($email, $pass, $pass2, $name, true, null, $login, array(
+						'type'=> $type,
+						'address'=> $address,
+						'phone'=> $phone,
+						'organization'=> $organization,
+						'domicile'=> $domicile,
+						'inn'=> $inn,
+						'kpp'=> $kpp,
+						'okpo'=> $okpo
+					));
+				}
+				if (v($r['success'])) {
+					$_POST['user_login'] = $login;
+					$_POST['user_password'] = $pass;
+					$this->Render('activate');
+					return true;
+				}
+				else $this->site->Register_data('pc_shop_register_result', v($r, array()));
+			}
+			$this->Render('register');
+			return true;
+		}
+		else {
+			$metaData = $user->Get_meta_data();
+			$params = array();
+			$r = $this->shop->orders->Create($user->ID, $user->Data['name'], $metaData['address'], $metaData['phone'], $user->Data['email'], null, $params);
+			$this->site->Register_data('createOrderSubmitted', true);
+			$this->site->Register_data('createOrderResult', $r);
+			$this->site->Register_data('createOrderParams', $params);
+			$this->Render('order');
+			return true;
+		}
+	}
+	
+	public function ordered_action() {
+		$this->debug("ordered_action()");
+		$this->action_rendered = true;
+
+		if (!v($this->order_id)) {
+			$this->Render('ordered_error');
+			return;
+		}
+		
+		if (!v($this->order_data)) {
+			$this->order_data = $this->shop->orders->get($this->order_id);
+		}
+		
+		if (!v($this->order_data)) {
+			$this->Render('ordered_error');
+			return;
+		}
+			
+		$this->debug("order data:", 2);
+		$this->debug($this->order_data, 2);
+		
+		$this->_inform_about_order();
+		
+		$this->Render('ordered');
+		$this->_before_action_finish();
+	}
+	
+	protected function _inform_about_order($is_paid = false) {
+		$this->payment_logger->debug('Sending emails about order', 2);
+		$this->_tpl_is_paid = $is_paid;
+		$this->_send_order_email_to_admin($is_paid);
+		$this->_send_order_email_to_buyer($is_paid);
+	}
+	
+	protected function _send_order_email_to_buyer($is_paid = false) {
+		$buyer_email_body = $this->Render('order.email.buyer');
+		
+		$this->debug('Email text for buyer:', 3);
+		$this->debug($buyer_email_body, 3);
+		
+		$this->payment_logger->debug('Email text for buyer:', 3);
+		$this->payment_logger->debug($this->order_data['email'], 4);
+		$this->payment_logger->debug($buyer_email_body, 4);
+		
+		$subject = '';
+		if ($is_paid) {
+			$subject = $this->Get_variable('new_paid_order_email_subject_to_buyer');
+		}
+		if (empty($subject)) {
+			$subject = $this->Get_variable('new_order_email_subject_to_buyer');
+		}
+		
+		$email_params = array(
+			'from_email' => $this->cfg['from_email'],
+			'from_name' => $this->Get_variable('new_order_email_sender_to_buyer'),
+			'subject' => $subject,
+		);
+		PC_utils::sendEmail($this->order_data['email'], $buyer_email_body, $email_params);
+	}
+	
+	protected function _send_order_email_to_admin($is_paid = false) {
+		$email_body = $this->Render('order.email.admin');
+		
+		$this->debug('Email text for admin:', 3);
+		$this->debug($email_body, 3);
+		
+		$this->payment_logger->debug('Email text for admin:', 3);
+		$this->payment_logger->debug($this->Get_variable('new_order_email_admin'), 4);
+		$this->payment_logger->debug($email_body, 4);
+		
+		$subject = '';
+		if ($is_paid) {
+			$subject = $this->Get_variable('new_paid_order_email_subject_to_admin');
+		}
+		if (empty($subject)) {
+			$subject = $this->Get_variable('new_order_email_subject_to_admin');
+		}
+		
+		$email_params = array(
+			'from_email' => $this->cfg['from_email'],
+			'from_name' => $this->Get_variable('new_order_email_sender_to_admin'),
+			'subject' => $subject,
+		);
+		PC_utils::sendEmail($this->Get_variable('new_order_email_admin'), $email_body, $email_params, array('is_paid' => $is_paid));
+	}
+	
+	public function category_action($id) {
+		$this->debug("category_action($id)");
+		$c_params = array(
+			'load_path' => true
+			//'page_link' => $this->page->
+		);
+		$this->shop->categories->debug = true;
+		$category_data = $this->shop->categories->Get($id, null, null, $c_params);
+		$this->click('$category_data were fetched');
+		if (!$category_data) {
+			$this->core->Do_action('show_error', 404);
+		}
+	
+		if (!empty($category_data['permalink']) and strpos($_SERVER['REQUEST_URI'], $category_data['permalink'])=== false) {
+			$redirect_link = $this->shop->categories->Get_link_from_data($category_data);
+			$this->debug("Redirecting to permalink {$category_data['permalink']}: $redirect_link", 5);
+			$this->core->Redirect_local($redirect_link, 301);
+		}
+
+		$this->page->process_redirect($category_data, false, false);
+		
+		$this->_before_action_finish();
+		
+		$this->type = 'category';
+		
+		$this->debug("Rendering category", 3);
+		$this->debug("Debug from this->shop->categories", 5);
+		$debug_from_categories_inside_action = $this->shop->categories->get_debug_string();
+		
+		
+		$this->debug($category_data, 4);
+		$this->currentCategory = $category_data;
+		$this->currentCategoryLink = $this->currentCategory['full_link'] = $this->shop->categories->Get_link_from_data($category_data, $this->site->loaded_page['route']);
+		$this->_set_seo_for_category();
+		$this->site->Set_url_suffix_callback(
+			$this->shop->categories, 
+			'Get_link_by_id', 
+			array($this->currentCategory['id'])
+		);
+		$this->shop->categories->set_new_debug(true);
+		$this->Render('category');
+		
+		$debug_from_categories_inside_template = $this->shop->categories->get_debug_string();
+		$this->debug('debug_from_categories_inside_action:', 6);
+		$this->debug($debug_from_categories_inside_action, 6);
+		$this->debug('debug_from_categories_inside_template:', 6);
+		$this->debug($debug_from_categories_inside_template, 6);
+		$this->debug($this->shop->categories->get_exec_times_summary(), 7);
+	}
+	
+	protected function _set_seo_for_category() {
+		$this->Set_current_path($this->currentCategory['path']);
+		
+		if (!empty($this->currentCategory['seo_title'])) {
+			$this->site->loaded_page['title'] = pc_e($this->currentCategory['seo_title']);
+		}
+		else {
+			$path_count = count($this->currentCategory['path']);
+			$last_path_item = $this->currentCategory['path'][$path_count - 1];
+			$seo_title = $last_path_item['name'];
+			$parent_seo_title = '';
+			if ($path_count > 1) {
+				$parent_path_item = $this->currentCategory['path'][$path_count - 2];
+				v($parent_path_item['seo_title']);
+				v($parent_path_item['title']);
+				$parent_seo_title = v($parent_path_item['name']);
+				if (!empty($parent_path_item['seo_title'])) {
+					$parent_seo_title = $parent_path_item['seo_title'];
+				}
+				elseif(!empty($parent_path_item['title'])) {
+					$parent_seo_title = $parent_path_item['title'];
+				}
+			}
+			if (empty($parent_seo_title)) {
+				$parent_seo_title = $this->site->loaded_page['name'];
+			}
+			if (!empty($parent_seo_title)) {
+				$seo_title .= ' | ' . $parent_seo_title;
+			}
+			$this->site->loaded_page['title'] = pc_e($seo_title);
+		}
+		if (!empty($this->currentCategory['seo_keywords'])) {
+			$this->site->loaded_page['keywords'] = pc_e($this->currentCategory['seo_keywords']);
+		}
+		if (!empty($this->currentCategory['seo_description'])) {
+			$this->site->loaded_page['description'] = pc_e($this->currentCategory['seo_description']);
+		}
+	}
+	
+	protected function _set_seo_for_product() {
+		//$this->Set_current_path($this->currentCategory['path']);
+		
+		if (!empty($this->currentProduct['seo_title'])) {
+			$this->site->loaded_page['title'] = pc_e($this->currentProduct['seo_title']);
+		}else {
+			$this->site->loaded_page['title'] = pc_e($this->currentProduct['name']);
+		}
+		
+		if (!empty($this->currentProduct['seo_keywords'])) {
+			$this->site->loaded_page['keywords'] = pc_e($this->currentProduct['seo_keywords']);
+		}
+		if (!empty($this->currentProduct['seo_description'])) {
+			$this->site->loaded_page['description'] = pc_e($this->currentProduct['seo_description']);
+		}
+	}
+	
+	public function product_action($id) {
+		$this->_set_seo_for_product();
+		$this->Set_current_path($this->currentCategory['path']);
+		//$this->site->Use_component('js/hooks');
+		$this->site->Add_script($this->core->Get_url('plugins','','pc_shop')."js/products.js");
+		$this->site->Set_url_suffix_callback(
+			$this->shop->products, 
+			'Get_link_by_id', 
+			array($this->currentProduct['id'])
+		);
+		$this->Render('product');
+		$this->debug('Rendered product');
+		
+	}
+	
+	protected function _before_action_finish() {
+		$this->click('Action is finished');
+		$this->debug('shop->categories debug:');
+		$this->debug($this->shop->categories->get_debug_string(), 2);
+		$this->debug($this->shop->categories->get_exec_times_summary(), 2);
+		$this->debug('shop->products debug:');
+		$this->debug($this->shop->products->get_debug_string(), 2);
+		$this->debug($this->shop->products->get_exec_times_summary(), 2);
+		
+		$this->debug('shop->attributes debug:');
+		$this->debug($this->shop->attributes->get_debug_string(), 2);
+		
+		$this->debug('shop->orders debug:');
+		$this->debug($this->shop->orders->get_debug_string(), 2);
+		
+		$this->debug($this->logger->get_exec_times_summary(), 1);
+		$this->debug($this->get_exec_times_summary());
+		$this->file_put_debug($this->cfg['path']['logs'] . 'pc_shop_controller_log.html');
+	}
+	
 	public function Set_current_path($path) {
 		if (!is_array($path)) return false;
 		if (count($path)) {
@@ -203,6 +825,9 @@ final class PC_controller_pc_shop extends PC_controller {
 	}
 	public function Is_home() {
 		return ($this->type == 'home');
+	}
+	public function Is_search() {
+		return isset($_GET['q']);
 	}
 	public function Get_type() {
 		return $this->type;

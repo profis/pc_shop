@@ -3,13 +3,19 @@ final class PC_shop_plugin extends PC_base {
 	public $shop;
 	public function Init($plugin_name) {
 		$this->plugin = $plugin_name;
-		$this->productIcon = $this->core->Get_url('plugins', 'product.png', $this->plugin);
+		$this->categoryIcon = $this->core->Get_url('plugins', 'images/category.png', $this->plugin);
+		$this->productIcon = $this->core->Get_url('plugins', 'images/product.png', $this->plugin);
 	}
+	
+	/**
+	 * 
+	 * @return PC_shop_manager
+	 */
 	public function Get_shop() {
 		if (!($this->shop instanceof PC_shop_manager)) $this->shop = $this->core->Get_object('PC_shop_manager');
 		return $this->shop;
 	}
-	public function ParseID($id) {
+	public static function ParseID($id) {
 		$s = preg_match("#^(([a-z0-9\-_]*)/)?([0-9]+)$#im", $id, $m);
 		if (!$s) return false;
 		return array(
@@ -41,6 +47,7 @@ final class PC_shop_plugin extends PC_base {
 		$pars = array();
 		switch ($idData['type']) {
 			case 'category':
+				$pars['rename_only'] = v($params['rename_only']);
 				$s = $this->Get_shop()->categories->Edit($idData['id'], $changes, $pars);
 				if ($s) {
 					$params['success'] = true;
@@ -50,6 +57,8 @@ final class PC_shop_plugin extends PC_base {
 						$params['out']['names'][$ln] = $c['name'];
 					}
 					$params['data']['resources'] = $this->Get_shop()->resources->Get_parsed(null, $idData['id'], PC_shop_resources::RF_IS_CATEGORY);
+					$hook_params = array();
+					$this->core->Init_hooks('core/cache/clear', $hook_params);
 					return true;
 				}
 				break;
@@ -63,6 +72,8 @@ final class PC_shop_plugin extends PC_base {
 						$params['out']['names'][$ln] = $c['name'];
 					}
 					$params['data']['resources'] = $this->Get_shop()->resources->Get_parsed(null, $idData['id']);
+					$hook_params = array();
+					$this->core->Init_hooks('core/cache/clear', $hook_params);
 					return true;
 				}
 				break;
@@ -93,25 +104,65 @@ final class PC_shop_plugin extends PC_base {
 			$shop = $this->Get_shop();
 			$paging = array(
 				'page'=> v($additional['page'], 1),
-				'perPage'=> v($additional['perPage'], 30)
+				'perPage'=> v($additional['perPage'], 3000)
 			);
 			$cParams = array('paging'=> &$paging);
+			$shop->categories->debug = true;
+			$shop->categories->set_instant_debug_to_file($this->cfg['path']['logs'] . 'tree/get_childs_for_tree.html');
 			$categories = $shop->categories->Get(null, $parentId, v($pid), $cParams);
-			$this->Parse_category_nodes($categories, $list);
-			//list products
-			//$paging->Set_initial_offset(count($list));
-			$paging->Set_cutout(count($list));
-			$pParams = array('paging'=> &$paging);
-			$products = $shop->products->Get(null, $parentId, $pParams);
-			$this->Parse_product_nodes($products, $list);
-			//$data['total'] = $pParams->paging->total;
-			//print_pre($pParams->paging->total);
+			$this->Parse_category_nodes($categories, $list, $additional);
+			
+			if (v($additional['categories_only']) != true) {
+				//list products
+				//$paging->Set_initial_offset(count($list));
+				$paging->Set_cutout(count($list));
+				$pParams = array('paging'=> &$paging);
+				$products = $shop->products->Get(null, $parentId, $pParams);
+				$this->Parse_product_nodes($products, $list, $additional);
+				//$data['total'] = $pParams->paging->total;
+				//print_pre($pParams->paging->total);
+			}
+
 		}
 		
 		$params['data'] = (is_array($list)?$list:array());
 		return true;
 	}
-	public function Parse_category_nodes($dataList, &$list) {
+	
+	public function Get_parent_id_for_tree($params) {
+		$idData = $this->ParseID($params['id']);
+		if (!$idData) return false;
+		
+		$shop = $this->Get_shop();
+		
+		if ($idData['type'] == 'category') {
+			$data =  $shop->categories->Get_item($idData['id'], 'parent_id,pid');
+			if ($data) {
+				if ($data['parent_id'] != 0) {
+					$params['data'] = $this->_get_category_node_id($data['parent_id']);
+					return true; 
+				}
+				else {
+					$params['data'] = $data['pid'];
+					return true;
+				}
+			}
+		}
+		elseif($idData['type'] == 'product') {
+			$data = $shop->products->Get_item($idData['id'], 'category_id');
+			if ($data) {
+				$params['data'] = $this->_get_category_node_id($data['category_id']);
+				return true;
+			}
+		}
+		return false;
+	}
+	
+	protected function _get_category_node_id($id) {
+		return $this->plugin . '/category/' . $id;
+	}
+	
+	public function Parse_category_nodes($dataList, &$list, $additional = array()) {
 		if (!is_array($list)) return false;
 		$shop = $this->Get_shop();
 		foreach ($dataList as &$d) {
@@ -122,22 +173,33 @@ final class PC_shop_plugin extends PC_base {
 			$listData = array(
 				'id'=> $this->plugin.'/category/'.$d['id'],
 				'_names'=> $names,
-				'draggable' => false,
-				'allowDrop'=> false,
+				//'draggable' => false,
+				//'allowDrop'=> false,
 				'hot'=> $d['hot'],
 				'nomenu'=> $d['nomenu'],
+				'icon' => $this->categoryIcon,
 				'published'=> $d['published']
 			);
-			if ($d['rgt'] - $d['lft'] == 1) {
+			if (in_array(v($additional['checkbox_for']), array('category', 'all'))) {
+				$listData['checked'] = false;
+				$listData['checkbox'] = true;
+			}
+			if ($d['rgt'] - $d['lft'] == 1 or v($additional['no_children'])) {
 				$listData['_empty'] = 1;
 				$listData['childs'] = 0;
 			}
+			if ($d['redirect']) {
+				$listData['_redir'] = true;
+			}
 			$listData['pc_shop_products_count'] = $shop->products->Count($d['id']);
+			if ($listData['pc_shop_products_count'] and v($additional['no_children']) != true) {
+				unset($listData['_empty']);
+			}
 			$list[] = $listData;
 		}
 		return true;
 	}
-	public function Parse_product_nodes($dataList, &$list) {
+	public function Parse_product_nodes($dataList, &$list, $additional = array()) {
 		if (!is_array($list)) return false;
 		$shop = $this->Get_shop();
 		foreach ($dataList as &$d) {
@@ -145,36 +207,140 @@ final class PC_shop_plugin extends PC_base {
 			foreach ($d['contents'] as $ln=>&$c) {
 				$names[$ln] = $c['name'];
 			}
-			$list[] = array(
+			$listData = array(
 				'id'=> $this->plugin.'/product/'.$d['id'],
 				'icon'=> $this->productIcon,
 				'_names'=> $names,
 				'leaf'=> true,
-				'draggable' => false,
+				//'draggable' => false,
 				'allowDrop'=> false,
 				'hot'=> $d['hot'],
 				'nomenu'=> $d['nomenu'],
 				'published'=> $d['published']
 			);
+			if (in_array(v($additional['checkbox_for']), array('product', 'all'))) {
+				$listData['checked'] = false;
+				$listData['checkbox'] = true;
+			}
+			$list[] = $listData;
 		}
 		return true;
 	}
 	public function Search_tree($params) {
+		if (v($params['logger'], false)) {
+			$this->absorb_debug_settings($params['logger']);
+		}
+		$params['hook_object'] = $this;
+		
+		$this->debug('Search_tree');
+		if (v($params['accessible_pages_concat_query']) and v($params['accessible_pages_concat_query_params'])) {
+			$this->debug('Accessible pages concat query:');
+			$this->debug_query($params['accessible_pages_concat_query'], $params['accessible_pages_concat_query_params']);
+		}
+		
+		
 		$search =& $params['search'];
 		$list =& $params['nodes'];
+		$accessible_page_sets = & $params['accessible_page_sets'];
+		
 		$shop = $this->Get_shop();
+			
+		$ranges = array();
+		$use_ranges = false;
+		$betweens = array();
+		$query_params = array();
+		$between_cond = '';
+		$join_s = '';
+		
+		
+		$this->debug('Manage accessible pages:', 2);
+		if(v($params['accessible_pages_concat_query']) and v($params['accessible_pages_concat_query_params'])) {
+			$use_ranges = true;
+			$params['accessible_pages_concat_query'] .= ' and p.controller = ?';
+			$params['accessible_pages_concat_query_params'][] = 'pc_shop';
+
+			$this->debug('Real accessible pages concat query:', 3);
+			$this->debug_query($params['accessible_pages_concat_query'], $params['accessible_pages_concat_query_params'], 4);
+
+			$r = $this->db->prepare($params['accessible_pages_concat_query']);
+			$success = $r->execute($params['accessible_pages_concat_query_params']);
+			if ($success) {
+				$ids = $r->fetchColumn();
+				if (!empty($ids)) {
+					$categories = $shop->categories->Get_items('lft,rgt', "pid IN ($ids)");
+					if ($categories) {
+						foreach ($categories as $cat) {
+							$ranges[] = $cat;
+						}
+					}
+				}
+			}		
+		}
+		
+		if ($accessible_page_sets) {
+			$this->debug('Search is restricted to accessible nodes only!', 1);
+			$this->debug('Manage accessible controller_nodes:', 2);
+			if (isset($accessible_page_sets['controller_nodes']) and isset($accessible_page_sets['controller_nodes']['pc_shop'])) {
+				$use_ranges = true;
+				foreach ($accessible_page_sets['controller_nodes']['pc_shop'] as $key => $id) {
+					$id_data = $this->ParseID($id);
+					if ($id_data and $id_data['type'] == 'category') {
+						$this->debug($id_data, 3);
+						$category_data = $shop->categories->Get_item($id_data['id']);
+						if ($category_data) {
+							$add_range = true;
+							foreach ($ranges as $k => $range) {
+								if ($range['lft'] <= $category_data['lft'] and $range['rgt'] >= $category_data['rgt']) {
+									$add_range = false;
+									break;
+								}
+							}
+							if ($add_range) {
+								$ranges[$category_data['lft']] = array(
+									'lft' => $category_data['lft'],
+									'rgt' => $category_data['rgt']
+								);
+							}
+						}
+					}
+				}
+			}
+		}
+		
+		if ($use_ranges) {
+			$this->debug('Ranges:', 2);
+			$this->debug($ranges);
+			foreach ($ranges as $range) {
+				$betweens[] = "(c.lft BETWEEN {$range['lft']} AND {$range['rgt']})";
+				//$query_params[] = $range['lft'];
+				//$query_params[] = $range['rgt'];
+			}
+			if (!empty($betweens)) {
+				$join_s .= ' LEFT JOIN pc_shop_categories c ON c.id = category_id ';
+				$between_cond = '(' . implode(' OR ', $betweens) . ') AND ';
+				$this->debug('$between_cond: ' . $between_cond, 3);
+			}
+		}
+		
 		//categories
 		//search between contents: name, description, seo_title, seo_description, seo_keywords, route
-		$r = $this->prepare("SELECT DISTINCT category_id FROM {$this->db_prefix}shop_category_contents"
-		." WHERE name ".$this->sql_parser->like(':search')
+		$query = "SELECT DISTINCT category_id FROM {$this->db_prefix}shop_category_contents"
+		. $join_s
+		." WHERE " . $between_cond . "(name ".$this->sql_parser->like(':search')
 		." or description ".$this->sql_parser->like(':search')
 		." or seo_title ".$this->sql_parser->like(':search')
 		." or seo_description ".$this->sql_parser->like(':search')
 		." or seo_keywords ".$this->sql_parser->like(':search')
-		." or route ".$this->sql_parser->like(':search'));
+		." or route ".$this->sql_parser->like(':search') . ')';
+		$r = $this->prepare($query);
+			
 		$searchStr = '%'.$search.'%';
-		$r->bindParam('search', $searchStr);
-		$s = $r->execute();
+		//$r->bindParam('search', $searchStr);
+		$query_params['search'] = $searchStr;
+		
+		$this->debug('Search categories query:', 1);
+		$this->debug_query($query, $query_params, 2);
+		$s = $r->execute($query_params);
 		if ($s) if ($r->rowCount()) {
 			$ids = array();
 			while ($id = $r->fetchColumn()) {
@@ -183,21 +349,38 @@ final class PC_shop_plugin extends PC_base {
 			unset($id);
 			$params = array();
 			$categories = $shop->categories->Get($ids, null, $params);
-			$this->Parse_category_nodes($categories, $list);
+			$this->Parse_category_nodes($categories, $list, array('no_children' => true));
 		}
 		
 		//products
 		//search between contents: name, short_description, description, seo_title, seo_description, seo_keywords, route
-		$r = $this->prepare("SELECT DISTINCT product_id FROM {$this->db_prefix}shop_product_contents"
-		." WHERE name ".$this->sql_parser->like(':search')
-		." or short_description ".$this->sql_parser->like(':search')
-		." or description ".$this->sql_parser->like(':search')
-		." or seo_title ".$this->sql_parser->like(':search')
-		." or seo_description ".$this->sql_parser->like(':search')
-		." or seo_keywords ".$this->sql_parser->like(':search')
-		." or route ".$this->sql_parser->like(':search'));
-		$r->bindParam('search', $searchStr);
-		$s = $r->execute();
+		
+		$between_join = ' LEFT JOIN pc_shop_products p ON p.id = pc.product_id';
+		if (!empty($between_cond)) {
+			$between_join .= " LEFT JOIN pc_shop_categories c ON c.id = p.category_id ";
+		}
+		
+		$products_query = "SELECT DISTINCT product_id FROM {$this->db_prefix}shop_product_contents pc"
+		.$between_join
+		." WHERE " . $between_cond . " (pc.name ".$this->sql_parser->like(':search')
+		." or pc.short_description ".$this->sql_parser->like(':search')
+		." or pc.description ".$this->sql_parser->like(':search')
+		." or p.external_id ".$this->sql_parser->like(':search')
+		." or pc.seo_title ".$this->sql_parser->like(':search')
+		." or pc.seo_description ".$this->sql_parser->like(':search')
+		." or pc.seo_keywords ".$this->sql_parser->like(':search')
+		." or pc.route ".$this->sql_parser->like(':search') . ')';
+		
+		$products_query_params = array();
+		
+		$r = $this->prepare($products_query);
+		//$r->bindParam('search', $searchStr);
+		$products_query_params['search'] = $searchStr;
+		
+		$this->debug('Search products query:', 1);
+		$this->debug_query($products_query, $products_query_params, 2);
+		
+		$s = $r->execute($products_query_params);
 		if ($s) if ($r->rowCount()) {
 			$ids = array();
 			while ($id = $r->fetchColumn()) {
@@ -209,4 +392,109 @@ final class PC_shop_plugin extends PC_base {
 			$this->Parse_product_nodes($products, $list);
 		}
 	}
+	
+	public function Get_page_url($params) {
+		$url = '';
+		$id_parts = explode('/', $params['id']);
+		$ln = v($params['ln'], $this->site->ln);
+		/* @var $shop PC_shop_site */ 
+		if (count($id_parts) >= 2) {
+			$type = $id_parts[0];
+			$id = $id_parts[1];
+			if ($type == 'category') {
+				$shop = $this->core->Get_object('PC_shop_site');
+				if (isset($params['instant_debug_to_file'])) {
+					$shop->categories->debug = true;
+					$shop->categories->set_instant_debug_to_file($params['instant_debug_to_file'], false, 5);
+				}
+				$params['url'] = $url = $shop->categories->Get_full_link_by_id($id, $ln);
+				if ($url) {
+					if (v($params['get_page_id'])) {
+						$params['page_id'] = $shop->categories->last_page_id;
+					}
+				}
+				return;
+			}
+			elseif ($type == 'product') {
+				$shop = $this->core->Get_object('PC_shop_site');
+				$params['url'] = $url = $shop->products->Get_full_link_by_id($id, $ln);
+				return;
+			}
+		}
+	}
+	
+	public function Get_request_from_permalink($params) {
+		if (v($params['logger'], false)) {
+			$this->absorb_debug_settings($params['logger']);
+		}
+		$params['hook_object'] = $this;
+		
+		v($params['request']);
+		v($params['ln'], null);
+		
+		$params['request'] = trim($params['request']);
+		$params['request'] = trim($params['request'], '/');
+		
+		if (empty($params['request'])) {
+			return;
+		}
+			
+		$this->debug("Get_request_from_permalink({$params['request']}, {$params['ln']})");
+		
+		$shop = $this->core->Get_object('PC_shop_site');
+		$shop_manager = $this->Get_shop();
+		
+		$shop->categories->absorb_debug_settings($this, 4);
+		$shop_manager->categories->absorb_debug_settings($this, 10);
+		
+		$category_id = $shop_manager->categories->Get_id_by_content('permalink', $params['request'], $params['ln']);
+		
+		$category_params = array('parse' => array());
+		
+		if ($category_id) {
+			$page_ln = $params['ln'];
+			if (!is_null($params['ln'])) {
+				$this->site->ln = $params['ln'];
+				$page_ln = '';
+			}
+			$category_data = $shop->categories->Get($category_id, null, null, $category_params);
+			if ($category_data) {
+				$shop->categories->Load_path($category_data);
+				$this->debug('Ln: '.$params['ln'].'; $category_data:', 2);
+				$this->debug($category_data, 2);
+				
+				$page_link = '';
+				if ($category_data['path'][0]['pid']) {
+					$page_link = $this->page->Get_page_link_by_id($category_data['path'][0]['pid'], $page_ln);
+				}
+				$this->debug("Page link: " . $page_link, 3);
+				
+				$last_path_item = $category_data['path'][count($category_data['path']) - 1];
+				$category_link = $last_path_item['link'];
+				if (v($last_path_item['real_link'])) {
+					$category_link = $last_path_item['real_link'];
+				}
+				pc_remove_trailing_slash($page_url);
+				
+				$params['permalink_request'] = $page_link . '/' . $category_link;
+				
+				$this->debug("permalink_request is set to: " . $params['permalink_request'], 3);
+			}
+			
+		}
+		
+	}
+	
+	public function After_page_load() {
+		$shop = $this->core->Get_object('PC_shop_site');
+		$highlight_cart = false;
+	
+		if (isset($_POST['add_to_basket']) and isset($_POST['product_id'])) {
+			$shop->product_was_added_to_cart = $shop->cart->Add(intval($_POST['product_id']), 1);
+			$highlight_cart = $shop->cart->product_was_added;
+		}
+		
+		$this->site->Register_data('pc_shop_highlight_cart', $highlight_cart);
+	}
+	
 }

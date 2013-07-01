@@ -28,85 +28,49 @@ $mod['priority'] = 100;
 ?>
 <style type="text/css"></style>
 <script type="text/javascript">
-PC.utils.localize('mod.pc_shop', {
-	en: {
-		name: 'e-Shop',
-		tab: {
-			orders: 'Orders',
-			sales: 'Sales',
-			coupons: 'Coupons',
-			attributes: 'Attributes',
-			currencies: 'Currencies',
-			manufacturers: 'Manufacturers',
-			settings: 'Settings'
-		},
-		date_time: 'Date/time',
-		author: 'Author',
-		comment: 'Comment',
-		confirmed: 'Confirmed',
-		with_selected: 'Selected',
-		confirm: 'Confirm',
-		unconfirm: 'Unconfirm',
-		_delete: 'Delete',
-		show_from: 'Show from',
-		to: 'to',
-		with_phrase: 'with phrase',
-		and_status: 'and status',
-		status: 'Status'
-	},
-	lt: {
-		name: 'e-Parduotuvė',
-		tab: {
-			orders: 'Užsakymai',
-			sales: 'Pardavimai',
-			coupons: 'Kuponai',
-			attributes: 'Atributai',
-			currencies: 'Valiutos',
-			manufacturers: 'Gamintojai',
-			settings: 'Nustatymai'
-		},
-		date_time: 'Data/laikas',
-		author: 'Autorius',
-		comment: 'Komentaras',
-		confirmed: 'Patvirt.',
-		with_selected: 'Pažymėtus',
-		confirm: 'Patvirtinti',
-		unconfirm: 'Slėpti',
-		_delete: 'Ištrinti',
-		show_from: 'Rodyti nuo',
-		to: 'iki',
-		with_phrase: 'su fraze',
-		and_status: 'ir statusu',
-		status: 'Statusas'
-	},
-	ru: {
-        name: 'e-Магазин',
-		tab: {
-			orders: 'Заказы',
-			sales: 'Продажи',
-			coupons: 'Купоны',
-			attributes: 'Атрибуты',
-			currencies: 'Валюты',
-			manufacturers: 'Производители',
-			settings: 'Настройки'
-		},
-        date_time: 'Дата/время',
-        author: 'Автор',
-        comment: 'Комментарий',
-        confirmed: 'Подтвержден',
-        with_selected: 'Помеченные',
-        confirm: 'Подтвердить',
-        unconfirm: 'Скрыть',
-        _delete: 'Удалить',
-        show_from: 'Показывать с',
-        to: 'по',
-        with_phrase: 'с фразой',
-		and_status: 'and status',
-		status: 'Status'
-    }
-});
+	
+<?php
+	$js_files = array(
+		'dialog.ln.js',
+		'dialog.js',
+		'dialog.tab.orders.js',
+		'dialog.tab.attribute_categories.js',
+		'dialog.tab.manufacturers.js',
+		'dialog.tab.delivery_options.js',
+		'dialog.tab.payment_options.js'
+	);
+	foreach ($js_files as $js_file) {
+		if (@file_exists($js_file)) {
+			include $js_file;
+			echo "
+";
+		}
+	}
+?>
 
 Ext.namespace('PC.plugins');
+
+var plugin_title = PC.i18n.mod.pc_shop.name;
+
+var hook_params = {};
+PC.hooks.Init('plugin/pc_shop/titles', hook_params);
+if (hook_params.titles) {
+	Ext.apply(PC.i18n.mod.pc_shop, hook_params.titles);
+}
+
+<?php
+
+	$product_import_methods = array();
+	$core->Init_hooks('plugin/pc_shop/import-products/register-import-method', array(
+		'import_methods'=> &$product_import_methods,
+	));
+?>	
+
+	//Ext.ns('PC');
+	PC.plugin.pc_shop.product_import_methods = <?php  echo json_encode($product_import_methods) ?>;
+
+
+
 
 function mod_pc_shop_click() {
 	PC.plugin.pc_shop.dialog = {};
@@ -125,9 +89,45 @@ function mod_pc_shop_click() {
 	var pluginUrl = '<?php echo $pluginUrl; ?>';
 	var apiUrl = '<?php echo $apiUrl; ?>';
 	
+	var re = new Ext.ux.grid.RowEditor({
+		saveText: 'OK',
+		clicksToEdit: 2,
+		listeners: {
+			afteredit: function(editor, changes, record, a3) {
+				Ext.Ajax.request({
+					url: apiUrl +'orders/edit',
+					params: {
+						id: record.id,
+						changes: Ext.util.JSON.encode(changes)
+					},
+					method: 'POST',
+					callback: function(opts, success, rspns) {
+						if (success && rspns.responseText) {
+							try {
+								if (rspns.responseText == 'errors') {
+									//alert('errors occured');
+								}
+								else {
+									dialog.store.reload();
+									return; // OK
+								}
+							} catch(e) {};
+						}
+					}
+				});
+			}
+		}
+	});
+	
 	dialog.selectionChange = function(selModel){
 		var del = selModel.grid.action_delete;
-		if (selModel.grid.action_delete == undefined) return;
+		if (!del && selModel.grid.button_container_id) {
+			var button_container = Ext.getCmp(selModel.grid.button_container_id);
+			if (button_container) {
+				del = button_container.action_delete;
+			}
+		}
+		if (del == undefined) return;
 		var selected = selModel.getSelections();
 		if (selected.length) {
 			del.enable();
@@ -135,31 +135,22 @@ function mod_pc_shop_click() {
 		else del.disable();
 	}
 	
+	dialog.is_paid_icon = function(is_paid, n) {
+		if (parseInt(is_paid)) {
+			return PC.i18n.yes;
+			//return '<img src="images/tick.png" alt="" />';
+		}
+		return PC.i18n.no;
+		//return '<img src="images/delete.png" alt="" />';
+	}
+	
+	
 	dialog.expander = new Ext.ux.grid.RowExpander({
-		tpl : new Ext.XTemplate(
-			'<p style="padding:5px;margin:2px 2px 2px 42px;border:1px solid #eee;color:#555">',
-				//------
-				'<b>Recipient information:</b><br />',
-				'Name: <i>{name}</i><br />',
-				'Phone: <i>{phone}</i><br />',
-				'Email: <i>{email}</i><br />',
-				'Address: <i>{address}</i><br />',
-				//------
-				'<br /><b>Items in order:</b><br />',
-				'<tpl for="items">', //should be table
-					'{#}. {name} - {short_description} - Quantity taken: {quantity} - Price for each: {price}<br />',
-				'</tpl>',
-				//------
-				'Comment: <i>{comment}</i><br />',
-				'<br /><b>Total price of the order:</b> {total_price}',
-			'</p>'
-			/*
-			'<p style="padding:5px;margin:2px 2px 2px 42px;border:1px solid #eee;color:#555">',
-				'<img style="vertical-align:-3px;margin-right:2px" src="images/folder.png" alt="" /><b>{values.subject.title}</b><br />',
-				'<img style="vertical-align:-4px;margin-right:2px" src="images/comment.png" alt="" />{comment}',
-			'</p>'*/
+		tpl_ : new Ext.XTemplate(
+
 		),
-		autoExpandColumn: 'items'
+		autoExpandColumn: 'items',
+		expandOnDblClick: false
 	});
 	
 	dialog.Get_status_icon = function(confirmed) {
@@ -172,12 +163,43 @@ function mod_pc_shop_click() {
 		return new Date(date*1000).format('Y-m-d H:i');
 	}
 	
+	dialog.attr_category_store = new Ext.data.JsonStore({
+		url: apiUrl +'attribute_categories/get_for_combo?empty&ln=' + PC.global.admin_ln,
+		fields: [
+			'id', 
+			'names', 
+			{name: 'name', mapping: 'names', convert: function(names, n){return PC.utils.extractName(names, false, {greyOut: false});}}
+		],
+		idProperty: 'id',
+		autoLoad: true,
+		get_value_by_id: function (id){
+			if (id) {
+				var data = this.getById(id);
+				if (data) {
+					return data.data.name;
+				}
+			}
+			return '...';
+			//(values.category_id && PC.plugin.pc_shop.dialog.attr_category_store.getById(values.gvalue))?
+		}
+	})
+	
 	dialog.store = new Ext.data.JsonStore({
-		url: apiUrl +'orders/get/'+ PC.global.ln,
+		url: apiUrl +'orders/get/'+ PC.global.admin_ln + '/?ln=' + PC.global.admin_ln,
+		//proxy: new Ext.data.HttpProxy({
+		//proxy: new Ext.data.ScriptTagProxy({
+		//	url: apiUrl +'orders/get/'+ PC.global.admin_ln + '/?ln=' + PC.global.admin_ln
+		//}),
+		baseParams: {
+			//ln: PC.global.ln
+			limit: 10
+			//test: 'test'
+		},
 		remoteSort: true,
 		fields: [
-			'id', 'address', 'comment', 'date', 'email', 'name', 'phone', 'user_id', 'items', 'total_price',
+			'id', 'address', 'comment', 'date', 'email', 'name', 'phone', 'user_id', 'items', 'data', 'total_price', 'status', 'is_paid', 'payment_option', 'delivery_option', 'delivery_price', 'cod_price',
 			{name: 'dateFormatted', mapping: 'date', convert: dialog.FormatDate}
+			//{name: 'is_paid_icon', mapping: 'is_paid', convert: dialog.is_paid_icon}
 			//{name: 'status_icon', mapping: 'status', convert: dialog.Get_status_icon}
 		],
 		/*baseParams: {
@@ -189,151 +211,398 @@ function mod_pc_shop_click() {
 		autoLoad: true
 	});
 	
+	dialog.store.setDefaultSort('date', 'desc');
+	
+	//dialog.store.setBaseParam('ln', PC.global.ln);
+	
+	dialog.selModel = new Ext.grid.RowSelectionModel({
+		listeners: {
+			//selectionchange: dialog.selectionChange
+			selectionchange: function(selModel) {
+				dialog.selectionChange(selModel);
+				var selected = selModel.getSelected();
+				if (selected) {
+					var data = selModel.getSelected().data;
+					data.show_details = 'yes';
+					Ext.getCmp('pc_shop_dialog_order_details').update(data);
+				}
+			}
+		}
+	});
+	
+	var tbar = [
+		{	ref: '../action_delete',
+			disabled: true,
+			text: ln._delete_order.button,
+			icon: 'images/delete.png',
+			handler: function(b, e) {
+				Ext.MessageBox.show({
+					buttons: Ext.MessageBox.YESNO,
+					title: ln._delete_order.confirmation,
+					msg: ln._delete_order.confirm_message,
+					icon: Ext.MessageBox.WARNING,
+					maxWidth: 320,
+					fn: function(btn_id) {
+						if (btn_id == 'yes') {
+							var ids = dialog.getSelectedIds();
+							if (!ids) return;
+							Ext.Ajax.request({
+								url: apiUrl +'orders/delete',
+								method: 'POST',
+								params: {ids: ids},
+								callback: function(opts, success, response) {
+									if (success && response.responseText) {
+										try {
+											var data = Ext.decode(response.responseText);
+											if (data.success) {
+												//debugger;
+												dialog.store.reload();
+												return;
+											}
+											else error = data.error;
+										} catch(e) {
+											var error = 'Invalid JSON data returned.';
+										};
+									}
+									else {
+										var error = 'Connection error.';
+									}
+									Ext.MessageBox.show({
+										title: PC.i18n.error,
+										msg: (error?'<b>'+ error +'</b><br />':'') +'Comments was not deleted.',
+										buttons: Ext.MessageBox.OK,
+										icon: Ext.MessageBox.ERROR
+									});
+								}
+							});
+						}
+					}
+				});
+			}
+		},
+		{xtype:'tbfill'},
+		{xtype:'tbtext', text: ln.search_label + ':', style:'margin:0 2px;'},
+		{	xtype:'tbtext',
+			text: ln.search_id,
+			style:'margin:0 2px;'
+		},
+		{	ref: '../order_id',
+			xtype:'textfield',
+			width: 55
+		},
+		{xtype:'tbtext', text: ln.show_from, style:'margin:0 2px;'},
+		{	ref: '../date_from',
+			xtype:'datefield',
+			width: 80,
+			value: initial_date_from,
+			maxValue: new Date()
+		},
+		{xtype:'tbtext', text: ln.to, style:'margin:0 2px;'},
+		{	ref: '../date_to',
+			xtype:'datefield',
+			width: 80,
+			value: initial_date_to,
+			maxValue: new Date()
+		},
+		{	xtype:'tbtext',
+			text: ln.with_phrase,
+			style:'margin:0 2px;'
+		},
+		{	ref: '../search_phrase',
+			xtype:'textfield',
+			width: 80
+		},
+		/*
+		{xtype:'tbtext', text: ln.and_status, style:'margin:0 2px;'},
+		{
+			xtype:'combo', 
+			width: 100, 
+			store: {
+				xtype: 'arraystore',
+				fields: ['status_id', 'status_label'],
+				idIndex: 0,
+				data: PC.utils.getComboArrayFromObject(ln.status_labels)
+				//data: []
+			},
+			displayField: 'status_id',
+			valueField: 'status_label',
+			//editable: false,
+			//forceSelection: true,
+			triggerAction: 'all'
+		},
+		*/
+		{	icon:'images/zoom.png',
+			handler: function() {
+				//site
+				//var site = dialog.w.site.getValue();
+				//dialog.store.setBaseParam('site', site);
+				//date from
+				var filters = Ext.getCmp('pc_shop_dialog_orders_tab');
+				var date_from = filters.date_from.getValue();
+				if (date_from instanceof Date) {
+					dialog.store.setBaseParam('date_from', date_from.format('Y-m-d'));
+				}
+				else {
+					dialog.store.setBaseParam('date_from', undefined);
+				}
+				//date to
+				var date_to = filters.date_to.getValue();
+				if (date_to instanceof Date) {
+					dialog.store.setBaseParam('date_to', date_to.format('Y-m-d'));
+				}
+				else {
+					dialog.store.setBaseParam('date_to', undefined);
+				}
+				//search phrase
+				var search_phrase = filters.search_phrase.getValue();
+				if (search_phrase.length) {
+					dialog.store.setBaseParam('search_phrase', search_phrase);
+				}
+				else {
+					dialog.store.setBaseParam('search_phrase', undefined);
+				}
+				
+				//order id
+				var order_id = filters.order_id.getValue();
+				if (order_id.length) {
+					dialog.store.setBaseParam('order_id', order_id);
+				}
+				else {
+					dialog.store.setBaseParam('order_id', undefined);
+				}
+				dialog.store.load({
+					params: {
+						start: 0 // reset the start to 0 since you want the filtered results to start from the first page
+					}
+				});
+			}
+		},
+		{	icon:'images/zoom_out.png',
+			handler: function() {
+				var filters = Ext.getCmp('pc_shop_dialog_orders_tab');
+				//dialog.store.setBaseParam('site', dialog.Initial_site_value);
+				dialog.store.setBaseParam('order_id', undefined);
+				dialog.store.setBaseParam('date_from', undefined);
+				dialog.store.setBaseParam('date_to', undefined);
+				dialog.store.setBaseParam('search_phrase', undefined);
+				dialog.store.load({
+					params: {
+						start: 0 // reset the start to 0 since you want the filtered results to start from the first page
+					}
+				});
+				filters.order_id.setValue('');
+				filters.search_phrase.setValue('');
+				filters.date_from.setValue(initial_date_from);
+				filters.date_to.setValue(initial_date_to);
+			}
+		}
+	];
+	
 	dialog.grid = new Ext.grid.GridPanel({
-		title: ln.tab.orders,
+		//title: ln.tab.orders,
 		//region: 'center',
+		button_container_id: 'pc_shop_dialog_orders_tab',
 		border: false,
 		store: dialog.store,
-		plugins: dialog.expander,
-        columns: [
+		plugins: [
+			//dialog.expander,
+			re
+		],
+		columns: [
 			//uzsakovas, adresas, data, prekiu skaicius, suma
 			//dialog.selModel,
-			dialog.expander,
-			{header: 'Data', dataIndex: 'dateFormatted', width: 100},
-			{header: 'Name', dataIndex: 'name', width: 150},
-			{header: 'Address', dataIndex: 'address', width: 200},
-			{header: 'Phone', dataIndex: 'phone', width: 200},
-			{header: 'Comment', dataIndex: 'comment'}
+			//dialog.expander,
+			{header: ln.order_info.id, dataIndex: 'id',  width: 60, sortable: true},
+			{header: ln.order_info.date, dataIndex: 'dateFormatted', width: 100, sortable: true},
+			{header: ln.order_info.name, dataIndex: 'name', width: 150, sortable: true},
+			//{header: 'Address', dataIndex: 'address', width: 180},
+			//{header: 'Phone', dataIndex: 'phone', width: 90},
+			//{header: 'Comment', dataIndex: 'comment'},
+			{
+				header: ln.order_info.is_paid, 
+				dataIndex: 'is_paid', 
+				width: 70, 
+				sortable: true,
+				editor: {
+					xtype: 'combo',
+					mode: 'local',
+					store: {
+						xtype: 'arraystore',
+						fields: ['is_paid_id', 'is_paid_name'],
+						idIndex: 0,
+						data: [[0, PC.i18n.no], [1, PC.i18n.yes]]
+					},
+					displayField: 'is_paid_name',
+					valueField: 'is_paid_id',
+					editable: false,
+					forceSelection: true,
+					triggerAction: 'all'
+				},
+				renderer: function(value, metaData, record, rowIndex, colIndex, store) {
+					if (value == 1) {
+						return PC.i18n.yes;
+					}
+					return PC.i18n.no;
+				}
+			},
             //{header: 'Prekės', dataIndex: '_author', width: 180, css: 'font-weight:bold'},
             //{id: 'pc_shop_comment_column', header: ln.comment, dataIndex: 'comment'},
             //{header: 'Statusas', dataIndex: 'status_icon', width: 80}
-        ],
-		//autoExpandColumn: 'pc_shop_comment_column',
-		//sm: dialog.selModel,
-		tbar: [
-			{	ref: '../action_delete',
-				disabled: true,
-				text: ln._delete,
-				icon: 'images/delete.png',
-				handler: function() {
-					var ids = dialog.getSelectedIds();
-					if (!ids) return;
-					Ext.Ajax.request({
-						url: apiUrl +'orders/delete',
-						method: 'POST',
-						params: {ids: ids},
-						callback: function(opts, success, response) {
-							if (success && response.responseText) {
-								try {
-									var data = Ext.decode(response.responseText);
-									if (data.success) {
-										dialog.store.reload();
-										return;
-									}
-									else error = data.error;
-								} catch(e) {
-									var error = 'Invalid JSON data returned.';
-								};
-							}
-							else {
-								var error = 'Connection error.';
-							}
-							Ext.MessageBox.show({
-								title: PC.i18n.error,
-								msg: (error?'<b>'+ error +'</b><br />':'') +'Comments was not deleted.',
-								buttons: Ext.MessageBox.OK,
-								icon: Ext.MessageBox.ERROR
-							});
-						}
-					});
+			{
+				header: ln.order_info.status, 
+				dataIndex: 'status', 
+				width_: 90,
+				sortable: true,
+				editor: {
+					xtype: 'combo',
+					mode: 'local',
+					store: {
+						xtype: 'arraystore',
+						fields: ['status_id', 'status_label'],
+						idIndex: 0,
+						data: PC.utils.getComboArrayFromObject(ln.status_labels)
+					},
+					displayField: 'status_id',
+					valueField: 'status_label',
+					editable: false,
+					forceSelection: true,
+					triggerAction: 'all'
+				},
+				renderer: function(value, metaData, record, rowIndex, colIndex, store) {
+					if (ln.status_labels[value]) {
+						return ln.status_labels[value];
+					}
+					return value;
 				}
 			},
-			{xtype:'tbfill'},
-			{xtype:'tbtext', text: ln.show_from, style:'margin:0 2px;'},
-			{	ref: '../date_from',
-				xtype:'datefield',
-				width: 80,
-				value: initial_date_from,
-				maxValue: new Date()
-			},
-			{xtype:'tbtext', text: ln.to, style:'margin:0 2px;'},
-			{	ref: '../date_to',
-				xtype:'datefield',
-				width: 80,
-				value: initial_date_to,
-				maxValue: new Date()
-			},
-			{	xtype:'tbtext',
-				text: ln.with_phrase,
-				style:'margin:0 2px;'
-			},
-			{	ref: '../search_phrase',
-				xtype:'textfield',
-				width: 80
-			},
-			{xtype:'tbtext', text: ln.and_status, style:'margin:0 2px;'},
-			{xtype:'combo', width: 100},
-			{	icon:'images/zoom.png',
-				handler: function() {
-					//site
-					//var site = dialog.w.site.getValue();
-					//dialog.store.setBaseParam('site', site);
-					//date from
-					var date_from = dialog.w.date_from.getValue();
-					if (date_from instanceof Date) {
-						dialog.store.setBaseParam('date_from', date_from.format('Y-m-d'));
+			{
+				header: ln.order_info.payment, 
+				dataIndex: 'payment_option', 
+				width_: 90,
+				sortable: true,
+				renderer: function(value, metaData, record, rowIndex, colIndex, store) {
+					if (ln.payment_option_labels[value]) {
+						return ln.payment_option_labels[value];
 					}
-					else {
-						dialog.store.setBaseParam('date_from', undefined);
-					}
-					//date to
-					var date_to = dialog.w.date_to.getValue();
-					if (date_to instanceof Date) {
-						dialog.store.setBaseParam('date_to', date_to.format('Y-m-d'));
-					}
-					else {
-						dialog.store.setBaseParam('date_to', undefined);
-					}
-					//search phrase
-					var search_phrase = dialog.w.search_phrase.getValue();
-					if (search_phrase.length) {
-						dialog.store.setBaseParam('search_phrase', search_phrase);
-					}
-					else {
-						dialog.store.setBaseParam('search_phrase', undefined);
-					}
-					dialog.store.load({
-						params: {
-							start: 0 // reset the start to 0 since you want the filtered results to start from the first page
-						}
-					});
+					return value;
 				}
 			},
-			{	icon:'images/zoom_out.png',
-				handler: function() {
-					//dialog.store.setBaseParam('site', dialog.Initial_site_value);
-					dialog.store.setBaseParam('date_from', undefined);
-					dialog.store.setBaseParam('date_to', undefined);
-					dialog.store.setBaseParam('search_phrase', undefined);
-					dialog.store.load({
-						params: {
-							start: 0 // reset the start to 0 since you want the filtered results to start from the first page
-						}
-					});
-					dialog.w.search_phrase.setValue('');
-					dialog.w.date_from.setValue(initial_date_from);
-					dialog.w.date_to.setValue(initial_date_to);
+			{
+				header: ln.order_info.delivery, 
+				dataIndex: 'delivery_option', 
+				width_: 90, 
+				sortable: true,
+				renderer: function(value, metaData, record, rowIndex, colIndex, store) {
+					if (ln.delivery_option_labels[value]) {
+						return ln.delivery_option_labels[value];
+					}
+					return value;
 				}
 			}
-		],
+        ],
+		//autoExpandColumn: 'pc_shop_comment_column',
+		sm: dialog.selModel,
+		
 		bbar: new Ext.PagingToolbar({
 			store: dialog.store,
 			displayInfo: true,
-			pageSize: 10,
+			pageSize: 10,// dialog.store.baseParams.limit,
 			prependButtons: true
 		})
+		
+
+		
         //iconCls: 'icon-grid'
     });
+	
+	dialog.orders = {}
+	
+	dialog.orders.center = {
+		xtype: 'panel',
+		region: 'west',
+		layout: 'fit',
+		width: 600,
+		padding: '6px 0 6px 6px',
+		bodyCssClass: 'x-border-layout-ct',
+		split: true,
+		border: false,
+		items: dialog.grid
+	}
+	
+	dialog.orders.east = {
+		xtype: 'panel',
+		region: 'center',
+		layout: 'fit',
+		padding: '6px 6px 6px 0',
+		bodyCssClass: 'x-border-layout-ct',
+		split: true,
+		border: false,
+		items: [new Ext.BoxComponent({
+			id: "pc_shop_dialog_order_details",
+			//html: '<span>My Content</span>',
+			//tpl: dialog.orders.xtemplate,
+			tpl: new Ext.XTemplate(
+				'<tpl if="show_details==\'no\'">',
+					'<strong>' + ln.order_info.choose_order + ':</strong>',
+				'</tpl>',
+				'<tpl if="show_details==\'yes\'">',
+
+					'<p style="padding:5px;margin:2px 2px 2px 2px;border:1px solid #eee;color:#555">',
+						//------
+						'<b>' + ln.order_info.buyer_info + ':</b><br />',
+						'' + ln.order_info.name + ': <i>{name}</i><br />',
+						'' + ln.order_info.phone + ': <i>{phone}</i><br />',
+						'' + ln.order_info.email + ': <i>{email}</i><br />',
+						'' + ln.order_info.address + ': <i>{address}</i><br />',
+						//------
+						'<br /><b>' + ln.order_info.additional_info + ':</b><br />',
+						'<tpl for="data">', //should be table
+							'<tpl if="!value==\'\'">',
+								'{name} - {value} <br />',
+							'</tpl>',
+						'</tpl>',//------
+						'<br />',
+						'<tpl if="this.non_empty_array(items)">',
+							'<b>' + ln.order_info.items + ':</b><br />',
+							'<tpl for="items">', //should be table
+								'{#}. {name} ' + ln.order_info.quantity + ': {quantity} - ' + ln.order_info.price_for_each + ': {price}<br />',
+								//'{#}. {name} - {short_description} - ' + ln.order_info.quantity + ': {quantity} - ' + ln.order_info.price_for_each + ': {price}<br />',
+							'</tpl>',
+						'</tpl>',
+						//------
+						'<tpl if="!comment==\'\'">',
+							'<br /><b>' + ln.order_info.comment + ': </b><br /><i>{comment}</i><br />',
+						'</tpl>',
+						'<tpl if="delivery_price &gt; 0">',
+							'<br /><b>', ln.order_info.delivery_price, '</b> - {delivery_price} <br />',
+						'</tpl>',
+						'<tpl if="cod_price &gt; 0">',
+							'<br /><b>', ln.order_info.cod_price, '</b> - {cod_price} <br />',
+						'</tpl>',
+						'<br /><b>' + ln.order_info.total_price + ':</b> {total_price}',
+					'</p>',
+				'</tpl>',
+				{
+					non_empty_array: function(value) {
+						if (value.length) {
+							return true
+						}
+						return false;
+					}
+				}
+			),
+			data: {show_details: 'no'}
+		})		
+		]
+	}
+	
+	dialog.orders.tab = {
+		id: "pc_shop_dialog_orders_tab",
+		title: ln.tab.orders,
+		layout: 'border',
+		tbar: tbar,
+		items: [dialog.orders.center, dialog.orders.east]
+	}
 	
 	dialog.getSelectedIds = function() {
 		var selected = dialog.grid.selModel.getSelections();
@@ -356,7 +625,25 @@ function mod_pc_shop_click() {
 		}
 	};
 	
-	dialog.attributes.store = new Ext.data.JsonStore({
+	dialog.attributes.store = new Ext.data.GroupingStore({ 
+		url: apiUrl +'attributes/get',
+		root: 'list',
+		autoLoad: true,
+		reader: new Ext.data.JsonReader({
+			//id: 'Line.id',
+			root: 'list',
+			idProperty: 'id',
+			fields: [
+				'id', 'ref', 'is_category_attribute', 'is_custom', 'is_searchable', 'names', 'category_id',
+				{name: 'name', mapping: 'names', convert: function(names, n){return PC.utils.extractName(names);}}
+			]
+		}), 
+		groupField: 'category_id',
+		perPage: 1000
+	});
+
+	/*
+	dialog.attributes.store_ = new Ext.data.JsonStore({
 		url: apiUrl +'attributes/get',
 		method: 'POST',
 		autoLoad: true,
@@ -365,11 +652,12 @@ function mod_pc_shop_click() {
 		totalProperty: 'total',
 		idProperty: 'id',
 		fields: [
-			'id', 'is_category_attribute', 'is_custom', 'is_searchable', 'names',
+			'id', 'ref', 'is_category_attribute', 'is_custom', 'is_searchable', 'names', 'category_id',
 			{name: 'name', mapping: 'names', convert: function(names, n){return PC.utils.extractName(names);}}
 		],
 		perPage: 1000
 	});
+	*/
 	
 	dialog.attributes.selModel = new Ext.grid.RowSelectionModel({
 		listeners: {
@@ -386,29 +674,38 @@ function mod_pc_shop_click() {
 	});
 	
 	dialog.attributes.grid = new Ext.grid.GridPanel({
+		view: new Ext.grid.GroupingView({
+			forceFit: true,
+			//groupTextTpl: '{[values.category_id?'
+			//+'PC.plugin.pc_shop.dialog.attr_category_store.getById(19).data.name'
+			//+':PC.plugin.pc_shop.dialog.attr_category_store.getById(21).data.name]}'
+			groupTextTpl: '{[PC.plugin.pc_shop.dialog.attr_category_store.get_value_by_id(values.gvalue)]}'
+		}),
 		store: dialog.attributes.store,
 		//plugins: dialog.expander,
         columns: [
 			//dialog.expander,
-			{header: 'Name', dataIndex: 'name', width: 200},
+			{header: 'Name', dataIndex: 'name', width: 150},
 			{header: 'Attribute for', dataIndex: 'is_category_attribute', 
 				renderer: function(value, metaData, record, rowIndex, colIndex, store) {
 					if (value == 1) return 'Category';
 					return 'Item';
 				}
 			},
-			{header: 'Searchable', dataIndex: 'is_searchable', 
+			{header: 'Searchable', dataIndex: 'is_searchable', width: 70,
 				renderer: function(value, metaData, record, rowIndex, colIndex, store) {
 					if (value == 1) return 'Yes';
 					return 'No';
 				}
 			},
-			{header: 'Type', dataIndex: 'is_custom',
+			{header: 'Type', dataIndex: 'is_custom', width: 80,
 				renderer: function(value, metaData, record, rowIndex, colIndex, store) {
 					if (value == 1) return 'Custom';
 					return 'Predefined';
 				}
-			}
+			},
+			{header: 'Ref', dataIndex: 'ref', width: 60},
+			{header: 'Category id', dataIndex: 'category_id', hidden: true}
         ],
 		//autoExpandColumn: 'pc_shop_comment_column',
 		sm: dialog.attributes.selModel,
@@ -538,12 +835,14 @@ function mod_pc_shop_click() {
 				}
 			}
 		],
+		/*
 		bbar: new Ext.PagingToolbar({
 			store: dialog.attributes.store,
 			displayInfo: true,
 			pageSize: dialog.attributes.store.perPage,
 			prependButtons: true
 		}),
+		*/
 		renameCell: function(n, ev) {
 			if (!n || !ev) return false;
 			var xy = ev.getXY();
@@ -614,6 +913,32 @@ function mod_pc_shop_click() {
 						forceSelection: true,
 						triggerAction: 'all',
 						value: n.data.is_custom
+					},
+					{	_fld: 'category_id',
+						fieldLabel: 'Category',
+						anchor: '100%',
+						xtype: 'combo',
+						emptyText: ' -- ',
+						//mode: 'local',
+						store: dialog.attr_category_store,
+						displayField: 'name',
+						valueField: 'id',
+						editable: false,
+						//forceSelection: true,
+						triggerAction: 'all',
+						value: n.data.category_id
+					},
+					{	_fld: 'ref',
+						fieldLabel: 'Reference',
+						anchor: '100%',
+						xtype: 'textfield',
+						mode: 'local',
+						displayField: 'ref',
+						valueField: 'value',
+						editable: false,
+						forceSelection: true,
+						triggerAction: 'all',
+						value: n.data.ref
 					}
 				],
 				Save: function(data, renameWindow, renameDialog) {
@@ -622,6 +947,8 @@ function mod_pc_shop_click() {
 						is_custom: data.other.is_custom,
 						is_searchable: data.other.is_searchable,
 						is_category_attribute: data.other.is_category_attribute,
+						ref: data.other.ref,
+						category_id: data.other.category_id,
 						names: Ext.util.JSON.encode(data.names)
 					}
 					Ext.Ajax.request({
@@ -643,8 +970,12 @@ function mod_pc_shop_click() {
 											dialog.attributes.values.enable();
 										}
 										n.set('is_custom', data.other.is_custom);
+										n.set('category_id', data.other.category_id);
 										//is_searchable
 										n.set('is_searchable', data.other.is_searchable);
+										
+										//ref
+										n.set('ref', data.other.ref);
 										//names
 										n.set('names', data.names);
 										n.set('name', PC.utils.extractName(data.names));
@@ -700,18 +1031,6 @@ function mod_pc_shop_click() {
 			}
 		}
     });
-	
-	dialog.attributes.center = {
-		xtype: 'panel',
-		region: 'center',
-		layout: 'fit',
-		width: 400,
-		padding: '6px 0 6px 6px',
-		bodyCssClass: 'x-border-layout-ct',
-		split: true,
-		border: false,
-		items: dialog.attributes.grid
-	}
 	
 	dialog.attributes.values = {};
 	
@@ -954,9 +1273,21 @@ function mod_pc_shop_click() {
 		})
     });
 	
+	dialog.attributes.center = {
+		xtype: 'panel',
+		region: 'west',
+		layout: 'fit',
+		width: 500,
+		padding: '6px 0 6px 6px',
+		bodyCssClass: 'x-border-layout-ct',
+		split: true,
+		border: false,
+		items: dialog.attributes.grid
+	}
+	
 	dialog.attributes.east = {
 		xtype: 'panel',
-		region: 'east',
+		region: 'center',
 		layout: 'fit',
 		padding: '6px 6px 6px 0',
 		bodyCssClass: 'x-border-layout-ct',
@@ -972,23 +1303,57 @@ function mod_pc_shop_click() {
 	}
 	
 	/* Window Layout */
-	
 	dialog.tab = new Ext.TabPanel({
 		region: 'center',
 		border: false,
 		items: [
-			dialog.grid,
-			{title: ln.tab.sales, html:'Under construction'},
+			//dialog.orders.tab,
+			new PC.plugin.pc_shop.crud_orders({
+				ln: Ext.apply({title: ln.tab.orders}, ln)
+			}),
 			{title: ln.tab.coupons, html:'Under construction'},
 			dialog.attributes.tab,
+			new PC.plugin.pc_shop.crud_attribute_categories({
+				ln: Ext.apply({title: ln.tab.attribute_categories}, ln.attribute_categories),
+				per_page: 2
+			}),
+			//new PC.ux.crud({
+				//api_url: 'api/plugin/pc_shop/attribute_categories/'
+			//}),
 			{title: ln.tab.currencies, html:'Under construction'},
-			{title: ln.tab.manufacturers, html:'Under construction'},
-			{title: ln.tab.settings, html:'Under construction'}
+			//{title: ln.tab.manufacturers, html:'Under construction'},
+			new PC.plugin.pc_shop.crud_manufacturers({
+				ln: Ext.apply({title: ln.tab.manufacturers}, ln.manufacturers)
+			}),
+			new PC.plugin.pc_shop.crud_delivery_options({
+				ln: Ext.apply({title: ln.tab.delivery_options}, ln.delivery_options)
+			}),
+			new PC.plugin.pc_shop.crud_payment_options({
+				ln: Ext.apply({title: ln.tab.payment_options}, ln.payment_options)
+			}),
+			{title: ln.tab.settings, html:'Under construction'},
+			PC_plugin_dialog_pc_shop.view_factory.get_tab_for_import()
 		],
-		activeTab: 3
+		activeTab: 0
 	});
 	
-	dialog.w = new Ext.Window({
+	var hook_params = {};
+	PC.hooks.Init('plugin/pc_shop/tabs', hook_params);
+	if (hook_params.allowed_tabs) {
+		var total_tabs = dialog.tab.items.length;
+		for(var i = total_tabs-1; i >= 0; i--) {
+			if (hook_params.allowed_tabs.indexOf(i) == -1) {
+				dialog.tab.items.removeAt(i);
+			}
+		};
+	}
+	
+	if (typeof(hook_params.active_tab) != "undefined") {
+		dialog.tab.activeTab = hook_params.active_tab;
+	}
+	
+	
+	dialog.w = new PC.ux.Window({
 		layout: 'border',
 		title: ln.name,
 		width: 900,
@@ -1012,11 +1377,20 @@ function mod_pc_shop_click() {
 	dialog.w.show();
 }
 
+var icon = <?php echo json_encode(get_plugin_icon()) ?>;
+
+var hook_params = {};
+PC.hooks.Init('plugin/pc_shop/icon', hook_params);
+if (hook_params.icon) {
+	icon = hook_params.icon;
+}
+
 Ext.ns('PC.plugin.pc_shop');
+
 var cfg = {
 	name: PC.i18n.mod.pc_shop.name,
 	onclick: mod_pc_shop_click,
-	icon: <?php echo json_encode(get_plugin_icon()) ?>,
+	icon: icon,
 	priority: <?php echo $mod['priority'] ?>
 };
 Ext.apply(PC.plugin.pc_shop, cfg);
