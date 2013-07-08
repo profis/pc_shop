@@ -32,6 +32,7 @@ class PC_shop_categories_admin_api extends PC_shop_admin_api{
 	 */
 	public function move() {
 		$tree = $this->core->Get_object('PC_database_tree');
+		$this->_prepare_log($tree);
 		$params = array();
 		if (v($_POST['position_is_anchor_leaf'])) $params['position_is_anchor_leaf'] = true;
 		$this->_check_category_access(v($_POST['id']));
@@ -39,8 +40,12 @@ class PC_shop_categories_admin_api extends PC_shop_admin_api{
 		$this->_out['success'] = $tree->Move('shop_categories', v($_POST['id']), v($_POST['parentId']), v($_POST['position'], 0), $params);
 		if ($this->_out['success'] && isset($_POST['parent_pid'])) {
 			$this->_check_page_access($_POST['parent_pid']);
-			$r = $this->db->prepare("UPDATE {$this->cfg['db']['prefix']}shop_categories SET pid=? WHERE id=?");
-			$r->execute(array($_POST['parent_pid'], $_POST['id']));
+			$query = "UPDATE {$this->cfg['db']['prefix']}shop_categories SET pid=? WHERE id=?";
+			$r = $this->db->prepare($query);
+			$query_params = array($_POST['parent_pid'], $_POST['id']);
+			$tree->debug('----', 2);
+			$tree->debug_query($query, $query_params, 3);
+			$r->execute($query_params);
 		}
 		$this->_init_data_change_hook();
 	}
@@ -72,7 +77,7 @@ class PC_shop_categories_admin_api extends PC_shop_admin_api{
 		$shop->products->absorb_debug_settings($this, 10);
 		$shop->attributes->absorb_debug_settings($this, 15);
 		$shop->resources->absorb_debug_settings($this, 20);
-		
+		$this->_prepare_log($shop->categories);
 		$shop->categories->Copy($cat_id, $copy_into_cat_id);
 		
 		$this->_out['success'] = true;

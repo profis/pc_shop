@@ -43,6 +43,7 @@ class PC_shop_categories_manager extends PC_shop_categories {
 	 * Method returns false or id of newly created category
 	 */
 	public function Create($parentId=0, $pid=null, $position=0, $data, &$params=array()) {
+		$this->debug("Create(parentID: $parentId, pid: $pid, position: $position");
 		$this->core->Init_params($params);
 		$d = array();
 		if (isset($data['contents'])) {
@@ -73,6 +74,7 @@ class PC_shop_categories_manager extends PC_shop_categories {
 		$params->Set('data', $d['category']);
 		
 		$tree = $this->core->Get_object('PC_database_tree');
+		$tree->absorb_debug_settings($this);
 		//main data
 		$id = $tree->Insert('shop_categories', $parentId, $position, $d['category'], $params);
 		if ($id) {
@@ -468,12 +470,12 @@ class PC_shop_categories_manager extends PC_shop_categories {
 			'where' => 'parent_id = ?',
 			'query_params' => array(
 				$id
-			)
+			),
+			//'query_only' => true
 		));
 		
 		$this->debug('Categories:', 1);
 		$this->debug($categories, 2);
-		
 		foreach ($categories as $category) {
 			$this->Copy($category['id'], $new_category_id);
 		}

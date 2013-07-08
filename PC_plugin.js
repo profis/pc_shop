@@ -2979,6 +2979,7 @@ PC.hooks.Register('core/tree/nodedrop/'+ Plugin.Name, function(params){
 			post.parent_pid = params.newParent.id;
 		}
 		//define position
+		debugger;
 		if (ev.point == 'append') {
 			post.position = 0;
 		}

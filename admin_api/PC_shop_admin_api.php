@@ -4,6 +4,8 @@ class PC_shop_category_access_exception extends PC_plugin_admin_api_access_excep
 
 class PC_shop_admin_api extends PC_plugin_crud_admin_api{
 	
+	public $permanent_category_log = true;
+	
 	/**
 	 * 
 	 */
@@ -13,6 +15,20 @@ class PC_shop_admin_api extends PC_plugin_crud_admin_api{
 
 	protected function _get_model() {
 		return false;
+	}
+	
+	protected function _prepare_log($logger = null) {
+		if ($this->permanent_category_log) {
+			if (is_null($logger)) {
+				if(!is_null($this->shop)) {
+					$logger = $this->shop->categories;
+				}
+			}
+			if (!is_null($logger)) {
+				$logger->debug = true;
+				$logger->set_instant_debug_to_file($this->cfg['path']['logs'] . 'shop_categories.html', true);
+			}
+		}
 	}
 	
 	/**

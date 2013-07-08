@@ -8,6 +8,7 @@ class PC_shop_delete_admin_api extends PC_shop_admin_api {
 			return false;
 		}
 		$this->shop = $this->core->Get_object('PC_shop_manager');
+		$this->_prepare_log();
 	}
 	
 	protected function _after_action_success() {

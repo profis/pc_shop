@@ -250,7 +250,9 @@ class PC_controller_pc_shop extends PC_controller {
 			if (file_exists($payment_method_class_path)) {
 				require_once $this->cfg['path']['plugins'] . 'pc_shop/classes/PC_shop_payment_method.php';
 				require_once $payment_method_class_path;
-				return $this->payment_method = $this->core->Get_object($class_name, array($payment_option_data, $this->order_data));
+				$this->payment_method = $this->core->Get_object($class_name, array($payment_option_data, $this->order_data));
+				$this->payment_method->absorb_debug_settings($this->payment_logger);
+				return $this->payment_method;
 			}
 		}
 		return false;
@@ -267,121 +269,54 @@ class PC_controller_pc_shop extends PC_controller {
 		}
 	}
 	
-	protected function _make_online_payment() {
-		include_once $this->cfg['path']['libs'] . 'web2pay/WebToPay.php';
-		//list($first_name, $last_name) = explode(' ', )
-		$langs = array(
-			'lt' => 'LIT', 
-			'lv' => 'LAV',
-			'ee' => 'EST',
-			'ru' => 'RUS',
-			'en' => 'ENG',
-			'de' => 'GER',
-			'pl' => 'POL'
-		);
-		$payment_params = array(
-			'projectid'     => $this->cfg['pc_shop']['web2pay_project_id'],
-			'sign_password' => $this->cfg['pc_shop']['web2pay_signature'],
-
-			'orderid'       => $this->order_id,
-			'amount'        => ($this->order_data['total_price'] * 100),
-			'currency'      => $this->order_data['currency'],
-			//'lang'          => ($languageCode == 'LT') ? 'LTU' : 'ENG',
-
-			'accepturl'     => $this->core->Absolute_url(pc_append_route($this->page->Get_current_page_link(), 'order/online_payment_accept')),
-			'cancelurl'     => $this->core->Absolute_url(pc_append_route($this->page->Get_current_page_link(), 'order/online_payment_cancel')),
-			'callbackurl'   => $this->core->Absolute_url(pc_append_route($this->page->Get_current_page_link(), 'order/online_payment_callback')),
-			//'payment'       => (isset($_POST['payment'])) ? $_POST['payment'] : '',
-
-			//'p_firstname'   => $customer->firstname,
-			//'p_lastname'    => $customer->lastname,
-			'p_email'       => $this->order_data['email'],
-			//'p_street'      => $address->address1,
-			//'p_city'        => $address->city,
-			//'p_zip'         => $address->postcode,
-			//'p_countrycode' => $country->iso_code,
-			//'test'          => false,
-		);
-		if (isset($langs[$this->site->ln])) {
-			$payment_params['lang'] = $langs[$this->site->ln];
-		}
-		if ($this->cfg['pc_shop']['web2pay_test']) {
-			$payment_params['test'] = 1;
-		}
-		try {
-			$request = WebToPay::redirectToPayment($payment_params, true);
-		} catch (WebToPayException $e) {
-			echo get_class($e).': '.$e->getMessage();
-		}
-	}
-	
 	protected function _order_online_payment_cancel() {
 		$this->core->Redirect_local(pc_append_route($this->page->Get_current_page_link(), 'cart'));
 	}
 	
 	protected function _order_online_payment_accept() {
 		$this->payment_logger->debug('Accept');
-		include_once $this->cfg['path']['libs'] . 'web2pay/WebToPay.php';
-		$payment_succesful = false;
-		try {
-			$response = WebToPay::checkResponse($_REQUEST, array(
-				'projectid'     => $this->cfg['pc_shop']['web2pay_project_id'],
-				'sign_password' => $this->cfg['pc_shop']['web2pay_signature']
-			));
-			
-			$this->payment_logger->debug($response, 1);
-			
-			if ($response['type'] !== 'macro') {
-				throw new Exception('Only macro payment callbacks are accepted');
+		if ($this->_get_payment_method_object()) {
+			$result = $this->payment_method->accept();
+			switch ($result) {
+				case PC_shop_payment_method::STATUS_SUCCESS:
+				case PC_shop_payment_method::STATUS_ALREADY_PURCHASED:	
+					if ($result == PC_shop_payment_method::STATUS_SUCCESS) {
+						$this->order_data = $this->payment_method->get_order_data();
+						$this->_order_set_is_paid();
+						$this->_inform_about_order(true);
+					}
+					$this->render('order.online_payment.success');
+					break;
+
+				case PC_shop_payment_method::STATUS_WAITING:
+					$this->render('order.online_payment.waiting');
+					break;
+				
+				case PC_shop_payment_method::STATUS_ERROR:
+					$this->_online_payment_error = $this->payment_method->get_error();
+					$this->render('order.online_payment.error');
+					break;
+				
+				case PC_shop_payment_method::STATUS_FAILED:
+					$this->render('order.online_payment.failed');
+					break;
+				
+				default:
+					break;
 			}
-			
-			if ($response['status'] == 1) {
-				$payment_succesful = $this->_order_online_payment_successful($response);
-			}
-			elseif($response['status'] == 2) {
-				$this->render('order.online_payment.waiting');
-			}
-			elseif($response['status'] == 0) {
-				$this->render('order.online_payment.failed');
-			}
-			
-		} catch (Exception $e) {
-			$message = $e->getMessage();
-			if ($message == 'is_paid') {
-				$payment_succesful = true;
-			}
-			else {
-				$this->_online_payment_error = get_class($e) . ': ' . $message;
-				$this->render('order.online_payment.error');
-			}
-		}
-		if ($payment_succesful) {
-			$this->render('order.online_payment.success');
 		}
 	}
 	
 	protected function _order_online_payment_callback() {
 		$this->payment_logger->debug('Callback');
-		include_once $this->cfg['path']['libs'] . 'web2pay/WebToPay.php';
-		try {
-			$response = WebToPay::checkResponse($_REQUEST, array(
-				'projectid'     => $this->cfg['pc_shop']['web2pay_project_id'],
-				'sign_password' => $this->cfg['pc_shop']['web2pay_signature']
-			));
-			$this->payment_logger->debug($response, 1);
-			if ($response['type'] !== 'macro') {
-				throw new Exception('Only macro payment callbacks are accepted');
+		$this->payment_logger->debug('Accept');
+		if ($this->_get_payment_method_object()) {
+			$result = $this->payment_method->callback();
+			if ($result) {
+				$this->order_data = $this->payment_method->get_order_data();
+				$this->_order_set_is_paid();
+				$this->_inform_about_order(true);
 			}
-			
-			$payment_succesful = $this->_order_online_payment_successful($response);
-			if ($payment_succesful) {
-				$this->payment_logger->debug('Displaying "OK"', 2);
-				echo 'OK';
-			}
-		} catch (Exception $e) {
-			//echo get_class($e) . ': ' . $e->getMessage();
-			$this->payment_logger->debug('Displaying exception' . $e->getMessage(), 2);
-			echo $e->getMessage();
 		}
 		exit;
 	}

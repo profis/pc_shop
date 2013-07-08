@@ -43,7 +43,7 @@ class PC_shop_save_admin_api extends PC_shop_admin_api {
 			else {
 				$this->_check_page_access(v($this->d['pid']));
 			}
-			
+			$this->_prepare_log();
 			$s = $this->shop->categories->Create($this->d['parent_id'], v($this->d['pid']), 0, $this->d, $params);
 			$this->_out['id'] = $this->d['id'] = $s;
 		}
