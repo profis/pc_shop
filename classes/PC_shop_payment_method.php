@@ -45,7 +45,7 @@ abstract class PC_shop_payment_method extends PC_base {
 	}
 	
 	protected function _get_accept_url() {
-		return $this->core->Absolute_url(pc_append_route($this->page->Get_current_page_link(), 'order/online_payment_accept'));
+		return $this->core->Absolute_url(pc_append_route($this->page->Get_current_page_link(), 'order/online_payment_accept/' . $this->_payment_data['code']));
 	}
 	
 	protected function _get_cancel_url() {
@@ -53,7 +53,7 @@ abstract class PC_shop_payment_method extends PC_base {
 	}
 	
 	protected function _get_callback_url() {
-		return $this->core->Absolute_url(pc_append_route($this->page->Get_current_page_link(), 'order/online_payment_callback'));
+		return $this->core->Absolute_url(pc_append_route($this->page->Get_current_page_link(), 'order/online_payment_callback/' . $this->_payment_data['code']));
 	}
 	
 	abstract public function make_online_payment();
@@ -84,11 +84,15 @@ abstract class PC_shop_payment_method extends PC_base {
 	
 	
 	protected function _is_payment_successful() {
+		$this->debug('_is_payment_successful()');
 		if (!$this->_get_response_payment_status()) {
 			throw new Exception("Payment hasn't been accepted yet");
 		}
 			
 		$this->order_id = $this->_get_response_order_id();
+		if (!$this->order_id) {
+			throw new Exception(':( could not get respose order id');
+		}
 		$this->_order_data = $this->_get_order_data($this->order_id);
 
 		if (!$this->_order_data) {
@@ -117,6 +121,7 @@ abstract class PC_shop_payment_method extends PC_base {
 		if ($currency != $order_currency) {
 			throw new Exception('Bad currency: ' . $currency);
 		}
+		$this->debug('_is_payment_successful(): returning true', 1);
 		return true;
 	}
 		

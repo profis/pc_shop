@@ -10,7 +10,7 @@ PC.plugin.pc_shop.crud_payment_options = Ext.extend(PC.ux.crud, {
 	get_store_fields: function() {
 		return [
 			'names', {name: 'name', mapping: 'names', convert: function(names, n){return PC.utils.extractName(names);}},
-			'id', 'code', 'enabled'
+			'id', 'code', 'enabled', 'login', 'payment_key', 'test'
 		];
 	},
 	

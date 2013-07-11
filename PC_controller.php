@@ -234,9 +234,14 @@ class PC_controller_pc_shop extends PC_controller {
 	
 	protected function _get_payment_option_data() {
 		$payment_option_model = $this->core->Get_object('PC_shop_payment_option_model');
+		$code = $this->routes->Get(4);
+		if (isset($this->order_data) and isset($this->order_data['payment_option'])) {
+			$code = $this->order_data['payment_option'];
+		}
+		$this->payment_logger->debug('code:' . $code, 2);
 		return $payment_option_model->get_one(array(
 			'where' => array(
-				'code' => $this->order_data['payment_option'],
+				'code' => $code,
 				'enabled' => 1
 			)
 		));
@@ -250,7 +255,7 @@ class PC_controller_pc_shop extends PC_controller {
 			if (file_exists($payment_method_class_path)) {
 				require_once $this->cfg['path']['plugins'] . 'pc_shop/classes/PC_shop_payment_method.php';
 				require_once $payment_method_class_path;
-				$this->payment_method = $this->core->Get_object($class_name, array($payment_option_data, $this->order_data));
+				$this->payment_method = $this->core->Get_object($class_name, array($payment_option_data, v($this->order_data, array()), $this->shop));
 				$this->payment_method->absorb_debug_settings($this->payment_logger);
 				return $this->payment_method;
 			}
@@ -274,14 +279,16 @@ class PC_controller_pc_shop extends PC_controller {
 	}
 	
 	protected function _order_online_payment_accept() {
-		$this->payment_logger->debug('Accept');
+		$this->payment_logger->debug('Accept()');
 		if ($this->_get_payment_method_object()) {
 			$result = $this->payment_method->accept();
+			$this->payment_logger->debug("accept result: " . $result, 1);
 			switch ($result) {
 				case PC_shop_payment_method::STATUS_SUCCESS:
 				case PC_shop_payment_method::STATUS_ALREADY_PURCHASED:	
 					if ($result == PC_shop_payment_method::STATUS_SUCCESS) {
 						$this->order_data = $this->payment_method->get_order_data();
+						$this->order_id = $this->order_data['id'];
 						$this->_order_set_is_paid();
 						$this->_inform_about_order(true);
 					}
@@ -308,12 +315,12 @@ class PC_controller_pc_shop extends PC_controller {
 	}
 	
 	protected function _order_online_payment_callback() {
-		$this->payment_logger->debug('Callback');
-		$this->payment_logger->debug('Accept');
+		$this->payment_logger->debug('Callback()');
 		if ($this->_get_payment_method_object()) {
 			$result = $this->payment_method->callback();
 			if ($result) {
 				$this->order_data = $this->payment_method->get_order_data();
+				$this->order_id = $this->order_data['id'];
 				$this->_order_set_is_paid();
 				$this->_inform_about_order(true);
 			}
@@ -381,7 +388,7 @@ class PC_controller_pc_shop extends PC_controller {
 		//$data = pc_sanitize_value($data, 'strip_tags');
 		$this->debug('Additional data:', 1);
 		$this->debug($data, 1);
-		$clear_cart = false;
+		$clear_cart = true;
 		$r = $this->shop->orders->Create(null, $name, $address, $phone, $email, $comment, $params, $clear_cart, $payment_option, $delivery_option, 0, $data);
 		$this->order_id = $this->shop->orders->last_order_id;
 		$this->payment_option = $payment_option;

@@ -1994,9 +1994,9 @@ Plugin.view_factory = {
 						}
 						Plugin.attributes.Store.filter('is_category_attribute', '1');
 					}
-					
-					var hook_params = {
-						itemId: idData.id
+					var hook_params = {};
+					if (idData && idData.id) {
+						hook_params.itemId = idData.id;
 					}
 
 					if (!hook_params.itemId && data && data.data) {
