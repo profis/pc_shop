@@ -569,7 +569,7 @@ class PC_controller_pc_shop extends PC_controller {
 		$this->debug($email_body, 3);
 		
 		$this->payment_logger->debug('Email text for admin:', 3);
-		$this->payment_logger->debug($this->Get_variable('new_order_email_admin'), 4);
+		$this->payment_logger->debug($this->cfg['pc_shop']['new_order_email_admin'], 4);
 		$this->payment_logger->debug($email_body, 4);
 		
 		$subject = '';
@@ -585,7 +585,7 @@ class PC_controller_pc_shop extends PC_controller {
 			'from_name' => $this->Get_variable('new_order_email_sender_to_admin'),
 			'subject' => $subject,
 		);
-		PC_utils::sendEmail($this->Get_variable('new_order_email_admin'), $email_body, $email_params, array('is_paid' => $is_paid));
+		PC_utils::sendEmail($this->Get_variable($this->cfg['pc_shop']['new_order_email_admin']), $email_body, $email_params, array('is_paid' => $is_paid));
 	}
 	
 	public function category_action($id) {

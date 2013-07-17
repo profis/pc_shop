@@ -97,6 +97,9 @@ var ln =  {
 			key: 'Key',
 			test: 'Test payments'
 		},
+		settings: {
+			new_order_email_admin: 'New order notification email address'
+		},
 		_import: {
 			import_method: 'Import method',
 			label_file: 'Select file to import',
@@ -216,7 +219,9 @@ var ln =  {
 			key: 'Raktas',
 			test: 'Testiniai mokėjimai'
 		},
-		
+		settings: {
+			new_order_email_admin: 'E. paštas, kuriuo siunčiamas pranešimas apie nauja užsakymą'
+		},
 		_import: {
 			import_method: 'Importo tipas',
 			label_file: 'Pasirinkite importo failą',
@@ -334,6 +339,9 @@ var ln =  {
 		manufacturers: {
 			name: 'Название',
 			code: 'Код'
+		},
+		settings: {
+			new_order_email_admin: 'Эл. почта, на которую отсылается сообщение о новом заказе'
 		},
 		_import: {
 			import_method: 'Метод импорта',

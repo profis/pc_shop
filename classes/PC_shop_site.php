@@ -11,7 +11,7 @@ class PC_shop_categories_site extends PC_shop_categories {
 	 * @param array $category_data
 	 * return Array of parents' id's
 	 */
-	public function Get_all_parents($category_data) {
+	public function Get_all_parents(&$category_data) {
 		$this->debug("Get_all_parents({$category_data['id']})");
 		$query = "SELECT id FROM {$this->db_prefix}shop_categories c
 			WHERE c.lft < ? and c.rgt > ?
@@ -365,6 +365,15 @@ class PC_shop_categories_site extends PC_shop_categories {
 			$join_on_products = " LEFT JOIN {$this->db_prefix}shop_products cp ON cp.category_id=c.id";
 		}
 		
+		$order = '';
+		
+		if (v($params->order_by)) {
+			$order = 'ORDER BY ' . $params->order_by;
+			if (v($params->order_direction)) {
+				$order .= ' ' . $params->order_direction;
+			}
+		}
+		
 		//query!
 		$query = "SELECT ".($params->Has_paging()?'SQL_CALC_FOUND_ROWS ':'')."c.*,cc.*"
 		. $select_product_count
@@ -381,7 +390,7 @@ class PC_shop_categories_site extends PC_shop_categories {
 		." LEFT JOIN {$this->db_prefix}shop_attribute_value_contents avc ON avc.value_id=av.id and avc.ln=?"
 		//filters
 		.(count($where)?' WHERE '.implode(' and ', $where):'')
-		.(!$returnOne?" GROUP BY c.id":""). ' HAVING  NOT (attributes IS NULL) ' .  $limit;
+		.(!$returnOne?" GROUP BY c.id":""). ' HAVING  NOT (attributes IS NULL) ' .  $order . $limit;
 		
 		$this->click('Query was built');
 				
@@ -794,8 +803,14 @@ class PC_shop_products_site extends PC_shop_products {
 			$category_data = $categoryId;
 			$categoryId = $category_data['id'];
 		}
-		
-		$this->debug("Get($id, $categoryId)");
+		if (is_array($categoryId)) {
+			echo 'masyvas';
+		}
+		$id_debug = $id;
+		if (is_array($id_debug)) {
+			$id_debug = '[' . implode(',' , $id_debug) . ']';
+		}
+		$this->debug("Get($id_debug, $categoryId)");
 		$this->debug($params);
 		$this->click();
 		

@@ -37,7 +37,8 @@ $mod['priority'] = 100;
 		'dialog.tab.attribute_categories.js',
 		'dialog.tab.manufacturers.js',
 		'dialog.tab.delivery_options.js',
-		'dialog.tab.payment_options.js'
+		'dialog.tab.payment_options.js',
+		'dialog.tab.settings.js'
 	);
 	foreach ($js_files as $js_file) {
 		if (@file_exists($js_file)) {
@@ -1331,7 +1332,9 @@ function mod_pc_shop_click() {
 			new PC.plugin.pc_shop.crud_payment_options({
 				ln: Ext.apply({title: ln.tab.payment_options}, ln.payment_options)
 			}),
-			{title: ln.tab.settings, html:'Under construction'},
+			new PC.plugin.pc_shop.settings({
+				ln: Ext.apply({title: ln.tab.settings}, ln.settings)
+			}),
 			PC_plugin_dialog_pc_shop.view_factory.get_tab_for_import()
 		],
 		activeTab: 0

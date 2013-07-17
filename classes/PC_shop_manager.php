@@ -259,7 +259,7 @@ class PC_shop_categories_manager extends PC_shop_categories {
 		}
 		return (!is_null($id) && !is_array($id) && count($categories)?$categories[0]:$categories);
 	}
-	public function Delete($id, &$params=array()) {
+	public function Delete_category($id, &$params=array()) {
 		$this->debug("Delete($id, ");
 		$this->debug($params);
 		$this->core->Init_params($params);

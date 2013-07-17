@@ -21,7 +21,7 @@ class PC_shop_delete_admin_api extends PC_shop_admin_api {
 	public function category() {
 		$this->_check_category_access(v($_POST['id']));
 		$params = array();
-		$this->_out['success'] = $this->shop->categories->Delete($_POST['id'], $params);
+		$this->_out['success'] = $this->shop->categories->Delete_category($_POST['id'], $params);
 		
 		if ($this->_out['success'] and $this->core->Count_hooks('plugin/pc_shop/delete/category')) {
 			$this->_out['success'] = true;

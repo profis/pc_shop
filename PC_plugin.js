@@ -2575,9 +2575,9 @@ PC.editors.Register(Plugin.Name, 'product', function(){
 					var records = media.getSelectedRecords();
 					media.store.remove(records);
 				}
-			},
-			'-',
-			{icon: 'images/delete.png', text: PC.i18n.del}
+			}//,
+			//'-',
+			//{icon: 'images/delete.png', text: PC.i18n.del}
 		]
 	});
 	var attributesGrid = new Ext.grid.GridPanel(Plugin.attributes.Grid);

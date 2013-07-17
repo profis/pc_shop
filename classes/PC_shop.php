@@ -129,7 +129,12 @@ class PC_shop_categories extends PC_shop_category_model {
 		'published'=> self::CF_PUBLISHED,
 		'route_lock'=> self::CF_ROUTE_LOCK
 	);
-	public function Init(PC_shop $shop) {
+	/**
+	 * 
+	 * @param PC_shop $shop
+	 */
+	public function Init($id = 0) {
+		$shop = $id;
 		$this->shop = $shop;
 		$this->distinct_route = true;
 	}
@@ -461,7 +466,12 @@ class PC_shop_products extends PC_shop_product_model {
 		'parent_is_product'=> self::PF_PARENT_IS_PRODUCT,
 		'route_lock'=> self::PF_ROUTE_LOCK
 	);
-	public function Init(PC_shop $shop) {
+	/**
+	 * 
+	 * @param PC_shop $shop
+	 */
+	public function Init($id = 0) {
+		$shop = $id;
 		parent::Init();
 		$this->shop = $shop;
 	}
@@ -1088,7 +1098,8 @@ class PC_shop_attributes extends PC_shop_attribute_model {
 	 * @param type $id
 	 * @return boolean
 	 */
-	public function Delete($id) { //manager
+	public function Delete($params = array()) { //manager
+		$id = $params;
 		$this->debug("Delete($id)");
 		$query_delete_attribute = "DELETE FROM {$this->db_prefix}shop_attributes WHERE id=?";
 		$r = $this->prepare($query_delete_attribute);
@@ -1553,8 +1564,13 @@ class PC_shop_orders extends PC_shop_order_model {
 	 * @var PC_shop
 	 */
 	private $shop;
-	public function Init(PC_shop $shop) {
-		$this->shop = $shop;
+	
+	/**
+	 * 
+	 * @param PC_shop $shop
+	 */
+	public function Init($id = 0) {
+		$this->shop = $id;
 		$this->user = $this->core->Get_object('PC_user');
 	}
 	public function Get($id=null, $params=array()) {
@@ -1744,7 +1760,8 @@ class PC_shop_orders extends PC_shop_order_model {
 	public function Unconfirm($id) {
 		return $this->Delete_status(null, $id, 'confirmed');
 	}
-	public function Delete($id) {
+	public function Delete($params = array()) {
+		$id = $params;
 		$rOrder = $this->prepare("DELETE FROM {$this->db_prefix}shop_orders WHERE id=?");
 		$s = $rOrder->execute(array($id));
 		if (!$s) return false;

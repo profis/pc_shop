@@ -65,6 +65,7 @@ function pc_shop_install($controller) {
 	//$core->Set_config('cod_price', '', 'pc_shop');
 	//$core->Set_config('amount_for_free_delivery', '', 'pc_shop');
 	$core->Set_config('currency', 'LTL', 'pc_shop');
+	$core->Set_config('new_order_email_admin', '', 'pc_shop');
 	
 	return true;
 }
