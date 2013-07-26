@@ -5,26 +5,21 @@
 
 
 <table>
-	<tr>
-		<td><?php echo $this->Get_variable('order_name');?></td>
-		<td><?php echo $this->order_data['name'];?></td>
-	</tr>
-	<tr>
-		<td><?php echo $this->Get_variable('order_tel');?></td>
-		<td><?php echo $this->order_data['phone'];?></td>
-	</tr>
-	<tr>
-		<td><?php echo $this->Get_variable('order_email');?></td>
-		<td><?php echo $this->order_data['email'];?></td>
-	</tr>
-	<tr>
-		<td><?php echo $this->Get_variable('order_address');?></td>
-		<td><?php echo $this->order_data['address'];?></td>
-	</tr>
-	<tr>
-		<td><?php echo $this->Get_variable('order_comment');?></td>
-		<td><?php echo $this->order_data['comment'];?></td>
-	</tr>
+	<?php 
+	$common_fields = array('name', 'tel', 'email', 'address', 'comment');
+	foreach ($common_fields as $key => $field) {
+		if (!empty($this->order_data[$field])) {
+		?>		
+		
+		<tr>
+			<td><?php echo $this->Get_variable('order_' . $field);?></td>
+			<td><?php echo $this->order_data[$field];?></td>
+		</tr>
+	
+		<?php
+		}
+	}
+	?>
 	
 	<tr>
 		<td></td>
