@@ -6,7 +6,7 @@
 
 <table>
 	<?php 
-	$common_fields = array('name', 'tel', 'email', 'address', 'comment');
+	$common_fields = array('name', 'phone', 'email', 'address', 'comment');
 	foreach ($common_fields as $key => $field) {
 		if (!empty($this->order_data[$field])) {
 		?>		
