@@ -9,6 +9,9 @@ abstract class PC_plugin_pc_shop_widget extends PC_widget {
 		if (strpos($this->_template_group, ':_plugin/') === false) {
 			$this->_template_group = ':_plugin/' . $this->plugin_name . '/' . $this->_template_group;
 		}
+		if (isset($this->_config['category'])) {
+			$this->currentCategory = $this->_config['category'];
+		}
 	}
 	
 	protected function _get_url($page_only = false) {

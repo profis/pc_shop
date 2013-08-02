@@ -15,6 +15,8 @@ class PC_plugin_pc_shop_products_widget extends PC_widget {
 	
 	protected function _get_default_config() {
 		return array(
+			'category' => false,
+			'params' => array(),
 			'per_page' => 4,
 			'per_row' => 2,
 			'list_item_thumb_type' => 'small',

@@ -117,5 +117,19 @@ class PC_shop_product_model extends PC_model {
 		}
 		return $related_products;
 	}
+	
+	public function set_category_scope($category_id) {
+		$this->_where[] = 't.category_id = ?';
+		$this->_query_params[] = $category_id;
+	}
+	
+	public function set_category_branch_scope($category_data) {
+		return;
+		$this->_where[] = PC_database_tree::get_between_condition_for_range(
+			$category_data, 
+			$this->_query_params, 
+			$table = 't'
+		);
+	}
 
 }

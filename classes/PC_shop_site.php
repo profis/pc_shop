@@ -804,7 +804,7 @@ class PC_shop_products_site extends PC_shop_products {
 			$categoryId = $category_data['id'];
 		}
 		if (is_array($categoryId)) {
-			echo 'masyvas';
+			//echo 'masyvas';
 		}
 		$id_debug = $id;
 		if (is_array($id_debug)) {
@@ -822,6 +822,7 @@ class PC_shop_products_site extends PC_shop_products {
 		
 		$fetch_link = true;
 		
+		$top_categories = false;
 		if (!is_null($categoryId) and (v($params['all_products_of_page']) or v($params['all_products_of_category']))) {
 			$top_categories_params = array(
 				'select' => 't.id, t.lft, t.rgt',
@@ -839,12 +840,18 @@ class PC_shop_products_site extends PC_shop_products {
 			}
 			elseif (v($params['all_products_of_category'])) {
 				$top_categories_params['where'][] = '(parent_id = ? OR t.id = ?)';
+				$top_categories_params['query_params'][] = $categoryId;
 			}
+			//print_pre($top_categories_params);
 			$this->shop->categories->absorb_debug_settings($this);
 			$top_categories = $this->shop->categories->get_data(null, $top_categories_params);
 			$params['categories'] =  $top_categories;
 			$this->debug('Top categories:', 3);
 			$this->debug($top_categories, 4);
+			//print_pre($top_categories);
+			if (count($top_categories) == 1) {
+				
+			}
 			$categoryId = null;
 		}
 		
@@ -1066,6 +1073,14 @@ class PC_shop_products_site extends PC_shop_products {
 			$havings[] = '(' . implode(' OR ', $having_group) . ')';
 		}
 		
+		if (!isset($params->flags)) {
+			$params->flags = array();
+		}
+		
+		if (is_array($params->flags) and !in_array(self::PF_PUBLISHED, $params->flags)) {
+			$params->flags[] = self::PF_PUBLISHED;
+		}
+		
 		if (isset($params->flags)) if (is_array($params->flags)) {
 			foreach ($params->flags as $flag) {
 				$where[] = $this->db->get_flag_query_condition($flag, $queryParams, 'flags', 'p');
@@ -1129,6 +1144,10 @@ class PC_shop_products_site extends PC_shop_products {
 		if (v($params->select['pre'])) {
 			$select_s .= $params->select['pre'] .  ', ';
 		}
+		$group_s = '';
+		if (v($params->group_by)) {
+			$group_s = ', ' . $params->group_by;
+		}
 		$select_s = ' ' . $select_s . ' ';
 		$real_price_select = "LEAST(p.price, (p.price - IFNULL(p.discount, 0)), ROUND(p.price * (100 - IFNULL(p.percentage_discount, 0)) / 100, 2)) as real_price,";
 		$query = $qry = "SELECT ".($params->Has_paging()?'SQL_CALC_FOUND_ROWS ':'').$select_s."p.*,".$real_price_select."pc.*,"
@@ -1149,7 +1168,7 @@ class PC_shop_products_site extends PC_shop_products {
 		
 		//filters
 		.(count($where)?' WHERE '.implode(' and ', $where):'')
-		." GROUP BY p.id". ' ' . $having_s . ' ' . $order . ' ' . $limit ;
+		." GROUP BY p.id". ' ' . $group_s . $having_s . ' ' . $order . ' ' . $limit ;
 		
 		$queryParams = array_merge($queryParams, $having_query_params);
 		

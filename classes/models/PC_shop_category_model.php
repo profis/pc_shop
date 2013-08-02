@@ -151,9 +151,6 @@ class PC_shop_category_model extends PC_model {
 			$this->_query_params, 
 			$table = 't'
 		);
-		
-		
-		
 	}
 	
 	public function set_parent_scope($parent_id, $published = true, $in_menu = true) {

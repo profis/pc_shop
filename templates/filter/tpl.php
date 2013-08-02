@@ -21,7 +21,7 @@ if (!empty($manufacturers)) {
 	</fieldset>
 <?php
 }
-if (isset($category_products_data)) {
+if (isset($category_products_data) and !empty($category_products_data)) {
 	$price_from = $category_products_data['min_price'];
 	$price_to = $category_products_data['max_price'];
 	$price_from_in_field = v($_GET['price_from'], $price_from);
