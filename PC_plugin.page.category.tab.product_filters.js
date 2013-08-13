@@ -2,19 +2,22 @@ PC.utils.localize('mod.pc_shop.category_product_filters', {
 	lt: {
 		title: 'Produktų filtrai',
 		attribute: 'Atributas',
-		disabled: 'Išjungtas'
+		filter_type: 'Filtro tipas',
+		disabled: 'Išjungtas'		
 
 	},
 	en: {
 		title: 'Product filters',
 		attribute: 'Attribute',
-		disabled: 'Disabled'
+		disabled: 'Disabled',
+		filter_type: 'Filter type',
 
 	},
 	ru: {
 		title: 'Фильтры товаров',
 		attribute: 'Атрибут',
-		disabled: 'Disabled'
+		disabled: 'Disabled',
+		filter_type: 'Тип фильтра',
 	}
 });
 
@@ -29,6 +32,12 @@ Plugin_pc_shop_category_product_filters_crud = Ext.extend(PC.ux.crud, {
 	
 	per_page: 20,
 	
+	filter_types: {
+		0: ' = ',
+		1: ' >= ',
+		2: ' <= '
+	},
+	
 	get_store: function() {
 		var store = Plugin_pc_shop_category_product_filters_crud.superclass.get_store.call(this);
 		return store;
@@ -36,7 +45,7 @@ Plugin_pc_shop_category_product_filters_crud = Ext.extend(PC.ux.crud, {
 	
 	get_store_fields: function() {
 		return [
-				'id', 'attribute'
+				'id', 'attribute', 'filter_type'
 		];
 	},
 	
@@ -47,12 +56,24 @@ Plugin_pc_shop_category_product_filters_crud = Ext.extend(PC.ux.crud, {
 		}
 		return value;
 	},
+			
+	_render_filter_type: function(value, metaData, record, rowIndex, colIndex, store) {
+		if (this.filter_types[value]) {
+			return this.filter_types[value];
+		}
+		return value;
+	},
 	
 	get_grid_columns: function() {
 		return [
 			//dialog.expander,
 			{header: this.ln.attribute, dataIndex: 'attribute', width: 150,
 				renderer: Ext.createDelegate(this._render_attribute, this)
+			},
+			{
+				header: this.ln.filter_type, 
+				dataIndex: 'filter_type', 
+				renderer: Ext.createDelegate(this._render_filter_type, this)
 			}
 		];
 	},
@@ -72,8 +93,8 @@ Plugin_pc_shop_category_product_filters_crud = Ext.extend(PC.ux.crud, {
 				//tpl: '<tpl for="."><div class="x-combo-list-item">{'+ this.displayField +'}</div></tpl>',
 				tpl: '<tpl for="."><div class="x-combo-list-item">{[PC.utils.extractName(values.names)]}</div></tpl>',
 				editable: false
-			}/*,
-			
+			},
+			/*
 			{	_fld: 'disabled',
 				fieldLabel: this.ln.disabled,
 				anchor: '100%',
@@ -85,6 +106,33 @@ Plugin_pc_shop_category_product_filters_crud = Ext.extend(PC.ux.crud, {
 				forceSelection: true,
 				value: ''
 			}*/
+			/*
+			{	_fld: 'filter_type',
+				fieldLabel: this.ln.filter_type,
+				anchor: '100%',
+				xtype: 'combo',
+				emptyText: ' = ',
+				//mode: 'local',
+				store: {
+					xtype: 'arraystore',
+					fields: ['value', 'label'],
+					idIndex: 0,
+					data: PC.utils.getComboArrayFromObject(this.filter_types)
+				},
+				valueField: 'value',
+				displayField: 'label',
+				triggerAction: 'all',
+				//tpl: '<tpl for="."><div class="x-combo-list-item">{'+ this.displayField +'}</div></tpl>',
+				//tpl: '<tpl for="."><div class="x-combo-list-item">{[PC.utils.extractName(values.names)]}</div></tpl>',
+				forceSelection: true,
+				editable: false
+			}*/
+			{	
+				_fld: 'filter_type',
+				fieldLabel: this.ln.filter_type,
+				anchor: '100%',
+				xtype:'textfield'
+			}
 		];
 	}
 }); 
