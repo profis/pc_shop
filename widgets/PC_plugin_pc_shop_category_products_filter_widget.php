@@ -37,6 +37,7 @@ class PC_plugin_pc_shop_category_products_filter_widget extends PC_plugin_pc_sho
 		$products_params = array();
 		$products_params['filter'] = array();
 		$products_params['attribute_filter'] = array();
+		$products_params['custom_attribute_filter'] = array();
 		
 				
 		if (in_array('manufacturer', $this->_config['filters'])) {
@@ -100,16 +101,21 @@ class PC_plugin_pc_shop_category_products_filter_widget extends PC_plugin_pc_sho
 		
 		
 		$filter_model = new PC_shop_category_product_filter_model();
-		$filter_attribute_ids = $filter_model->get_all(array(
+		$category_filters = $filter_model->get_all(array(
+			'content' => true,
 			'where' => array(
 				'category_id' => $this->_config['category']['id']
 			),
-			'value' => 'attribute'
+			'key' => 'attribute',
+			'order' => 't.position'
 		));
+		//print_pre($category_filters);
+		$filter_attribute_ids = array_keys($category_filters);
 		$attribute_model = new PC_shop_attribute_model();
 		if (!empty($filter_attribute_ids)) {
 			$filter_attributes = $attribute_model->get_data($filter_attribute_ids, array(
 				'content' => true,
+				'order' => "FIELD(t.id, " . implode(', ', $filter_attribute_ids) . ")",
 				//'key' => 'attribute_id'
 				//'query_only' => true
 			));
@@ -139,8 +145,23 @@ class PC_plugin_pc_shop_category_products_filter_widget extends PC_plugin_pc_sho
 				'get_query_params' => &$product_query_params
 			));
 		}
+		foreach ($filter_attributes as $key => $filter_attribute) {
+			$filter_attributes[$key]['filter_data'] = v($category_filters[$filter_attribute['id']], array());
+		}
 		//print_pre($filter_attributes);
 		foreach ($filter_attributes as $key => $filter_attribute) {
+			if (!in_array(v($filter_attribute['filter_data']['input_type']), array('', 'select'))) {
+				$name = 'filter_' . v($filter_attribute['filter_data']['id']);
+				$get_var = v($_GET[$name], '');
+				$get_var = trim($get_var);
+				if (!empty($get_var)) {
+					$products_params['custom_attribute_filter'][$filter_attribute['id']] = array(
+						'op' => PC_shop_category_product_filter_model::$filter_type_operations[$filter_attribute['filter_data']['filter_type']],
+						'value' => $_GET[$name]
+					);
+				}
+				continue;
+			}
 			$query_params = array_merge(array($filter_attribute['id']), $product_query_params);
 			$count_select = '';
 			$attribute_value_params = array(
@@ -223,6 +244,7 @@ class PC_plugin_pc_shop_category_products_filter_widget extends PC_plugin_pc_sho
 		if ($this->_config['include_subcategories']) {
 			$products_params['all_products_of_category'] = true;
 		}
+		//echo 'product params:';
 		//print_pre($products_params);
 		$data = array(
 			'manufacturers' => v($manufacturers, false),

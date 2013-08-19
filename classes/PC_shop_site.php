@@ -342,8 +342,22 @@ class PC_shop_categories_site extends PC_shop_categories {
 		
 		if (isset($params->filter)) if (is_array($params->filter)) if (count($params->filter)) {
 			foreach ($params->filter as $field=>$value) {
-				$where[] = $field.'=?';
-				$queryParams[] = $value;
+				if (!is_array($value)) {
+					$where[] = $field.'=?';
+					$queryParams[] = $value;
+				}
+				else {
+					if (isset($value['field'])) {
+						$field = $value['field'];
+					}
+					if (!empty($field)) {
+						$op = v($value['op'], '=');
+						$where[] = $field . $op . '?';
+						$queryParams[] = v($value['value'], '');
+					}
+					
+				}
+				
 			}
 		}
 		
@@ -366,6 +380,10 @@ class PC_shop_categories_site extends PC_shop_categories {
 		}
 		
 		$order = '';
+		
+		if (!v($params->order_by)) {
+			$params->order_by = 'c.lft';
+		}
 		
 		if (v($params->order_by)) {
 			$order = 'ORDER BY ' . $params->order_by;
@@ -798,6 +816,7 @@ class PC_shop_products_site extends PC_shop_products {
 	}
 	
 	public function Get($id=null, $categoryId=null, &$params=array()) {
+		$this->debug('PC_shop_products_site->Get()');
 		$category_data = false;
 		if (is_array($categoryId) and isset($categoryId['id'])) {
 			$category_data = $categoryId;
@@ -874,7 +893,14 @@ class PC_shop_products_site extends PC_shop_products {
 		if (!empty($joins_params)) {
 			$queryParams = array_merge($queryParams, $joins_params);
 		}
-		$queryParams = array_merge($queryParams, array(PC_shop_attributes::ITEM_IS_PRODUCT, PC_shop_attributes::ITEM_IS_PRODUCT, $this->site->ln, $this->site->ln));
+		$queryParams = array_merge($queryParams, array(PC_shop_attributes::ITEM_IS_PRODUCT, PC_shop_attributes::ITEM_IS_PRODUCT));
+		$queryParams_after_join_item_attributes = $queryParams;
+		
+		$this->debug('$queryParams_after_join_item_attributes', 3);
+		$this->debug($queryParams_after_join_item_attributes, 3);
+		
+		$queryParams = array($this->site->ln, $this->site->ln);
+		
 		$where = array();
 		$limit = '';
 		$returnOne = false;
@@ -908,6 +934,48 @@ class PC_shop_products_site extends PC_shop_products {
 		$having_groups = array();
 		$havings = array();
 		$having_query_params = array();
+		
+		
+		$use_attribute_concat = false;
+		
+		$item_attributes_join_where = array();
+		$item_attributes_join_params = array();
+		
+		if (isset($params->custom_attribute_filter)) if (is_array($params->custom_attribute_filter)) if (count($params->custom_attribute_filter)) {
+			$use_attribute_concat = true;
+			foreach ($params->custom_attribute_filter as $a_id => $v_id) {
+				$this_having = '';
+				$this_having_query_params = array();
+				$having_group = false;
+				$v_op = '=';
+				if (is_array($v_id)) {
+					if (isset($v_id['having_group'])) {
+						$having_group = $v_id['having_group'];
+					}
+					$v_op = v($v_id['op'], '=');
+					$v_id = v($v_id['value'], '');
+				}
+				if (!empty($v_id)) {
+					$this_having = "FIND_IN_SET(?, attributes_keys)";
+					$this_having_query_params[] = "$a_id";
+					$item_attributes_join_where[] = "(ia.attribute_id <> ? OR ia.attribute_id = ? AND ia.value $v_op ?)";
+					$item_attributes_join_params[] = $a_id;
+					$item_attributes_join_params[] = $a_id;
+					$item_attributes_join_params[] = $v_id;
+				}
+				if (!$having_group) {
+					$havings[] = $this_having;
+					$having_query_params = array_merge($having_query_params, $this_having_query_params);
+				}
+				else {
+					$having_groups[$having_group][] = array(
+						'where' => $this_having,
+						'query_params' => $this_having_query_params
+					);
+				}
+									
+			}
+		}
 		
 		if (isset($params->filter)) if (is_array($params->filter)) if (count($params->filter)) {
 			foreach ($params->filter as $field=>$value) {
@@ -996,9 +1064,8 @@ class PC_shop_products_site extends PC_shop_products {
 			}
 		}
 		
-		$select_attributes_concat = '';
 		if (isset($params->attribute_filter)) if (is_array($params->attribute_filter)) if (count($params->attribute_filter)) {
-			$select_attributes_concat = ",group_concat(distinct concat_ws(':', ia.attribute_id, ia.value_id) separator ',') attributes_keys";
+			$use_attribute_concat = true;
 			foreach ($params->attribute_filter as $a_id => $v_id) {
 				$this_having = '';
 				$this_having_query_params = array();
@@ -1039,6 +1106,11 @@ class PC_shop_products_site extends PC_shop_products {
 				}
 									
 			}
+		}
+		
+		$select_attributes_concat = '';
+		if ($use_attribute_concat) {
+			$select_attributes_concat = ",group_concat(distinct concat_ws(':', ia.attribute_id, ia.value_id) separator ',') attributes_keys";
 		}
 		
 		if (isset($params->having_group)) if (is_array($params->having_group)) if (count($params->having_group)) {
@@ -1091,6 +1163,12 @@ class PC_shop_products_site extends PC_shop_products {
 		if (isset($params->categories)) if (is_array($params->categories)) {
 			$category_join = " LEFT JOIN {$this->db_prefix}shop_categories c ON c.id=p.category_id ";
 			$where[] = PC_database_tree::get_between_condition($params->categories, $queryParams, 'c');
+		}
+		
+		$this->debug('$item_attributes_join_params:' ,3);
+		$this->debug($item_attributes_join_params ,3);
+		if (!empty($item_attributes_join_params)) {
+			$queryParams_after_join_item_attributes = array_merge($queryParams_after_join_item_attributes, $item_attributes_join_params);
 		}
 		
 		//query!
@@ -1148,6 +1226,12 @@ class PC_shop_products_site extends PC_shop_products {
 		if (v($params->group_by)) {
 			$group_s = ', ' . $params->group_by;
 		}
+		
+		$item_attributes_join_clause = '';
+		if (!empty($item_attributes_join_where)) {
+			$item_attributes_join_clause = ' AND ' . implode(' AND ', $item_attributes_join_where);
+		}
+		
 		$select_s = ' ' . $select_s . ' ';
 		$real_price_select = "LEAST(p.price, (p.price - IFNULL(p.discount, 0)), ROUND(p.price * (100 - IFNULL(p.percentage_discount, 0)) / 100, 2)) as real_price,";
 		$query = $qry = "SELECT ".($params->Has_paging()?'SQL_CALC_FOUND_ROWS ':'').$select_s."p.*,".$real_price_select."pc.*,"
@@ -1160,7 +1244,7 @@ class PC_shop_products_site extends PC_shop_products {
 		. $joins_s
 		. $category_join
 		//attributes
-		." LEFT JOIN {$this->db_prefix}shop_item_attributes ia ON ia.item_id=p.id and (ia.flags & ?)=?"
+		." LEFT JOIN {$this->db_prefix}shop_item_attributes ia ON ia.item_id=p.id and (ia.flags & ?)=?" . $item_attributes_join_clause
 		." LEFT JOIN {$this->db_prefix}shop_attributes a ON a.id=ia.attribute_id"
 		." LEFT JOIN {$this->db_prefix}shop_attribute_contents ac ON ac.attribute_id=a.id and ac.ln=?"
 		." LEFT JOIN {$this->db_prefix}shop_attribute_values av ON av.attribute_id=a.id and av.id=ia.value_id"
@@ -1170,7 +1254,7 @@ class PC_shop_products_site extends PC_shop_products {
 		.(count($where)?' WHERE '.implode(' and ', $where):'')
 		." GROUP BY p.id". ' ' . $group_s . $having_s . ' ' . $order . ' ' . $limit ;
 		
-		$queryParams = array_merge($queryParams, $having_query_params);
+		$queryParams = array_merge($queryParams_after_join_item_attributes, $queryParams, $having_query_params);
 		
 		$ckey = "pcs.get." . md5($query . serialize($queryParams));
 		$total = null;

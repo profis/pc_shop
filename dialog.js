@@ -126,6 +126,9 @@ PC_plugin_dialog_pc_shop.js_factory = {
 			});
 			var ed = PC.editors.Get();
 			var category_node_id = Ext.getCmp('pc_shop_import_products_category_hidden').getValue();
+			if (Ext.getCmp('pc_shop_import_products_category').getValue() == '') {
+				category_node_id = '';
+			}
 			Ext.Ajax.request({
 				url: Plugin_pc_shop.api.Admin +'import_products/confirm',
 				method: 'POST',
@@ -141,7 +144,7 @@ PC_plugin_dialog_pc_shop.js_factory = {
 						//ed._import._clearData();
 						Ext.MessageBox.show({
 							title: Plugin_pc_shop.ln._import.title_confirm_success,
-							msg: Plugin_pc_shop.ln._import.msg_confirm_success + json.imported,// + '(inserted: ' + json.inserted + 'updated:' + json.updated + ')',
+							msg: Plugin_pc_shop.ln._import.msg_confirm_success + json.imported + ' (inserted: ' + json.inserted + '; updated:' + json.updated + ')',
 							buttons: Ext.MessageBox.OK,
 							icon: Ext.MessageBox.INFO
 						});

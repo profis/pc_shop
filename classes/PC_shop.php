@@ -1446,7 +1446,7 @@ class PC_shop_attributes extends PC_shop_attribute_model {
 	}
         
 	public function Assign_or_edit_for_item($itemId, $attributeId, $itemType=self::ITEM_IS_PRODUCT, $valueId=null, $value=null) {
-		$this->debug("Assign_or_edit_for_item($itemId, $attributeId, $itemType, $valueId, $value)");
+		$this->debug("Assign_or_edit_for_item(item_id: $itemId, atribute_id: $attributeId, $itemType, value_id: $valueId, value: $value)");
 		$attr_data = $this->Get_single_for_item($itemId, $attributeId);
 		if ($attr_data && v($attr_data['id'])) {
 			$this->Edit_for_item($attr_data['id'], $valueId, $value);

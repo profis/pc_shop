@@ -66,6 +66,8 @@ class PC_plugin_pc_shop_products_widget extends PC_widget {
 	
 	public function get_data() {
 		$shop_products_site = $this->core->Get_object('PC_shop_products_site');
+		$shop_products_site->debug = true;
+		$shop_products_site->set_instant_debug_to_file($this->cfg['path']['logs'] . 'pc_shop/widget_products.html', false, 10);
 		$params = $this->get_params();
 		$get_vars = false;
 		$this->sort_widget = false;
@@ -93,7 +95,6 @@ class PC_plugin_pc_shop_products_widget extends PC_widget {
 				$get_vars = $this->sort_widget_data['get_vars'];				
 			}
 		}
-		
 		$data = array(
 			'items' => $shop_products_site->Get(null, $category_id, $params),
 			'params' => $params,

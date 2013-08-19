@@ -1,21 +1,27 @@
 PC.utils.localize('mod.pc_shop.category_product_filters', {
 	lt: {
 		title: 'Produktų filtrai',
+		name: 'Pavadinimas',
 		attribute: 'Atributas',
+		input_type: 'Lauko tipas',
 		filter_type: 'Filtro tipas',
 		disabled: 'Išjungtas'		
 
 	},
 	en: {
 		title: 'Product filters',
+		name: 'Name',
 		attribute: 'Attribute',
+		input_type: 'Input type',
 		disabled: 'Disabled',
 		filter_type: 'Filter type',
 
 	},
 	ru: {
 		title: 'Фильтры товаров',
+		name: 'Название',
 		attribute: 'Атрибут',
+		input_type: 'Тип ввода',
 		disabled: 'Disabled',
 		filter_type: 'Тип фильтра',
 	}
@@ -28,9 +34,11 @@ Plugin_pc_shop_category_product_filters_crud = Ext.extend(PC.ux.crud, {
 	
 	auto_load: false,
 	
-	no_ln_fields: true,
+	//no_ln_fields: true,
 	
 	per_page: 20,
+	
+	sortable: true,
 	
 	filter_types: {
 		0: ' = ',
@@ -45,7 +53,8 @@ Plugin_pc_shop_category_product_filters_crud = Ext.extend(PC.ux.crud, {
 	
 	get_store_fields: function() {
 		return [
-				'id', 'attribute', 'filter_type'
+			'names', {name: 'name', mapping: 'names', convert: function(names, n){return PC.utils.extractName(names);}},
+			'id', 'attribute', 'input_type', 'filter_type'
 		];
 	},
 	
@@ -66,7 +75,7 @@ Plugin_pc_shop_category_product_filters_crud = Ext.extend(PC.ux.crud, {
 	
 	get_grid_columns: function() {
 		return [
-			//dialog.expander,
+			{header: this.ln.name, dataIndex: 'name'},
 			{header: this.ln.attribute, dataIndex: 'attribute', width: 150,
 				renderer: Ext.createDelegate(this._render_attribute, this)
 			},
@@ -74,6 +83,10 @@ Plugin_pc_shop_category_product_filters_crud = Ext.extend(PC.ux.crud, {
 				header: this.ln.filter_type, 
 				dataIndex: 'filter_type', 
 				renderer: Ext.createDelegate(this._render_filter_type, this)
+			},
+			{
+				header: this.ln.input_type, 
+				dataIndex: 'input_type'
 			}
 		];
 	},
@@ -130,6 +143,12 @@ Plugin_pc_shop_category_product_filters_crud = Ext.extend(PC.ux.crud, {
 			{	
 				_fld: 'filter_type',
 				fieldLabel: this.ln.filter_type,
+				anchor: '100%',
+				xtype:'textfield'
+			},
+			{	
+				_fld: 'input_type',
+				fieldLabel: this.ln.input_type,
 				anchor: '100%',
 				xtype:'textfield'
 			}
