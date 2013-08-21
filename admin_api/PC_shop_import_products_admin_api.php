@@ -36,6 +36,7 @@ class PC_shop_import_products_admin_api extends PC_shop_admin_api {
 				break;
 
 			case 'xls':
+			case 'xlsx':	
 				return $this->_read_products_from_excel_file();
 				break;
 			
@@ -164,6 +165,7 @@ class PC_shop_import_products_admin_api extends PC_shop_admin_api {
 	}
 	
 	protected function _get_association($field) {
+		$field = mb_strtolower($field);
 		if (isset($this->_associations[$field])) {
 			return $this->_associations[$field];
 		}
@@ -177,11 +179,32 @@ class PC_shop_import_products_admin_api extends PC_shop_admin_api {
 	protected function _load_fields_associations($product_import_method) {
 		$this->_id_fields = array();
 		$this->_associations = array();
+		$aliases = array();
 		$this->core->Init_hooks('plugin/pc_shop/import-products/import-fields-associations/' . $product_import_method, array(
 			'id_fields'=> &$this->_id_fields,
 			'data'=> &$this->_associations,
 			'missing_products_strategy'=> &$this->missing_products_stategy,
+			'aliases' => &$aliases
 		));
+		foreach ($this->_associations as $key => $assoc) {
+			if (!isset($assoc['title'])) {
+				$this->_associations[$key]['title'] = $key;
+			}
+		}
+		foreach ($aliases as $key => $alias_array) {
+			if (isset($this->_associations[$key])) {
+				foreach ($alias_array as $alias) {
+					$this->_associations[$alias] = $this->_associations[$key];
+					$this->_associations[$alias]['title'] = $alias;
+				}
+			}
+		}
+		$lower_associations = array();
+		foreach ($this->_associations as $key => $value) {
+			//echo '<hr />' . $key . ' => ' . mb_strtolower($key);
+			$lower_associations[mb_strtolower($key)] = $value;
+		}
+		$this->_associations = $lower_associations;
 		if (empty($this->_id_fields)) {
 			$this->_id_fields = array(
 				'field-external_id'
@@ -348,15 +371,18 @@ class PC_shop_import_products_admin_api extends PC_shop_admin_api {
 		$items_imported = 0;
 		$items_inserted = 0;
 		$items_updated = 0;
+		$items_skipped = 0;
 		foreach ($this->products as $key => $product) {
 			$missing_id_fields = array_diff_key($this->_id_fields_flipped, $product);
 			if (!empty($missing_id_fields)) {
 				$this->debug($this->_id_fields_flipped, 6);
 				$this->debug(':( Product has missing id keys ' . implode(',', array_keys($this->_id_fields_flipped)), 4);
+				$items_skipped++;
 				continue;
 			}
 			$category_id = false;
-			$product_id = $this->_get_product_id_from_product_import_data($product, $category_id);
+			$logs = array();
+			$product_id = $this->_get_product_id_from_product_import_data($product, $category_id, $logs);
 			if (!$category_id) {
 				$category_id = $this->category_id;
 			}
@@ -457,6 +483,8 @@ class PC_shop_import_products_admin_api extends PC_shop_admin_api {
 			}
 			else {
 				$this->debug(':( Skipping coz no product id (for updating) and no category_id (for iserting) was detected ', 5);
+				$this->debug($logs, 7);
+				$items_skipped++;
 			}
 			if ($product_id) {
 				//$this->shop->attributes->Remove_from_item(null, $product_id);
@@ -502,6 +530,7 @@ class PC_shop_import_products_admin_api extends PC_shop_admin_api {
 		$this->_out['imported'] = $items_imported;
 		$this->_out['inserted'] = $items_inserted;
 		$this->_out['updated'] = $items_updated;
+		$this->_out['skipped'] = $items_skipped;
 		
 		$this->debug('$this->_field_names:', 2);
 		$this->debug($this->_field_names, 3);
@@ -574,8 +603,9 @@ class PC_shop_import_products_admin_api extends PC_shop_admin_api {
 	}
 	
 
-	protected function _get_product_id_from_product_import_data(&$data, &$category_id = false) {
+	protected function _get_product_id_from_product_import_data(&$data, &$category_id = false, &$logs = array()) {
 		$this->debug("_get_product_id_from_product_import_data()");
+		$logs = array();
 		$category_id = false;
 		$scope = PC_model::create_scope();
 		$category_ids_arrays = array();
@@ -604,6 +634,9 @@ class PC_shop_import_products_admin_api extends PC_shop_admin_api {
 						),
 						'value' => 'id'
 					));
+					$my_log = array();
+					$my_log['type'] = 'category_attribute';
+					$my_log['attribute-id'] = $attribute_id;
 					if ($attribute_id) {
 						$attr_scope = PC_model::create_scope();
 						$attr_scope['where']['attribute_id'] = $attribute_id;
@@ -613,7 +646,11 @@ class PC_shop_import_products_admin_api extends PC_shop_admin_api {
 						$this->debug($attr_scope, 3);
 						$category_ids = $this->_attr_category_item_model->get_all($attr_scope);
 						$category_ids_arrays[] = $category_ids;
+						$attr_scope['query_only'] = true;
+						$my_log['category_ids'] = $category_ids;
+						$my_log['category query'] = $this->_attr_category_item_model->get_all($attr_scope);
 					}
+					$logs[] = $my_log;
 					
 					break;
 				
@@ -625,6 +662,9 @@ class PC_shop_import_products_admin_api extends PC_shop_admin_api {
 						),
 						'value' => 'id'
 					));
+					$my_log = array();
+					$my_log['type'] = 'category_attribute_value';
+					$my_log['attribute-id'] = $attribute_id;
 					if ($attribute_id) {
 						$value_id = $this->_attr_value_model->get_one(array(
 							'content' => true,
@@ -645,8 +685,12 @@ class PC_shop_import_products_admin_api extends PC_shop_admin_api {
 						$this->debug($attr_scope, 3);
 						$category_ids = $this->_attr_category_item_model->get_all($attr_scope);
 						$category_ids_arrays[] = $category_ids;
+						$attr_scope['query_only'] = true;
+						$my_log['category_ids'] = $category_ids;
+						$my_log['category query'] = $this->_attr_category_item_model->get_all($attr_scope);
+				
 					}
-					
+					$logs[] = $my_log;
 					break;	
 					
 				default:
@@ -660,7 +704,7 @@ class PC_shop_import_products_admin_api extends PC_shop_admin_api {
 				$category_ids = array_intersect($category_ids, $category_ids_array);
 			}
 			if (count($category_ids) == 1) {
-				$category_id = $category_ids[0];
+				$category_id = array_pop($category_ids);
 				$scope['where']['t.category_id'] = $category_id;
 			}
 		}
