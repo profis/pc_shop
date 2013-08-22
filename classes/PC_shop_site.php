@@ -958,7 +958,11 @@ class PC_shop_products_site extends PC_shop_products {
 				if (!empty($v_id)) {
 					$this_having = "FIND_IN_SET(?, attributes_keys)";
 					$this_having_query_params[] = "$a_id";
-					$item_attributes_join_where[] = "(ia.attribute_id <> ? OR ia.attribute_id = ? AND ia.value $v_op ?)";
+					$expression = '?';
+					if ($v_op != '=') {
+						$expression = "convert(?, decimal(10,4))";
+					}
+					$item_attributes_join_where[] = "(ia.attribute_id <> ? OR ia.attribute_id = ? AND ia.value $v_op $expression)";
 					$item_attributes_join_params[] = $a_id;
 					$item_attributes_join_params[] = $a_id;
 					$item_attributes_join_params[] = $v_id;
@@ -1274,6 +1278,8 @@ class PC_shop_products_site extends PC_shop_products {
 
 			$this->debug('query:');
 			$this->debug_query($query, $queryParams);
+			$this->debug('$queryParams:');
+			$this->debug_query($queryParams, 5);
 			
 			if (!$s) {
 				$this->cache->set($ckey, false);
