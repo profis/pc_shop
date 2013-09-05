@@ -38,7 +38,9 @@ $mod['priority'] = 100;
 		'dialog.tab.manufacturers.js',
 		'dialog.tab.delivery_options.js',
 		'dialog.tab.payment_options.js',
-		'dialog.tab.settings.js'
+		'dialog.tab.settings.js',
+		'ln_currencies_crud.js',
+		'dialog.tab.shop_currencies.js'
 	);
 	foreach ($js_files as $js_file) {
 		if (@file_exists($js_file)) {
@@ -69,7 +71,7 @@ if (hook_params.titles) {
 
 	//Ext.ns('PC');
 	PC.plugin.pc_shop.product_import_methods = <?php  echo json_encode($product_import_methods) ?>;
-
+	PC.plugin.pc_shop.base_currency = <?php  echo json_encode($cfg['pc_shop']['currency']) ?>;
 
 
 
@@ -1321,7 +1323,17 @@ function mod_pc_shop_click() {
 			//new PC.ux.crud({
 				//api_url: 'api/plugin/pc_shop/attribute_categories/'
 			//}),
-			{title: ln.tab.currencies, html:'Under construction'},
+			new Ext.TabPanel({
+				title: ln.tab.currencies,
+				activeTab: 0,
+				items: [
+					new PC.plugin.pc_shop.shop_currencies({
+						title: 'Shopo valiutos'
+					}),
+					{title: 'Valiutu kursai', html:'Under construction'}
+				]
+			}),
+			
 			//{title: ln.tab.manufacturers, html:'Under construction'},
 			new PC.plugin.pc_shop.crud_manufacturers({
 				ln: Ext.apply({title: ln.tab.manufacturers}, ln.manufacturers)

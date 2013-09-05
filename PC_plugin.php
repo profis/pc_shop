@@ -20,6 +20,9 @@ Register_class_autoloader('PC_shop_category_model', $clsPath.'models/PC_shop_cat
 Register_class_autoloader('PC_shop_product_model', $clsPath.'models/PC_shop_product_model.php');
 Register_class_autoloader('PC_shop_site_product_model', $clsPath.'models/PC_shop_site_product_model.php');
 Register_class_autoloader('PC_shop_manufacturer_model', $clsPath.'models/PC_shop_manufacturer_model.php');
+Register_class_autoloader('PC_shop_currency_model', $clsPath.'models/PC_shop_currency_model.php');
+Register_class_autoloader('PC_shop_currency_content_model', $clsPath.'models/PC_shop_currency_content_model.php');
+Register_class_autoloader('PC_shop_ln_currency_model', $clsPath.'models/PC_shop_ln_currency_model.php');
 Register_class_autoloader('PC_shop_product_product_model', $clsPath.'models/PC_shop_product_product_model.php');
 Register_class_autoloader('PC_shop_product_category_model', $clsPath.'models/PC_shop_product_category_model.php');
 Register_class_autoloader('PC_shop_delivery_option_model', $clsPath.'models/PC_shop_delivery_option_model.php');

@@ -14,7 +14,7 @@ PC.utils.localize('mod.pc_shop.category_product_filters', {
 		attribute: 'Attribute',
 		input_type: 'Input type',
 		disabled: 'Disabled',
-		filter_type: 'Filter type',
+		filter_type: 'Filter type'
 
 	},
 	ru: {
@@ -23,7 +23,7 @@ PC.utils.localize('mod.pc_shop.category_product_filters', {
 		attribute: 'Атрибут',
 		input_type: 'Тип ввода',
 		disabled: 'Disabled',
-		filter_type: 'Тип фильтра',
+		filter_type: 'Тип фильтра'
 	}
 });
 

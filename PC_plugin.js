@@ -18,7 +18,8 @@ PC.utils.localize('mod.'+ Plugin.Name, {
 			cod_price: 'Cash on delivery fee',
 			amount_for_free_delivery: 'Minimal total price for free delivery',
 			amount_for_free_cod: 'Minimal total price for free cod',
-			currency: 'Currency'
+			currency: 'Currency',
+			base_currency: 'Base currency'
 		},
 		new_category: 'New category',
 		new_subcategory: 'New subcategory',
@@ -97,7 +98,8 @@ PC.utils.localize('mod.'+ Plugin.Name, {
 			cod_price: 'Atsiskaitant grynaisiais pristatymo metu mokestis',
 			amount_for_free_delivery: 'Minimali užsakymo kaina nemokamam pristatymui',
 			amount_for_free_cod: 'Minimali užsakymo kaina nemokamam atsiskaitymui grynaisiais',
-			currency: 'Valiuta'
+			currency: 'Valiuta',
+			base_currency: 'Bazinė Valiuta'
 		},
 		new_category: 'Nauja kategorija',
 		new_subcategory: 'Nauja subkategorija',
@@ -177,7 +179,8 @@ PC.utils.localize('mod.'+ Plugin.Name, {
 			cod_price: 'Сбор за наложенный платеж',
 			amount_for_free_delivery: 'Минимальная стоимость заказа для бесплатной доставки',
 			amount_for_free_cod: 'Минимальная стоимость заказа для бесплатного сбора',
-			currency: 'Валюта'
+			currency: 'Валюта',
+			base_currency: 'Базисная валюта'
 		},
 		new_category: 'Новая категория',
 		new_subcategory: 'Новая субкатегория',
