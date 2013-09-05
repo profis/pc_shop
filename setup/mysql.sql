@@ -3,9 +3,9 @@
 -- http://www.phpmyadmin.net
 -- 
 -- Host: localhost
--- Generation Time: Jun 26, 2013 at 11:03 AM
--- Server version: 5.5.31
--- PHP Version: 5.3.10-1ubuntu3.6
+-- Generation Time: Sep 05, 2013 at 05:55 PM
+-- Server version: 5.5.32
+-- PHP Version: 5.3.10-1ubuntu3.7
 -- 
 -- Database: `cms4`
 -- 
@@ -21,7 +21,7 @@ CREATE TABLE IF NOT EXISTS `pc_shop_attribute_categories` (
   `flags` smallint(5) unsigned NOT NULL DEFAULT '1',
   `ref` varchar(100) COLLATE utf8_unicode_ci NOT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci AUTO_INCREMENT=1 ;
+) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
 -- --------------------------------------------------------
 
@@ -74,7 +74,7 @@ CREATE TABLE IF NOT EXISTS `pc_shop_attribute_values` (
   `attribute_id` int(10) unsigned NOT NULL,
   PRIMARY KEY (`id`),
   KEY `attribute_id` (`attribute_id`)
-) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci AUTO_INCREMENT=1 ;
+) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
 -- --------------------------------------------------------
 
@@ -91,7 +91,7 @@ CREATE TABLE IF NOT EXISTS `pc_shop_attributes` (
   `ref` varchar(100) COLLATE utf8_unicode_ci NOT NULL,
   `category_id` smallint(5) unsigned NOT NULL DEFAULT '0',
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci AUTO_INCREMENT=1 ;
+) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
 -- --------------------------------------------------------
 
@@ -116,7 +116,7 @@ CREATE TABLE IF NOT EXISTS `pc_shop_categories` (
   KEY `parent_id` (`parent_id`,`lft`,`rgt`,`flags`),
   KEY `lft` (`lft`),
   KEY `rgt` (`rgt`)
-) ENGINE=MyISAM  DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci AUTO_INCREMENT=1 ;
+) ENGINE=MyISAM  DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
 -- --------------------------------------------------------
 
@@ -142,6 +142,19 @@ CREATE TABLE IF NOT EXISTS `pc_shop_category_contents` (
 -- --------------------------------------------------------
 
 -- 
+-- Table structure for table `pc_shop_category_product_filter_contents`
+-- 
+
+CREATE TABLE IF NOT EXISTS `pc_shop_category_product_filter_contents` (
+  `filter_id` smallint(5) unsigned NOT NULL,
+  `ln` varchar(2) CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
+  `name` varchar(100) CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
+  UNIQUE KEY `filter_id` (`filter_id`,`ln`)
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+
+-- --------------------------------------------------------
+
+-- 
 -- Table structure for table `pc_shop_category_product_filters`
 -- 
 
@@ -149,10 +162,42 @@ CREATE TABLE IF NOT EXISTS `pc_shop_category_product_filters` (
   `id` int(10) NOT NULL AUTO_INCREMENT,
   `category_id` int(10) NOT NULL,
   `attribute` smallint(5) NOT NULL,
+  `input_type` varchar(20) COLLATE utf8_unicode_ci NOT NULL,
+  `filter_type` smallint(5) NOT NULL DEFAULT '0',
   `disabled` smallint(1) NOT NULL DEFAULT '0',
+  `position` smallint(5) NOT NULL DEFAULT '0',
   PRIMARY KEY (`id`),
-  UNIQUE KEY `category_id` (`category_id`,`attribute`)
-) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci AUTO_INCREMENT=1 ;
+  UNIQUE KEY `category_id` (`category_id`,`attribute`,`filter_type`)
+) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+
+-- --------------------------------------------------------
+
+-- 
+-- Table structure for table `pc_shop_currencies`
+-- 
+
+CREATE TABLE IF NOT EXISTS `pc_shop_currencies` (
+  `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
+  `name` varchar(80) CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
+  `code` varchar(3) CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
+  `country_name` varchar(80) CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
+  `country_code` varchar(2) CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `code` (`code`)
+) ENGINE=InnoDB  DEFAULT CHARSET=latin1;
+
+-- --------------------------------------------------------
+
+-- 
+-- Table structure for table `pc_shop_currency_contents`
+-- 
+
+CREATE TABLE IF NOT EXISTS `pc_shop_currency_contents` (
+  `currency_id` int(11) unsigned NOT NULL,
+  `ln` varchar(2) CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
+  `title` varchar(10) CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
+  UNIQUE KEY `currency_id` (`currency_id`,`ln`)
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 
 -- --------------------------------------------------------
 
@@ -184,7 +229,7 @@ CREATE TABLE IF NOT EXISTS `pc_shop_delivery_options` (
   `no_cod_price_from` decimal(10,2) unsigned NOT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `code` (`code`)
-) ENGINE=InnoDB  DEFAULT CHARSET=latin1 AUTO_INCREMENT=1 ;
+) ENGINE=InnoDB  DEFAULT CHARSET=latin1;
 
 -- --------------------------------------------------------
 
@@ -202,7 +247,22 @@ CREATE TABLE IF NOT EXISTS `pc_shop_item_attributes` (
   `position` smallint(5) unsigned NOT NULL DEFAULT '0',
   PRIMARY KEY (`id`),
   KEY `item_id` (`item_id`)
-) ENGINE=MyISAM  DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci AUTO_INCREMENT=1 ;
+) ENGINE=MyISAM  DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+
+-- --------------------------------------------------------
+
+-- 
+-- Table structure for table `pc_shop_ln_currencies`
+-- 
+
+CREATE TABLE IF NOT EXISTS `pc_shop_ln_currencies` (
+  `id` mediumint(7) NOT NULL AUTO_INCREMENT,
+  `ln` varchar(2) CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
+  `c_id` int(11) NOT NULL,
+  `position` smallint(5) NOT NULL DEFAULT '0',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `ln` (`ln`,`c_id`)
+) ENGINE=InnoDB  DEFAULT CHARSET=latin1;
 
 -- --------------------------------------------------------
 
@@ -216,7 +276,7 @@ CREATE TABLE IF NOT EXISTS `pc_shop_manufacturers` (
   `name` varchar(255) COLLATE utf8_unicode_ci NOT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `name` (`name`)
-) ENGINE=MyISAM  DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci AUTO_INCREMENT=1 ;
+) ENGINE=MyISAM  DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
 -- --------------------------------------------------------
 
@@ -245,7 +305,7 @@ CREATE TABLE IF NOT EXISTS `pc_shop_order_statuses` (
   `date` int(10) unsigned NOT NULL,
   `user_id` int(10) unsigned NOT NULL DEFAULT '0',
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci AUTO_INCREMENT=1 ;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
 -- --------------------------------------------------------
 
@@ -272,7 +332,7 @@ CREATE TABLE IF NOT EXISTS `pc_shop_orders` (
   `status` smallint(5) NOT NULL DEFAULT '0',
   `data` text COLLATE utf8_unicode_ci NOT NULL,
   KEY `id` (`id`)
-) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci AUTO_INCREMENT=1 ;
+) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
 -- --------------------------------------------------------
 
@@ -303,7 +363,7 @@ CREATE TABLE IF NOT EXISTS `pc_shop_payment_options` (
   `test` tinyint(1) NOT NULL DEFAULT '0',
   PRIMARY KEY (`id`),
   UNIQUE KEY `code` (`code`)
-) ENGINE=InnoDB  DEFAULT CHARSET=latin1 AUTO_INCREMENT=1 ;
+) ENGINE=InnoDB  DEFAULT CHARSET=latin1;
 
 -- --------------------------------------------------------
 
@@ -318,7 +378,7 @@ CREATE TABLE IF NOT EXISTS `pc_shop_product_categories` (
   `flags` smallint(5) NOT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `product_id` (`product_id`,`category_id`)
-) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci AUTO_INCREMENT=1 ;
+) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
 -- --------------------------------------------------------
 
@@ -345,6 +405,21 @@ CREATE TABLE IF NOT EXISTS `pc_shop_product_contents` (
 -- --------------------------------------------------------
 
 -- 
+-- Table structure for table `pc_shop_product_periods`
+-- 
+
+CREATE TABLE IF NOT EXISTS `pc_shop_product_periods` (
+  `id` int(10) NOT NULL AUTO_INCREMENT,
+  `product_id` int(10) NOT NULL,
+  `time_from` datetime DEFAULT NULL,
+  `time_to` datetime DEFAULT NULL,
+  `flags` smallint(5) NOT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+
+-- --------------------------------------------------------
+
+-- 
 -- Table structure for table `pc_shop_product_prices`
 -- 
 
@@ -367,7 +442,7 @@ CREATE TABLE IF NOT EXISTS `pc_shop_product_products` (
   `product_id_2` int(10) NOT NULL,
   `flags` smallint(5) NOT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci AUTO_INCREMENT=1 ;
+) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
 -- --------------------------------------------------------
 
@@ -394,7 +469,7 @@ CREATE TABLE IF NOT EXISTS `pc_shop_products` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `external_id` (`external_id`),
   KEY `category_id` (`category_id`,`position`,`manufacturer_id`,`flags`)
-) ENGINE=MyISAM  DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci AUTO_INCREMENT=1 ;
+) ENGINE=MyISAM  DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
 -- --------------------------------------------------------
 
@@ -409,9 +484,10 @@ CREATE TABLE IF NOT EXISTS `pc_shop_resources` (
   `file_id` int(11) NOT NULL,
   `flags` tinyint(3) unsigned NOT NULL,
   PRIMARY KEY (`resource_id`),
-  UNIQUE KEY `item_id` (`item_id`,`file_id`),
+  UNIQUE KEY `item_id` (`item_id`,`file_id`,`flags`),
   KEY `position` (`position`)
-) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci AUTO_INCREMENT=1 ;
+) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+
 
 
 -- 
