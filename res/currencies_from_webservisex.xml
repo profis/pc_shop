@@ -409,6 +409,12 @@
     <CurrencyCode>ETB</CurrencyCode>
   </Table>
   <Table>
+    <Name>Euro Member Countries</Name>
+    <CountryCode>eu</CountryCode>
+    <Currency>Euro</Currency>
+    <CurrencyCode>EUR</CurrencyCode>
+  </Table>
+  <Table>
     <Name>Falkland Islands</Name>
     <CountryCode>fk</CountryCode>
     <Currency>Pound</Currency>

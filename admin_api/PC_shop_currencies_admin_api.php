@@ -2,6 +2,8 @@
 
 class PC_shop_currencies_admin_api extends PC_shop_admin_api {
 
+	protected $_default_order = 'country_name';
+	
 	protected function _get_model() {
 		return $this->core->Get_object('PC_shop_currency_model');
 	}
@@ -65,7 +67,8 @@ class PC_shop_currencies_admin_api extends PC_shop_admin_api {
 		
 		$params = array(
 			'select' => 't.id, t.code, t.name, t.country_name',
-			'ln' => false
+			'ln' => false,
+			'order' => 't.country_name'
 		);
 		
 		$this->_out = $this->_model->get_all($params);
