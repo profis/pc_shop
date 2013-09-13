@@ -68,8 +68,18 @@ class PC_shop_currencies_admin_api extends PC_shop_admin_api {
 		$params = array(
 			'select' => 't.id, t.code, t.name, t.country_name',
 			'ln' => false,
-			'order' => 't.country_name'
+			'order' => 't.country_name',
+			'where' => array()
 		);
+		
+		if (isset($_GET['active_only'])) {
+			$ln_currency_model = new PC_shop_ln_currency_model();
+			$currency_ids = $ln_currency_model->get_all(array(
+				'select' => 'distinct(t.c_id)',
+				'value' => 'c_id'
+			));
+			$params['where']['t.id'] = $currency_ids;
+		}
 		
 		$this->_out = $this->_model->get_all($params);
 		

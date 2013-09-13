@@ -40,6 +40,7 @@ $mod['priority'] = 100;
 		'dialog.tab.payment_options.js',
 		'dialog.tab.settings.js',
 		'ln_currencies_crud.js',
+		'dialog.tab.currencies.rates.js',
 		'dialog.tab.shop_currencies.js'
 	);
 	foreach ($js_files as $js_file) {
@@ -1330,7 +1331,11 @@ function mod_pc_shop_click() {
 					new PC.plugin.pc_shop.shop_currencies({
 						title: 'Shopo valiutos'
 					}),
-					{title: 'Valiutu kursai', html:'Under construction'}
+					new PC.plugin.pc_shop.shop_currency_rates({
+						ln: {
+							title: 'Valiutu kursai'
+						}
+					})
 				]
 			}),
 			

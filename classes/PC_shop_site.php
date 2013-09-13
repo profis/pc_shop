@@ -876,6 +876,9 @@ class PC_shop_products_site extends PC_shop_products {
 		
 		
 		$this->core->Init_params($params);
+		if (v($params->nothing)) {
+			return array();
+		}
 		//format query params and parse filters
 		
 		$joins_params = array();
@@ -948,24 +951,37 @@ class PC_shop_products_site extends PC_shop_products {
 				$this_having_query_params = array();
 				$having_group = false;
 				$v_op = '=';
+				$clause = '';
+				$this_query_params = array();
 				if (is_array($v_id)) {
+					//print_pre($v_id);
 					if (isset($v_id['having_group'])) {
 						$having_group = $v_id['having_group'];
 					}
+					$a_id = v($v_id['attr_id'], $a_id);
+					$clause = v($v_id['clause'], '');
 					$v_op = v($v_id['op'], '=');
+					$this_query_params = v($v_id['query_params'], $this_query_params);
 					$v_id = v($v_id['value'], '');
 				}
-				if (!empty($v_id)) {
+				if (!empty($v_id) or !empty($clause)) {
 					$this_having = "FIND_IN_SET(?, attributes_keys)";
 					$this_having_query_params[] = "$a_id";
 					$expression = '?';
 					if ($v_op != '=') {
 						$expression = "convert(?, decimal(10,4))";
 					}
-					$item_attributes_join_where[] = "(ia.attribute_id <> ? OR ia.attribute_id = ? AND ia.value $v_op $expression)";
 					$item_attributes_join_params[] = $a_id;
 					$item_attributes_join_params[] = $a_id;
-					$item_attributes_join_params[] = $v_id;
+					if (empty($clause)) {
+						$item_attributes_join_params[] = $v_id;
+						$clause = "ia.value $v_op $expression";
+					}
+					if (!empty($this_query_params)) {
+						$item_attributes_join_params = array_merge($item_attributes_join_params, $this_query_params);
+					}
+					$item_attributes_join_where[] = "(ia.attribute_id <> ? OR ia.attribute_id = ? AND $clause)";
+					
 				}
 				if (!$having_group) {
 					$havings[] = $this_having;
@@ -1069,21 +1085,37 @@ class PC_shop_products_site extends PC_shop_products {
 		}
 		
 		if (isset($params->attribute_filter)) if (is_array($params->attribute_filter)) if (count($params->attribute_filter)) {
-			$use_attribute_concat = true;
+			
 			foreach ($params->attribute_filter as $a_id => $v_id) {
 				$this_having = '';
 				$this_having_query_params = array();
 				$having_group = false;
 				if (is_array($v_id) and isset($v_id['having_group'])) {
 					$having_group = $v_id['having_group'];
+					$a_id = v($v_id['attr_id'], $a_id);
 					$v_id = v($v_id['value'], '');
 				}
 				if (!is_array($v_id)) {
 					if (!empty($v_id)) {
-						$this_having = "FIND_IN_SET(?, attributes_keys)";
+						$not = '';
+						$concat_key = 'attributes_keys';
+						if (strpos($v_id, '!') === 0) {
+							$v_id = substr($v_id, 1);
+							$not = 'NOT ';
+						}
+						if (strpos($v_id, '=') === 0) {
+							$v_id = substr($v_id, 1);
+							$concat_key = 'attribute_values';
+							$use_attribute_values_concat = true;
+						}
+						else {
+							$use_attribute_concat = true;
+						}
+						$this_having = $not . "FIND_IN_SET(?, $concat_key)";
 						$this_having_query_params[] = "$a_id:$v_id";
 					}
 					else {
+						$use_attribute_concat = true;
 						$this_having = "(attributes_keys like ? OR attributes_keys like ?)";
 						$this_having_query_params[] = "$a_id:%";
 						$this_having_query_params[] = "%,$a_id:%";
@@ -1092,6 +1124,7 @@ class PC_shop_products_site extends PC_shop_products {
 				elseif (!empty($v_id)) {
 					$having_ors = array();
 					foreach ($v_id as $vv_id) {
+						$use_attribute_concat = true;
 						$having_ors[] = "FIND_IN_SET(?, attributes_keys)";
 						$this_having_query_params[] = "$a_id:$vv_id";
 					}
@@ -1113,8 +1146,12 @@ class PC_shop_products_site extends PC_shop_products {
 		}
 		
 		$select_attributes_concat = '';
+		$select_attributes_values_concat = '';
 		if ($use_attribute_concat) {
 			$select_attributes_concat = ",group_concat(distinct concat_ws(':', ia.attribute_id, ia.value_id) separator ',') attributes_keys";
+		}
+		if ($use_attribute_values_concat) {
+			$select_attributes_values_concat = ",group_concat(distinct concat_ws(':', ia.attribute_id, ia.value) separator ',') attribute_values";
 		}
 		
 		if (isset($params->having_group)) if (is_array($params->having_group)) if (count($params->having_group)) {
@@ -1242,7 +1279,7 @@ class PC_shop_products_site extends PC_shop_products {
 		. $this->sql_parser->group_concat($this->sql_parser->concat_ws("░", "'id".PC_sql_parser::SP3."'", 'a.id', "'ref".PC_sql_parser::SP3."'",'a.ref',"'category_id".PC_sql_parser::SP3."'",'a.category_id', "'name".PC_sql_parser::SP3."'",'ac.name', "'flags".PC_sql_parser::SP3."'",'ia.flags', "'is_custom".PC_sql_parser::SP3."'",'a.is_custom', "'is_searchable".PC_sql_parser::SP3."'",'a.is_searchable', "'item_is_category".PC_sql_parser::SP3."'",'a.is_category_attribute', "'value".PC_sql_parser::SP3."'",'ia.value', "'value_id".PC_sql_parser::SP3."'",'ia.value_id', "'avc_value".PC_sql_parser::SP3."'",'avc.value'), array('separator'=>'▓', 'distinct'=> true))." attributes"
 		//. $this->sql_parser->group_concat($this->sql_parser->concat_ws("░", "'id".PC_sql_parser::SP3."'", 'a.id', "'ref".PC_sql_parser::SP3."'",'a.ref', "'name".PC_sql_parser::SP3."'",'ac.name', "'flags".PC_sql_parser::SP3."'",'ia.flags', "'is_custom".PC_sql_parser::SP3."'",'a.is_custom', "'is_searchable".PC_sql_parser::SP3."'",'a.is_searchable', "'item_is_category".PC_sql_parser::SP3."'",'a.is_category_attribute',"'value".PC_sql_parser::SP3."'",'ia.value',"'value_id".PC_sql_parser::SP3."'",'ia.value_id',"'avc_value".PC_sql_parser::SP3."'",'avc.value'), array('separator'=>'▓', 'distinct'=> true))." attributes"
 		//. $this->sql_parser->group_concat($this->sql_parser->concat_ws("░", 'a.id', 'a.ref', 'ac.name', 'ia.flags', 'a.is_custom', 'a.is_searchable', 'a.is_category_attribute', 'ia.value_id', 'avc.value'), array('separator'=>'▓', 'distinct'=> true))." attributes"
-		. $select_attributes_concat
+		. $select_attributes_concat . $select_attributes_values_concat
 		. " FROM {$this->db_prefix}shop_products p"
 		. " LEFT JOIN {$this->db_prefix}shop_product_contents pc ON pc.product_id=p.id and pc.ln=?"
 		. $joins_s
@@ -1280,6 +1317,10 @@ class PC_shop_products_site extends PC_shop_products {
 			$this->debug_query($query, $queryParams);
 			$this->debug('$queryParams:');
 			$this->debug_query($queryParams, 5);
+			
+			if ($params->echo_query) {
+				echo $this->get_debug_query_string($query, $queryParams);
+			}
 			
 			if (!$s) {
 				$this->cache->set($ckey, false);

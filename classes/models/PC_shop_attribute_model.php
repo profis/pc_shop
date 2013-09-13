@@ -11,8 +11,16 @@ class PC_shop_attribute_model extends PC_model {
 		$this->_content_table_relation_col = 'attribute_id';
 	}
         
-        public function get_id_from_ref($ref) {
-            return $this->get_id_from_field('ref', $ref);
-        }
+	public function get_id_from_ref($ref) {
+		return $this->get_id_from_field('ref', $ref);
+	}
+	
+	public function set_category_attribute_scope() {
+		$this->_where['is_category_attribute'] = 1;
+	}
+	
+	public function set_product_attribute_scope() {
+		$this->_where['is_category_attribute'] = 0;
+	}
 	
 }
