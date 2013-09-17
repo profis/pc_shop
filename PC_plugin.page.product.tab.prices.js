@@ -1,14 +1,14 @@
 PC.utils.localize('mod.pc_shop.product_prices', {
 	lt: {
-		title: 'Kainos'
+		title: 'Kainos kitomis valiutomis'
 
 	},
 	en: {
-		title: 'Prices'
+		title: 'Prices in other currencies'
 
 	},
 	ru: {
-		title: 'цены'
+		title: 'Цены в других валютах'
 	}
 });
 
@@ -107,7 +107,7 @@ Plugin_pc_shop_product_prices_crud = Ext.extend(PC.ux.crud, {
 }); 
 //debugger;
 
-PC.hooks.Register('plugin/pc_shop/add_tab_for_product', function(params) {
+PC.hooks.Register('plugin/pc_shop/add_tab_for_product_', function(params) {
 	params.tabs.push(new Plugin_pc_shop_product_prices_crud({
 		pc_no_ln: true,
 		ln: PC.i18n.mod.pc_shop.product_prices

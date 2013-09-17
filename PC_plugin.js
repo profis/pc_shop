@@ -1286,6 +1286,14 @@ Plugin.view_factory = {
 				{ref: '_quantity', fieldLabel: Plugin.ln.quantity, xtype: 'numberfield'},
 				{ref: '_warranty', fieldLabel: Plugin.ln.warranty, xtype: 'numberfield'},
 				{ref: '_price', fieldLabel: Plugin.ln.price, xtype: 'numberfield'},
+				/*
+				new Plugin_pc_shop_product_prices_crud({
+					//pc_no_ln: true,
+					fieldLabel: PC.i18n.mod.pc_shop.product_prices.title,
+					ln: PC.i18n.mod.pc_shop.product_prices,
+					height: 200
+				}),
+				*/
 				{ref: '_discount', fieldLabel: Plugin.ln.discount, xtype: 'numberfield'},
 				{ref: '_percentage_discount', fieldLabel: Plugin.ln.discount +', %', xtype: 'numberfield'},
 				{ref: '_hot', fieldLabel: PC.i18n.page.hot, xtype: 'checkbox'},

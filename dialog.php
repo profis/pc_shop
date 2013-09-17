@@ -1329,11 +1329,11 @@ function mod_pc_shop_click() {
 				activeTab: 0,
 				items: [
 					new PC.plugin.pc_shop.shop_currencies({
-						title: 'Shopo valiutos'
+						title: ln.tab.currencies
 					}),
 					new PC.plugin.pc_shop.shop_currency_rates({
 						ln: {
-							title: 'Valiutu kursai'
+							title: ln.tab.currency_rates
 						}
 					})
 				]
@@ -1381,6 +1381,7 @@ function mod_pc_shop_click() {
 		maximizable: true,
 		items: [dialog.tab],
 		buttonAlign: 'left',
+		/*
 		buttons: [
 			//{xtype: 'tbtext', text: ''},
 			{xtype: 'tbfill'},
@@ -1391,6 +1392,7 @@ function mod_pc_shop_click() {
 				}
 			}
 		],
+		*/
 		closeAction: 'hide'
 	});
 	

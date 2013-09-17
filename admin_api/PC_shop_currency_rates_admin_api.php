@@ -3,7 +3,9 @@
 class PC_shop_currency_rates_admin_api extends PC_shop_admin_api {
 	
 	protected function _get_model() {
-		return $this->core->Get_object('PC_shop_currency_rate_model');
+		$model = $this->core->Get_object('PC_shop_currency_rate_model');
+		$model->absorb_debug_settings($this);
+		return $model;
 	}
 	
 	protected function _get_sync_fields() {
@@ -45,7 +47,7 @@ class PC_shop_currency_rates_admin_api extends PC_shop_admin_api {
 	}
 	
 	
-	public function import() {
+	public function import($code = '') {
 		$model = $this->_get_model();
 		$rated_currency_codes = $model->get_all(array(
 			'key' => 'code',
@@ -53,7 +55,8 @@ class PC_shop_currency_rates_admin_api extends PC_shop_admin_api {
 			'join' => array("LEFT JOIN {$this->db_prefix}shop_currencies sc ON sc.id = t.c_id"),
 			'select' => 't.*, sc.code'
 		));
-		
+		$this->debug('$rated_currency_codes:', 1);
+		$this->debug($rated_currency_codes, 2);
 			
 		$file = 'http://www.ecb.europa.eu/stats/eurofxref/eurofxref-daily.xml';
 		$xml = simplexml_load_file($file);
@@ -62,15 +65,18 @@ class PC_shop_currency_rates_admin_api extends PC_shop_admin_api {
 		$base_currency = $this->cfg['pc_shop']['currency'];
 		foreach ($xml->Cube->Cube->Cube as $currency) {
 			$currency_code = (string) $currency['currency'];
-			if (isset($rated_currency_codes[$currency_code])) {
+			if (isset($rated_currency_codes[$currency_code]) or $currency_code == $base_currency) {
 				$d = array(
-					'c_id' => $rated_currency_codes[$currency_code],
+					'c_id' => v($rated_currency_codes[$currency_code], false),
 					'code' => $currency_code,
 					'rate' => (string) $currency['rate']
 				);
 				$data[$currency_code] = $d;
 			}
 		}
+		
+		$this->debug('rates from  provider:', 1);
+		$this->debug($data, 2);
 		
 		$exchange_currency = 'EUR';
 		
@@ -87,6 +93,10 @@ class PC_shop_currency_rates_admin_api extends PC_shop_admin_api {
 				}
 				
 				foreach ($data as $key => $currency_data) {
+					if ($currency_data['c_id'] == false) {
+						unset($data[$key]);
+						continue;
+					}
 					if ($key == $base_currency) {
 						$data[$key]['rate'] = 1;
 					}
@@ -103,6 +113,14 @@ class PC_shop_currency_rates_admin_api extends PC_shop_admin_api {
 			
 		}
 		//print_pre($data);
+		if (!empty($code)) {
+			foreach ($data as $key => $value) {
+				if ($value['code'] == $code) {
+					$data = $value;
+					break;
+				}
+			}
+		}
 		$this->_out['success'] = true;
 		$this->_out['data'] = $data;
 	}

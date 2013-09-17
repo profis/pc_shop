@@ -19,7 +19,8 @@ class PC_shop_ln_currencies_admin_api extends PC_shop_admin_api {
 		$params['where']['ln'] = v($_POST['ln'], v($this->route[3]));
 		vv($params['join'], array());
 		$params['join'][] = "LEFT JOIN {$this->db_prefix}shop_currencies sc ON sc.id = t.c_id";
-		$params['select'] = 't.*, sc.code';
+		$params['join'][] = "LEFT JOIN {$this->db_prefix}shop_currency_rates cr ON cr.c_id = t.c_id";
+		$params['select'] = 't.*, sc.code, sc.country_name, sc.name, cr.rate';
 	}
 	
 	protected function _before_insert(&$data, &$content) {
@@ -30,6 +31,14 @@ class PC_shop_ln_currencies_admin_api extends PC_shop_admin_api {
 			'value' => 'max_position',
 			'limit' => 1
 		));
+	}
+	
+	protected function _after_insert() {
+		$this->debug('After insert');
+		$this->debug($this->_out, 2);
+		if ($this->_out['success']) {
+			
+		}
 	}
 	
 	public function test() {

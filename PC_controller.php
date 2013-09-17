@@ -697,6 +697,8 @@ class PC_controller_pc_shop extends PC_controller {
 	public function product_action($id) {
 		$this->_set_seo_for_product();
 		$this->Set_current_path($this->currentCategory['path']);
+		$this->currentProduct['page_type'] = 'pc_shop_product';
+		$this->site->Path_append($this->name, $this->currentProduct);
 		//$this->site->Use_component('js/hooks');
 		$this->site->Add_script($this->core->Get_url('plugins','','pc_shop')."js/products.js");
 		$this->site->Set_url_suffix_callback(

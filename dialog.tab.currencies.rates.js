@@ -12,6 +12,8 @@ PC.plugin.pc_shop.shop_currency_rates = Ext.extend(PC.ux.LocalCrud, {
 	auto_load: true,
 	id_property: 'c_id',
 	
+	grid_id: 'Plugin_pc_shop_currency_rates_crud_grid',
+	
 	constructor: function(config) {
 		config.bbar = this.get_bbar();
 		PC.plugin.pc_shop.shop_currency_rates.superclass.constructor.call(this, config);
@@ -23,17 +25,25 @@ PC.plugin.pc_shop.shop_currency_rates = Ext.extend(PC.ux.LocalCrud, {
 		];
 	},
 	
+	_currency_rate: function (value) {
+		if (value == 0 || value == '' || value == null) {
+			return '<img style="vertical-align: bottom;" src="images/delete.png" alt="" /> ' + PC.i18n.not_set;
+		}
+		return value;
+	},
+	
 	get_grid_columns: function() {
 		return [
 			//dialog.expander,
 			{header: '', dataIndex: 'relation'},
-			{header: 'Rate', dataIndex: 'rate'}		
+			{header: 'Rate', dataIndex: 'rate', renderer: this._currency_rate}		
 		];
 	},
 	
 	get_add_form_fields: function() {
 		return [
 			{	_fld: 'rate',
+				ref: '_rate',
 				fieldLabel: 'Rate',
 				anchor: '100%',
 				xtype: 'textfield',
@@ -45,6 +55,19 @@ PC.plugin.pc_shop.shop_currency_rates = Ext.extend(PC.ux.LocalCrud, {
 			}
 		];
 	},
+		
+	adjust_multiln_params: function(multiln_params) {
+		multiln_params.save_button_label = PC.i18n.change;
+		multiln_params.pre_buttons = [
+			{	
+				text: 'Import',
+				icon: 'images/money_euro.png',
+				handler: Ext.createDelegate (function() {
+					this.button_handler_for_import_single(this.selected_record.data.code);
+				}, this)
+			}
+		];
+	},		
 			
 	get_tbar_buttons: function() {
 		var buttons =  [
@@ -65,6 +88,39 @@ PC.plugin.pc_shop.shop_currency_rates = Ext.extend(PC.ux.LocalCrud, {
 		};
 	},		
 			
+	button_handler_for_import_single: function(currency_code) {
+		Ext.Ajax.request({
+			url: this.api_url_import + currency_code,
+			method: 'POST',
+			callback: Ext.createDelegate(function(opts, success, response) {
+				if (success && response.responseText) {
+					try {
+						var data = Ext.decode(response.responseText);
+						if (data.success) {
+							var w = PC.dialog.styles.multilnedit;
+							if (data.data.rate) {
+								w._rate.setValue(data.data.rate);
+							}
+							return;
+						}
+						else {
+							error = data.error;
+						}
+					}
+					catch(e) {
+						var error = this.ln.error.json;
+					};
+				}
+				else var error = this.ln.error.connection;
+				Ext.MessageBox.show({
+					title: PC.i18n.error,
+					msg: (error?'<b>'+ error +'</b><br />':''),
+					buttons: Ext.MessageBox.OK,
+					icon: Ext.MessageBox.ERROR
+				});
+			}, this)
+		});
+	},	
 			
 	get_button_for_import: function() {
 		return {	
@@ -115,6 +171,14 @@ PC.plugin.pc_shop.shop_currency_rates = Ext.extend(PC.ux.LocalCrud, {
 				record.set('rate', currency.rate);
 			}
 		}, this);
+	},
+	
+	ajax_sync_success_respone_handler: function(data) {
+		PC.plugin.pc_shop.shop_currency_rates.superclass.ajax_sync_success_respone_handler.call(this, data);
+		var grid = Ext.getCmp('Plugin_pc_shop_ln_currencies_crud_grid');
+		if (grid) {
+			grid.store.reload();
+		}
 	},
 	
 	buttonAlign: 'left',		

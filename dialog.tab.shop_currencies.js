@@ -49,29 +49,55 @@ PC.plugin.pc_shop.shop_currencies = Ext.extend(Ext.Panel, {
 			triggerAction: 'all',
 			
 			listeners: {
-				select: function(combo) {
-					PC.plugin.pc_shop.base_currency = combo.getValue();
-					Ext.Ajax.request({
-						url:  'api/plugin/config/config/save/pc_shop',
-						method: 'POST',
-						params: {controller: this.controller, data: Ext.util.JSON.encode({
-							currency: PC.plugin.pc_shop.base_currency
-						})}
+				select: Ext.createDelegate(function(combo) {
+					if (PC.plugin.pc_shop.base_currency == combo.getValue()) {
+						return;
+					}
+					Ext.MessageBox.show({
+						buttons: Ext.MessageBox.YESNO,
+						//title: this.ln._delete.confirm_title,
+						msg: PC.i18n.mod.pc_shop.base_currency_change_confirm,
+						icon: Ext.MessageBox.WARNING,
+						maxWidth: 320,
+						fn: Ext.createDelegate(function (btn_id) {
+							if (btn_id == 'yes') {
+								PC.plugin.pc_shop.base_currency = this._base_currency.getValue();
+								Ext.Ajax.request({
+									url:  'api/plugin/config/config/save/pc_shop',
+									method: 'POST',
+									params: {controller: 'pc_shop', data: Ext.util.JSON.encode({
+										currency: PC.plugin.pc_shop.base_currency
+									})},
+									callback: Ext.createDelegate(function () {
+										var grid = Ext.getCmp('Plugin_pc_shop_currency_rates_crud_grid');
+										if (grid) {
+											grid.store.reload();
+										}
+										this._ln_currencies.store.reload();
+									}, this)
+								});
+							}
+							else {
+								this._base_currency.setValue(PC.plugin.pc_shop.base_currency);
+							}
+						}, this)
 					});
-				},
+					
+				}, this)
 			}
 
 		});
 		
 		var ln_currencies_crud = new PC.plugin.pc_shop.ln_currencies_crud({
-			//title: 'Shopo valiutos'
-			//flex: 1
-			height: 300
+			fieldLabel: PC.i18n.mod.pc_shop.ln_currency_list,
+			height: 300,
+			ref: '_ln_currencies'
 		});
 		
 		items.push(new PC.ux.LnCombo({
 			ref: '../_language',
 			fieldLabel: PC.i18n.language,
+			labelStyle: '',
 			anchor: '49%',
 			store_data: Get_all_site_languages(),
 			ln_currencies_crud: ln_currencies_crud,

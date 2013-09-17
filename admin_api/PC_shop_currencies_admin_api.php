@@ -84,7 +84,7 @@ class PC_shop_currencies_admin_api extends PC_shop_admin_api {
 		$this->_out = $this->_model->get_all($params);
 		
 		foreach ($this->_out as $key => $value) {
-			$this->_out[$key]['name'] = $value['country_name'] . ' - ' . $value['name']; 
+			$this->_out[$key]['name'] = $value['country_name'] . ' - ' . $value['name'] . ' (' . $value['code'] . ')'; 
 		}
 		
 		if (isset($_GET['empty'])) {
