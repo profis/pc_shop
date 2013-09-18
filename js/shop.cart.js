@@ -1,7 +1,7 @@
 $(document).ready(function(){
 	
 	function updateCart($this, $type){
-		$this = $this.parent().parent();
+		$this = $this.parent().parent().parent().parent();
 		
 		var $key = $this.attr("key");
 		//var $vnt_price = $this.attr("vnt_price");
