@@ -940,7 +940,7 @@ class PC_shop_products_site extends PC_shop_products {
 		
 		
 		$use_attribute_concat = false;
-		
+		$use_attribute_values_concat = false;
 		$item_attributes_join_where = array();
 		$item_attributes_join_params = array();
 		
@@ -1316,9 +1316,9 @@ class PC_shop_products_site extends PC_shop_products {
 			$this->debug('query:');
 			$this->debug_query($query, $queryParams);
 			$this->debug('$queryParams:');
-			$this->debug_query($queryParams, 5);
+			$this->debug($queryParams, 5);
 			
-			if ($params->echo_query) {
+			if (v($params->echo_query)) {
 				echo $this->get_debug_query_string($query, $queryParams);
 			}
 			

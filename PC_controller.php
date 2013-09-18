@@ -10,7 +10,7 @@ class PC_controller_pc_shop extends PC_controller {
 	
 	protected $type = null;
 	
-	public function Init() {
+	public function Init($do_not_bind_to_site = false) {
 		global $shop_controller;
 		$shop_controller = $this; // DIRTY HACK SINCE PC_core::Get_object() returns a new instance, not an existing one!
 		parent::Init();
