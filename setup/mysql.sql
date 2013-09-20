@@ -552,7 +552,9 @@ INSERT IGNORE INTO `pc_variables` (`vkey`, `controller`, `site`, `ln`, `value`) 
 ('sort_by_name_asc', 'pc_shop', 0, 'ru', 'Название А-Я'),
 ('sort_by_name_asc', 'pc_shop', 0, 'lt', 'Pavadinimą A-Ž'),
 
-
+('order', 'pc_shop', 0, 'en', 'Order'),
+('order', 'pc_shop', 0, 'ru', 'Заказ'),
+('order', 'pc_shop', 0, 'lt', 'Užsakymas'),
 
 ('go_to_order', 'pc_shop', 0, 'en', 'Order'),
 ('go_to_order', 'pc_shop', 0, 'ru', 'Заказать'),

@@ -1,19 +1,23 @@
 PC.utils.localize('mod.pc_shop.product_prices', {
 	lt: {
-		title: 'Kainos kitomis valiutomis'
+		title: 'Kainos kitomis valiutomis',
+		suggested_price: 'Siųloma kaina pagal kursą'
 
 	},
 	en: {
-		title: 'Prices in other currencies'
+		title: 'Prices in other currencies',
+		suggested_price: 'Proposed price according to rate'
 
 	},
 	ru: {
-		title: 'Цены в других валютах'
+		title: 'Цены в других валютах',
+		suggested_price: 'Предлагаемая цена по курсу'
 	}
 });
 
-Plugin_pc_shop_product_prices_crud = Ext.extend(PC.ux.crud, {
+Plugin_pc_shop_product_prices_crud = Ext.extend(PC.ux.LocalCrud, {
 	api_url: 'api/plugin/pc_shop/product_prices/',
+	api_url_get: 'api/plugin/pc_shop/product_prices/get/',
 	
 	grid_id: 'Plugin_pc_shop_product_prices_crud_grid',
 	
@@ -22,7 +26,9 @@ Plugin_pc_shop_product_prices_crud = Ext.extend(PC.ux.crud, {
 	no_ln_fields: true,
 	
 	//per_page: 20,
-	reload_after_save: true,
+	reload_after_save: false,
+	
+	no_commit_after_edit: true,
 	
 	get_store_fields: function() {
 		return [
@@ -30,17 +36,19 @@ Plugin_pc_shop_product_prices_crud = Ext.extend(PC.ux.crud, {
 		];
 	},
 	
-	
 	get_grid_columns: function() {
 		return [
 			{header: Plugin.ln.config_titles.currency, dataIndex: 'code'},
 			{header: Plugin.ln.price, dataIndex: 'price', renderer: this._render_price},
-			{header: 'Kaina pagal kursą', dataIndex: 'converted_price', renderer: this._render_converted_price}
+			{header: this.ln.suggested_price, dataIndex: 'converted_price', renderer: this._render_converted_price, width: 300}
 			
 		];
 	},
 			
 	_render_price: function(value, metaData, record, rowIndex, colIndex, store) {
+		if (value == 0 || value == '' || value == null) {
+			return '<img style="vertical-align: bottom;" src="images/delete.png" alt="" /> ' + PC.i18n.price_not_set;
+		}
 		if (parseFloat(record.data.price)) {
 			return '<b>' + value + '</b>';
 		}
@@ -48,6 +56,9 @@ Plugin_pc_shop_product_prices_crud = Ext.extend(PC.ux.crud, {
 	},
 			
 	_render_converted_price: function(value, metaData, record, rowIndex, colIndex, store) {
+		if (value == 0 || value == '' || value == null) {
+			return '<img style="vertical-align: bottom;" src="images/delete.png" alt="" /> ' + PC.i18n.price_not_set;
+		}
 		if (!parseFloat(record.data.price) && parseFloat(record.data.converted_price)) {
 			return '<b>' + value + '</b>';
 		}
@@ -103,6 +114,13 @@ Plugin_pc_shop_product_prices_crud = Ext.extend(PC.ux.crud, {
 			
 			}
 		].concat(this._get_edit_form_fields());
+	},
+			
+	get_tbar_buttons: function() {
+		var buttons =  [
+			this.get_button_for_edit()
+		];
+		return buttons;
 	}
 }); 
 //debugger;
@@ -118,6 +136,9 @@ PC.hooks.Register('plugin/pc_shop/add_tab_for_product_', function(params) {
 PC.hooks.Register('plugin/pc_shop/load_tab_panel_for_product', function(params) {
 	var grid = Ext.getCmp('Plugin_pc_shop_product_prices_crud_grid');
 	if (grid) {
+		grid.store.rejectChanges();
+		//grid.pc_crud.mask = new Ext.LoadMask(grid.pc_crud, {msg:"Please wait..."});
+		//grid.pc_crud.mask.show();
 		grid.store.setBaseParam('product_id', params.itemId);
 		grid.store.setBaseParam('ln', PC.global.ln);
 	

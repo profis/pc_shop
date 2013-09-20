@@ -7,6 +7,7 @@ function pc_shop_install($controller) {
 	require_once $models_path . 'PC_shop_payment_option_model.php';
 	require_once $models_path . 'PC_shop_delivery_option_model.php';
 	require_once $models_path . 'PC_shop_currency_model.php';
+	require_once $models_path . 'PC_shop_currency_content_model.php';
 	$payment_option_model = new PC_shop_payment_option_model();
 	$payment_option_model->absorb_debug_settings($logger);
 	

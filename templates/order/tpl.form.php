@@ -1,22 +1,35 @@
 <?php
 $this->site->Add_script($this->cfg['directories']['media'] . '/form_validation.js');
 ?>
-<form method="post" id="order_form" action="">
+<form method="post" id="order_form" action="" class="form-horizontal" role="form">
 	<input type="hidden" name="order" value="1" />
 	
-	<div class="input_holder">
-		<label><?php echo $this->core->Get_plugin_variable('order_name', $this->plugin_name); ?>: <span>*</span><br /><input type="text" id="order_name" name="name" value="<?php echo $order_data["name"];?>" /></label>
-	</div>
-	<div class="input_holder">
-		<label><?php echo $this->core->Get_plugin_variable('order_address', $this->plugin_name); ?>:<br /><input type="text" name="address" value="<?php echo $order_data["address"];?>" /></label>	
-	</div>
-	
-	<div class="input_holder double fl">
-		<label><?php echo $this->core->Get_plugin_variable('order_email', $this->plugin_name); ?>: <span>*</span><br /><input  type="text" name="email" id="order_email" value="<?php echo $order_data["email"];?>" /></label>
+	<div class="form-group">
+		<label for="order_name" class="col-lg-2 control-label"><?php echo $this->core->Get_plugin_variable('order_name', $this->plugin_name); ?><span>*</span></label>
+		<div class="col-lg-10">
+			<input type="name" name="name" id="order_name" value="<?php echo $order_data["name"];?>" class="form-control" placeholder="<?php echo $this->core->Get_plugin_variable('order_name', $this->plugin_name); ?>">
+		</div>
 	</div>
 	
-	<div class="input_holder double fr">
-		<label><?php echo $this->core->Get_plugin_variable('order_tel', $this->plugin_name); ?>: <span>*</span><br /><input type="text" name="phone" id="order_phone" value="<?php echo $order_data["phone"];?>" /></label>
+	<div class="form-group">
+		<label for="order_name" class="col-lg-2 control-label"><?php echo $this->core->Get_plugin_variable('order_address', $this->plugin_name); ?></label>
+		<div class="col-lg-10">
+			<input type="text" name="address" id="order_address" value="<?php echo $order_data["address"];?>" class="form-control" placeholder="<?php echo $this->core->Get_plugin_variable('order_address', $this->plugin_name); ?>">
+		</div>
+	</div>
+	
+	<div class="form-group">
+		<label for="order_name" class="col-lg-2 control-label"><?php echo $this->core->Get_plugin_variable('order_email', $this->plugin_name); ?><span>*</span></label>
+		<div class="col-lg-10">
+			<input type="email" name="email" id="order_email" value="<?php echo $order_data["email"];?>" class="form-control" placeholder="<?php echo $this->core->Get_plugin_variable('order_email', $this->plugin_name); ?>">
+		</div>
+	</div>
+	
+	<div class="form-group">
+		<label for="order_name" class="col-lg-2 control-label"><?php echo $this->core->Get_plugin_variable('order_tel', $this->plugin_name); ?><span>*</span></label>
+		<div class="col-lg-10">
+			<input type="phone" name="phone" id="order_phone" value="<?php echo $order_data["phone"];?>" class="form-control" placeholder="<?php echo $this->core->Get_plugin_variable('order_tel', $this->plugin_name); ?>">
+		</div>
 	</div>
 	
 	<div class="clear"></div>
@@ -110,7 +123,7 @@ $this->site->Add_script($this->cfg['directories']['media'] . '/form_validation.j
 			],
 			address: [
 				{
-					rule: 'required'
+					//rule: 'required'
 				}
 			]
 			

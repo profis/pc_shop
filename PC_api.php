@@ -6,7 +6,7 @@ if (!$site->Is_loaded()) $site->Identify();
 if (isset($_POST['ln'])) {
 	$site->Set_language($_POST['ln']);
 }
-$route = v($routes->Get(1));
+$route = $routes->Get(1);
 switch ($route) {
 	case 'cart':
 		$out = process_api_for_cart();
@@ -23,7 +23,7 @@ switch ($route) {
 function process_api_for_cart($route = '') {
 	global $core, $cfg, $routes;
 	if (empty($route)) {
-		$route = v($routes->Get(2));
+		$route = $routes->Get(2);
 	}
 	$out = array();
 	$shop = $core->Get_object('PC_shop_site');
@@ -45,19 +45,19 @@ function process_api_for_cart($route = '') {
 			$sendCartState = true;
 			break;
 		case 'addAt':
-			$out['success'] = $shop->cart->AddAt($ciid = v($routes->Get(3)), v($routes->Get(4), 1));
+			$out['success'] = $shop->cart->AddAt($ciid = $routes->Get(3), $routes->Get(4, 1));
 			$sendCartState = true;
 			break;
 		case 'add':
-			$out['success'] = $shop->cart->Add(v($routes->Get(3)), v($routes->Get(4), 1));
+			$out['success'] = $shop->cart->Add($routes->Get(3), $routes->Get(4, 1));
 			$sendCartState = true;
 			break;
 		case 'set':
-			$out['success'] = $shop->cart->Set($ciid = v($routes->Get(3)), v($routes->Get(4), 1));
+			$out['success'] = $shop->cart->Set($ciid = $routes->Get(3), $routes->Get(4, 1));
 			$sendCartState = true;
 			break;
 		case 'remove':
-			$out['success'] = $shop->cart->Remove($ciid = v($routes->Get(3)), v($routes->Get(4), 0));
+			$out['success'] = $shop->cart->Remove($ciid = $routes->Get(3), $routes->Get(4, 0));
 			$sendCartState = true;
 			break;
 		default: $out['error'] = 'Invalid cart action';
@@ -106,7 +106,7 @@ function process_api_for_order() {
 	$shop->cart->debug = true;
 	$shop->cart->set_instant_debug_to_file($cfg['path']['logs'] . 'pc_shop/order_api.html', null, 5);
 
-	switch (v($routes->Get(2))) {
+	switch ($routes->Get(2)) {
 		case 'get':
 			$out['order'] = $shop->orders->Get_preserved_order_data();
 			break;

@@ -36,7 +36,7 @@ PC.plugin.pc_shop.shop_currency_rates = Ext.extend(PC.ux.LocalCrud, {
 		return [
 			//dialog.expander,
 			{header: '', dataIndex: 'relation'},
-			{header: 'Rate', dataIndex: 'rate', renderer: this._currency_rate}		
+			{header: PC.i18n.mod.pc_shop.currency_rate, dataIndex: 'rate', renderer: this._currency_rate}		
 		];
 	},
 	
@@ -44,7 +44,7 @@ PC.plugin.pc_shop.shop_currency_rates = Ext.extend(PC.ux.LocalCrud, {
 		return [
 			{	_fld: 'rate',
 				ref: '_rate',
-				fieldLabel: 'Rate',
+				fieldLabel: PC.i18n.mod.pc_shop.currency_rate,
 				anchor: '100%',
 				xtype: 'textfield',
 				mode: 'local',
@@ -60,7 +60,7 @@ PC.plugin.pc_shop.shop_currency_rates = Ext.extend(PC.ux.LocalCrud, {
 		multiln_params.save_button_label = PC.i18n.change;
 		multiln_params.pre_buttons = [
 			{	
-				text: 'Import',
+				text: PC.i18n.mod.pc_shop.import_rate,
 				icon: 'images/money_euro.png',
 				handler: Ext.createDelegate (function() {
 					this.button_handler_for_import_single(this.selected_record.data.code);
@@ -125,7 +125,7 @@ PC.plugin.pc_shop.shop_currency_rates = Ext.extend(PC.ux.LocalCrud, {
 	get_button_for_import: function() {
 		return {	
 			ref: '../action_import',
-			text: 'Import rates',
+			text: PC.i18n.mod.pc_shop.import_rates,
 			icon: 'images/money_euro.png',
 			handler: Ext.createDelegate(this.button_handler_for_import, this)
 		}

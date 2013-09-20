@@ -1,8 +1,10 @@
 $(document).ready(function(){
 	
 	function updateCart($this, $type){
-		$this = $this.parent().parent().parent().parent();
-		
+		$this = $this.parent().parent().parent();
+		if ($type == 'plus' || $type == 'minus') {
+			$this = $this.parent();
+		}
 		var $key = $this.attr("key");
 		//var $vnt_price = $this.attr("vnt_price");
 		var $quantity = $this.find("input.cart_quantity").val();

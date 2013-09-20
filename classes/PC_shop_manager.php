@@ -606,6 +606,7 @@ class PC_shop_products_manager extends PC_shop_products {
 		$this->Encode_flags($data);
 		if (isset($data['resources'])) $d['resources'] = $data['resources'];
 		if (isset($data['attributes'])) $d['attributes'] = $data['attributes'];
+		if (isset($data['prices'])) $d['prices'] = $data['prices'];
 		$d['product'] = $this->db->fields->Parse('shop_products', $data, $params);
 		if ($params->errors->Count()) return false;
 		//main data
@@ -686,6 +687,26 @@ class PC_shop_products_manager extends PC_shop_products {
 		if (isset($d['resources'])) if (is_array($d['resources'])) $this->shop->resources->Update($productId, null, $d['resources']);
 		//attributes
 		if (isset($d['attributes'])) if (is_array($d['attributes'])) $this->shop->attributes->Save_for_item($productId, PC_shop_attributes::ITEM_IS_PRODUCT, $d['attributes']);
+		
+		if (isset($d['prices']) and is_array($d['prices'])) {
+			$product_price_model = new PC_shop_product_price_model();
+			$product_price_model->absorb_debug_settings($this);
+			foreach ($d['prices'] as $key => $product_price_data) {
+				if (!empty($product_price_data['id'])) {
+					$pp_id = $product_price_data['id'];
+					$product_price_data = PC_utils::filterArray(array('price'), $product_price_data);
+					$product_price_model->update($product_price_data, $pp_id);
+				}
+				else {
+					$product_price_data = PC_utils::filterArray(array('c_id', 'price'), $product_price_data);
+					$product_price_data['product_id'] = $productId;
+					$product_price_model->insert($product_price_data);
+				}
+			}
+			$this->debug($product_price_model->get_debug_string(), 3);
+		}
+		
+		
 		return true;
 	}
 	public function Get($id=null, $categoryId=null, &$params=array()) {

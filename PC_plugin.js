@@ -1285,15 +1285,21 @@ Plugin.view_factory = {
 				{ref: '_mpn', fieldLabel: Plugin.ln.mpn, xtype: 'textfield'},
 				{ref: '_quantity', fieldLabel: Plugin.ln.quantity, xtype: 'numberfield'},
 				{ref: '_warranty', fieldLabel: Plugin.ln.warranty, xtype: 'numberfield'},
-				{ref: '_price', fieldLabel: Plugin.ln.price, xtype: 'numberfield'},
-				/*
-				new Plugin_pc_shop_product_prices_crud({
-					//pc_no_ln: true,
-					fieldLabel: PC.i18n.mod.pc_shop.product_prices.title,
-					ln: PC.i18n.mod.pc_shop.product_prices,
-					height: 200
-				}),
-				*/
+				{ref: '_price', fieldLabel: Plugin.ln.price + ' (' + PC.plugin.pc_shop.base_currency + ')', xtype: 'numberfield', id: 'pc_shop_price_in_base_currency'},
+				///*
+				{
+					ref: '_prices',
+					fieldLabel: PC.i18n.mod.pc_shop.product_prices.title, 
+					crud: new Plugin_pc_shop_product_prices_crud({
+						ln: PC.i18n.mod.pc_shop.product_prices,
+						height: 200,
+						flex: 1,
+						id: 'pc_shop_product_prices_crud'
+					}),
+					xtype: 'profis_crud_field'
+					
+				},
+				//*/
 				{ref: '_discount', fieldLabel: Plugin.ln.discount, xtype: 'numberfield'},
 				{ref: '_percentage_discount', fieldLabel: Plugin.ln.discount +', %', xtype: 'numberfield'},
 				{ref: '_hot', fieldLabel: PC.i18n.page.hot, xtype: 'checkbox'},
@@ -2724,6 +2730,7 @@ PC.editors.Register(Plugin.Name, 'product', function(){
 			d.manufacturer_id = editor._properties._manufacturer.getValue();
 			d.mpn = editor._properties._mpn.getValue();
 			d.price = editor._properties._price.getValue();
+			d.prices = editor._properties._prices.getValue();
 			d.discount = editor._properties._discount.getValue();
 			d.percentage_discount = editor._properties._percentage_discount.getValue();
 			d.quantity = editor._properties._quantity.getValue();
@@ -2732,7 +2739,6 @@ PC.editors.Register(Plugin.Name, 'product', function(){
 			d.nomenu = editor._properties._nomenu.getValue();
 			d.published = editor._properties._published.getValue();
 			d.route_lock = editor._information._route_lock.getValue();
-			
 			var ln = PC.global.ln;
 			if (typeof d.contents != 'object') d.contents = {};
 			if (d.contents[ln] == undefined) d.contents[ln] = {};
@@ -2990,7 +2996,7 @@ PC.hooks.Register('core/tree/nodedrop/'+ Plugin.Name, function(params){
 			post.parent_pid = params.newParent.id;
 		}
 		//define position
-		debugger;
+		//debugger;
 		if (ev.point == 'append') {
 			post.position = 0;
 		}

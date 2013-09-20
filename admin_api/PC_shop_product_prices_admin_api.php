@@ -23,6 +23,18 @@ class PC_shop_product_prices_admin_api extends PC_shop_admin_api {
 	}
 	
 	protected function _adjust_search(&$params) {
+		$currency_model = new PC_shop_currency_model();
+		$base_currency_id = $currency_model->get_one(array(
+			'where' => array(
+				'code' => $this->cfg['pc_shop']['currency'],
+			),
+			'value' => 'id'
+		));
+		$params['where'][] = array(
+			'field' => 'c_id',
+			'op' => '!=',
+			'value' => $base_currency_id
+		);
 		$params['where']['product_id'] = intval(v($_POST['product_id'], v($this->route[3])));
 		vv($params['join'], array());
 		$params['join'][] = "LEFT JOIN {$this->db_prefix}shop_currencies sc ON sc.id = t.c_id";
@@ -44,7 +56,14 @@ class PC_shop_product_prices_admin_api extends PC_shop_admin_api {
 		$selected_currencies = $ln_currency_model->get_all(array(
 			'select' => 'distinct(t.c_id), t.*, sc.code',
 			'join' => "LEFT JOIN {$this->db_prefix}shop_currencies sc ON sc.id = t.c_id",
-			'key' => 'c_id'
+			'key' => 'c_id',
+			'where' => array(
+				array(
+					'field' => 'sc.code',
+					'op' => '!=',
+					'value' => $this->cfg['pc_shop']['currency']
+				)
+			)
 		));
 			
 		$all_currency_ids = array_keys($selected_currencies);

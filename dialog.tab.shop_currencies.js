@@ -74,6 +74,14 @@ PC.plugin.pc_shop.shop_currencies = Ext.extend(Ext.Panel, {
 											grid.store.reload();
 										}
 										this._ln_currencies.store.reload();
+										var product_price_field = Ext.getCmp('pc_shop_price_in_base_currency');
+										if (product_price_field) {
+											product_price_field.label.update(PC.i18n.mod.pc_shop.price + ' (' + PC.plugin.pc_shop.base_currency + ')');
+										}
+										var product_prices_crud = Ext.getCmp('pc_shop_product_prices_crud');
+										if (product_prices_crud) {
+											product_prices_crud.store.reload();
+										}
 									}, this)
 								});
 							}

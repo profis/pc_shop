@@ -31,13 +31,17 @@ class PC_shop_price extends PC_base {
 		));
 	}
 	
-	public function get_converted_price_in_currency($price, $currency_code) {
+	public function get_converted_price_in_currency($price, $currency_code, $do_not_round = false) {
 		$converted_price = 0;
 		if ($currency_code == $this->base_currency) {
 			return $price;
 		}
+		$round_to = 2;
+		if ($do_not_round) {
+			$round_to = 4;
+		}
 		if (isset($this->currency_rates[$currency_code])) {
-			return round($this->currency_rates[$currency_code] * $price, 4);
+			return round($this->currency_rates[$currency_code] * $price, $round_to);
 		}
 		return $converted_price;
 	}
