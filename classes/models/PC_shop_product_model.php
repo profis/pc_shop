@@ -5,6 +5,17 @@ class PC_shop_product_model extends PC_model {
 	const STATE_DEFAULT = 0;
 	const STATE_IMPORTING = 2;
 	
+	/**
+	 *
+	 * @var PC_shop_price
+	 */
+	public $price;
+	
+	public function Init($id = 0) {
+		parent::Init($id);
+		$this->price = $this->core->Get_object('PC_shop_price');
+	}
+	
 	protected function _set_tables() {
 		$this->_table = 'shop_products';
 		
@@ -49,6 +60,18 @@ class PC_shop_product_model extends PC_model {
 		$discount = 0;
 		$percentage_discount = 0;
 		$full_price = $price = $data['price'];
+		$user_currency = $this->price->get_user_currency();
+		$user_currency_id = $this->price->get_user_currency_id();
+		if ($user_currency != $this->price->get_base_currency()) {
+			if (isset($data['prices'][$user_currency_id]) and $data['prices'][$user_currency_id] > 0) {
+				$full_price = $price = $data['prices'][$user_currency_id];
+			}
+			else {
+				$full_price = $price = $this->price->get_converted_price_in_currency($full_price, $user_currency, true);
+			}
+			return number_format($full_price, 2, ".", "");;
+		}
+		
 		if (true or v($data['hot'])) {
 			if (v($data['discount']) and $data['discount'] > 0 and $data['discount'] < $price) {
 				$price -= $data['discount'];

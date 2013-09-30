@@ -1,8 +1,6 @@
 <?php
-class PC_plugin_pc_shop_cart_widget extends PC_widget {
+class PC_plugin_pc_shop_cart_widget extends PC_plugin_pc_shop_widget {
 	
-	public $plugin_name = 'pc_shop';
-
 	protected $_template_group = 'cart';
 	
 	public function Init($config = array(), $product = null, $shop_products_site = null) {

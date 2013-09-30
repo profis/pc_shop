@@ -184,7 +184,7 @@ class PC_plugin_pc_shop_category_products_filter_widget extends PC_plugin_pc_sho
 					'query_params' => $query_params,
 					'group' => 't.value_id',
 					'key' => 'value_id',
-					'query_only' => true
+					//'query_only' => true
 				);
 				if ($this->_config['filter_value_numbers']) {
 					$attribute_items_params['where'][] = "t.item_id IN (".$products_query.")";

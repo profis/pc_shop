@@ -17,7 +17,7 @@
 		<button class="btn btn-danger" type="button"><span class="glyphicon glyphicon-remove del_from_cart"></span></button>
 	</div>
 	<div class="col-2 col-sm-2 col-lg-2 pull-right">
-		<strong><?php echo  number_format($item['totalPrice'], 2, ",", "") ?> <?php echo $this->core->Get_plugin_variable('currency', $this->plugin_name)?></strong>
+		<strong><?php echo  number_format($item['totalPrice'], 2, ",", "") ?> <?php echo $this->price->get_user_currency()?></strong>
 	</div>
 </div>
 

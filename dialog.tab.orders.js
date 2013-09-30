@@ -15,7 +15,7 @@ PC.plugin.pc_shop.crud_orders = Ext.extend(PC.ux.right_side_view_crud, {
 	
 	get_store_fields: function() {
 		return [
-			'id', 'address', 'comment', 'date', 'email', 'name', 'phone', 'user_id', 'items', 'data', 'total_price', 'status', 'is_paid', 'payment_option', 'delivery_option', 'delivery_price', 'cod_price',
+			'id', 'address', 'comment', 'date', 'email', 'name', 'phone', 'user_id', 'items', 'data', 'currency', 'total_price', 'status', 'is_paid', 'payment_option', 'delivery_option', 'delivery_price', 'cod_price',
 			{name: 'dateFormatted', mapping: 'date', convert: this.format_time_to_date}
 			//{name: 'is_paid_icon', mapping: 'is_paid', convert: dialog.is_paid_icon}
 			//{name: 'status_icon', mapping: 'status', convert: dialog.Get_status_icon}
@@ -237,7 +237,7 @@ PC.plugin.pc_shop.crud_orders = Ext.extend(PC.ux.right_side_view_crud, {
 			'<tpl if="this.non_empty_array(items)">',
 				'<b>' + this.ln.order_info.items + ':</b><br />',
 				'<tpl for="items">', //should be table
-					'{#}. {name} ' + this.ln.order_info.quantity + ': {quantity} - ' + this.ln.order_info.price_for_each + ': {price}<br />',
+					'{#}. {name} ' + this.ln.order_info.quantity + ': {quantity} - ' + this.ln.order_info.price_for_each + ': {price} <tpl for="..">{currency}</tpl><br />',
 					//'{#}. {name} - {short_description} - ' + ln.order_info.quantity + ': {quantity} - ' + ln.order_info.price_for_each + ': {price}<br />',
 				'</tpl>',
 			'</tpl>',
@@ -246,12 +246,12 @@ PC.plugin.pc_shop.crud_orders = Ext.extend(PC.ux.right_side_view_crud, {
 				'<br /><b>' + this.ln.order_info.comment + ': </b><br /><i>{comment}</i><br />',
 			'</tpl>',
 			'<tpl if="delivery_price &gt; 0">',
-				'<br /><b>', this.ln.order_info.delivery_price, '</b> - {delivery_price} <br />',
+				'<br /><b>', this.ln.order_info.delivery_price, '</b> - {delivery_price} {currency}<br />',
 			'</tpl>',
 			'<tpl if="cod_price &gt; 0">',
-				'<br /><b>', this.ln.order_info.cod_price, '</b> - {cod_price} <br />',
+				'<br /><b>', this.ln.order_info.cod_price, '</b> - {cod_price} {currency} <br />',
 			'</tpl>',
-			'<br /><b>' + this.ln.order_info.total_price + ':</b> {total_price}'
+			'<br /><b>' + this.ln.order_info.total_price + ':</b> {total_price} {currency}'
 		];
 	}
 

@@ -4,6 +4,18 @@ abstract class PC_plugin_pc_shop_widget extends PC_widget {
 	
 	public $plugin_name = 'pc_shop';
 	
+	/**
+	 *
+	 * @var PC_shop_price 
+	 */
+	public $price;
+	
+	/**
+	 *
+	 * @var PC_shop_site
+	 */
+	public $shop;
+	
 	public function Init($config = array()) {
 		parent::Init($config);
 		if (strpos($this->_template_group, ':_plugin/') === false) {
@@ -12,6 +24,8 @@ abstract class PC_plugin_pc_shop_widget extends PC_widget {
 		if (isset($this->_config['category'])) {
 			$this->currentCategory = $this->_config['category'];
 		}
+		$this->price = $this->core->Get_object('PC_shop_price');
+		$this->shop = $this->core->Get_object('PC_shop_site');
 	}
 	
 	protected function _get_url($page_only = false) {

@@ -46,6 +46,7 @@ abstract class PC_shop extends PC_base {
 		$this->attributes = $this->core->Get_object('PC_shop_attributes', array($this));
 		$this->cart = $this->core->Get_object('PC_shop_cart', array($this));
 		$this->orders = $this->core->Get_object('PC_shop_orders', array($this));
+		$this->price = $this->core->Get_object('PC_shop_price', array($this));
 		//register database fields
 		$fields = array();
 		$fields['categories'] = array('flags', 'discount', 'percentage_discount', 'external_id', 'redirect');
@@ -1061,9 +1062,28 @@ class PC_shop_attributes extends PC_shop_attribute_model {
 		//save names
 		v($data['names']);
 		if (is_array($data['names'])) if (count($data['names'])) {
-			$rContents = $this->prepare("UPDATE {$this->db_prefix}shop_attribute_contents SET name=? WHERE attribute_id=? and ln=?");
+			$attribute_content_model = new PC_shop_attribute_content_model();
+			$attribute_content_model->absorb_debug_settings($this);
+			$query = "UPDATE {$this->db_prefix}shop_attribute_contents SET name=? WHERE attribute_id=? and ln=?";
+			$rContents = $this->prepare($query);
 			foreach ($data['names'] as $ln=>$name) {
-				$rContents->execute(array($name, $id, $ln));
+				$update_data = array(
+					'name' => $name,
+				);
+				$update_result = $attribute_content_model->update($update_data, array(
+					'where' => array(
+						'ln' => $ln,
+						'attribute_id' => $id
+					)
+				));
+				if (!$update_result) {
+					$update_data['attribute_id'] = $id;
+					$update_data['ln'] = $ln;
+					$attribute_content_model->insert($update_data, array(), array('ignore' => true));
+				}
+				//$query_params = array($name, $id, $ln);
+				//$this->debug_query($query, $query_params, 2);
+				//$rContents->execute($query_params);
 			}
 		}
 		return true;
@@ -1812,7 +1832,7 @@ class PC_shop_orders extends PC_shop_order_model {
 		$data = serialize($data);
 		$insert_query = "INSERT INTO {$this->db_prefix}shop_orders (date,user_id,name,email,address,phone,comment,payment_option,delivery_option,currency,is_paid,data) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)";
 		$r = $this->prepare($insert_query);
-		$insert_params = array(time(), $userId, $recipient, $email, $address, $phone, $comment, $payment_option, $delivery_option, v($this->cfg['pc_shop']['currency'], 'LTL'), $is_paid);
+		$insert_params = array(time(), $userId, $recipient, $email, $address, $phone, $comment, $payment_option, $delivery_option, $this->shop->price->get_user_currency(), $is_paid);
 		$insert_params = pc_sanitize_value($insert_params, 'strip_tags');
 		$insert_params[] = $data;
 		$this->debug_query($insert_query, $insert_params, 1);

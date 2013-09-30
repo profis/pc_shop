@@ -102,6 +102,7 @@ class PC_shop_attributes_admin_api extends PC_shop_admin_api {
 			'ref' => v($_POST['ref']),
 			'category_id' => v($_POST['category_id'])
 		);
+		$this->shop->attributes->absorb_debug_settings($this);
 		$this->_out['success'] = $this->shop->attributes->Edit($id, $data, $params);
 		if (!$this->_out['success'])
 			$this->_out['error'] = $params->errors->Get();

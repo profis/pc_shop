@@ -1,6 +1,6 @@
 <?php
 
-class PC_plugin_pc_shop_product_widget extends PC_widget {
+class PC_plugin_pc_shop_product_widget extends PC_plugin_pc_shop_widget {
 	
 	public $plugin_name = 'pc_shop';
 

@@ -1,5 +1,5 @@
 <?php
-$currency = $this->core->Get_plugin_variable('currency', $this->plugin_name);
+$currency = $this->price->get_user_currency();
 ?>
 <div class="row" id="cart_prices">
 	<div class="col-9 col-sm-9 col-lg-9">

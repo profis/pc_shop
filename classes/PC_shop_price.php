@@ -8,6 +8,11 @@ class PC_shop_price extends PC_base {
 	 */
 	public $currency_rates;
 	
+	/**
+	 *
+	 * @var array
+	 */
+	public $currencies;
 	
 	public $base_currency;
 	
@@ -17,8 +22,22 @@ class PC_shop_price extends PC_base {
 	 */
 	public function Init($all_ln = false) {
 		$this->base_currency = $this->cfg['pc_shop']['currency'];
+		$this->load_currencies();
 		$this->load_prices();
-		
+	}
+	
+	public function load_currencies() {
+		$ln_currency_model = $this->core->Get_object('PC_shop_ln_currency_model');
+		$this->currencies = $ln_currency_model->get_all(array(
+			'where' => array(
+				'ln' => $this->site->ln
+			),
+			'join' => "LEFT JOIN {$this->db_prefix}shop_currencies sc ON sc.id = t.c_id",
+			'select' => 'sc.code, sc.id',
+			'key' => 'code',
+			'value' => 'id',
+			'order' => 't.position'
+		));
 	}
 	
 	public function load_prices($all_ln = false) {
@@ -46,4 +65,39 @@ class PC_shop_price extends PC_base {
 		return $converted_price;
 	}
 		
+	public function get_price_in_user_currency($base_price) {
+		return 10;
+	}
+	
+	public function get_base_currency() {
+		return $this->base_currency;
+	}
+	
+	public function get_user_currency() {
+		$currency = '';
+		if(isset($_COOKIE['pc_currency'])) {
+			$currency = $_COOKIE['pc_currency'];
+		}
+		elseif (isset($_SESSION['pc_currency'])) {
+			$currency = $_SESSION['pc_currency'];
+		}
+		if (empty($currency) or !isset($this->currencies[$currency])) {
+			$currency = $this->base_currency;
+		}		
+		return $currency;
+	}
+	
+	public function get_user_currency_id() {
+		$currency = $this->get_user_currency();
+		return $this->currencies[$currency];
+	}
+	
+	public function set_user_currency($currency_code) {
+		if (isset($this->currencies[$currency_code])) {
+			$_SESSION['pc_currency'] = $currency_code;
+			setcookie("pc_currency", $currency_code);
+		}
+		
+	}
+	
 }

@@ -11,6 +11,7 @@ Register_class_autoloader('PC_shop_manager', $clsPath.'PC_shop_manager.php');
 Register_class_autoloader('PC_shop_plugin', $clsPath.'PC_shop_plugin.php');
 
 Register_class_autoloader('PC_shop_attribute_model', $clsPath.'models/PC_shop_attribute_model.php');
+Register_class_autoloader('PC_shop_attribute_content_model', $clsPath.'models/PC_shop_attribute_content_model.php');
 Register_class_autoloader('PC_shop_attribute_value_model', $clsPath.'models/PC_shop_attribute_value_model.php');
 Register_class_autoloader('PC_shop_attribute_category_model', $clsPath.'models/PC_shop_attribute_category_model.php');
 Register_class_autoloader('PC_shop_attribute_item_model', $clsPath.'models/PC_shop_attribute_item_model.php');
@@ -49,6 +50,7 @@ Register_class_autoloader('PC_plugin_pc_shop_sort_products_widget', $thisPath . 
 Register_class_autoloader('PC_plugin_pc_shop_search_form_widget', $thisPath . 'widgets/PC_plugin_pc_shop_search_form_widget.php');
 Register_class_autoloader('PC_plugin_pc_shop_search_products_widget', $thisPath . 'widgets/PC_plugin_pc_shop_search_products_widget.php');
 Register_class_autoloader('PC_plugin_pc_shop_category_products_filter_widget', $thisPath . 'widgets/PC_plugin_pc_shop_category_products_filter_widget.php');
+Register_class_autoloader('PC_plugin_pc_shop_currency_selector_widget', $thisPath . 'widgets/PC_plugin_pc_shop_currency_selector_widget.php');
 
 $pluginCls = $this->core->Get_object('PC_shop_plugin', $plugin_name);
 
@@ -104,5 +106,19 @@ function pc_shop_after_change_config_currency($params) {
 	}
 }
 
+function pc_shop_set_user_currency($params) {
+	global $core;
+	if (isset($_GET['pc_currency'])) {
+		$shop_price = $core->Get_object('PC_shop_price');
+		$shop_price->set_user_currency($_GET['pc_currency']);
+		//$row_base_url = $base_url = $this->_config['base_url'];
+		$query_string = PC_utils::getCurrUrl();
+		$redirect_url = preg_replace('/(\?)?(&)?(pc_currency)=[^=&]*/ui', '$1', $query_string);
+		$core->Redirect_local($redirect_url, 301);
+		
+	}
+}
+
 $core->Register_hook('plugin/config/after-update/pc_shop:currency', 'pc_shop_after_change_config_currency');
+$core->Register_hook('before_load_page', 'pc_shop_set_user_currency');
 

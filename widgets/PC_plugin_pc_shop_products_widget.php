@@ -1,24 +1,17 @@
 <?php 
 
-class PC_plugin_pc_shop_products_widget extends PC_widget {
-	
-	public $plugin_name = 'pc_shop';
+class PC_plugin_pc_shop_products_widget extends PC_plugin_pc_shop_widget {
 
 	protected $_template_group = 'products';
 	
 	protected $_category_id;
 	
-	public function Init($config = array()) {
-		parent::Init($config);
-		$this->_template_group = ':_plugin/' . $this->plugin_name . '/' . $this->_template_group;
-	}
-	
 	protected function _get_default_config() {
 		return array(
 			'category' => false,
 			'params' => array(),
-			'per_page' => 4,
-			'per_row' => 2,
+			'per_page' => 10,
+			'per_row' => 0,
 			'list_item_thumb_type' => 'small',
 			'sort_options' => array(
 				'price_asc' => array('field' => 'real_price', 'var' => 'price', 'dir' => 'asc'),
@@ -83,7 +76,7 @@ class PC_plugin_pc_shop_products_widget extends PC_widget {
 		
 		if ($this->_config['sort_options']) {
 			$this->sort_widget = new PC_plugin_pc_shop_sort_products_widget(array(
-				'base_url' => $base_url,
+				'base_url' => $this->_get_url(),
 				'sort_options' => $this->_config['sort_options']
 			));
 			$this->sort_widget_data = $this->sort_widget->get_data();

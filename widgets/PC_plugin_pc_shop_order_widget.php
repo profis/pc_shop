@@ -1,8 +1,6 @@
 <?php
-class PC_plugin_pc_shop_order_widget extends PC_widget {
+class PC_plugin_pc_shop_order_widget extends PC_plugin_pc_shop_widget {
 	
-	public $plugin_name = 'pc_shop';
-
 	protected $_template_group = 'order';
 	
 	public function Init($config = array(), $product = null, $shop_products_site = null) {

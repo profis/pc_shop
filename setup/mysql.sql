@@ -496,6 +496,18 @@ CREATE TABLE IF NOT EXISTS `pc_shop_resources` (
 
 INSERT IGNORE INTO `pc_variables` (`vkey`, `controller`, `site`, `ln`, `value`) VALUES 
 
+('description', 'pc_shop', 0, 'lt', 'Aprašymas'),
+('description', 'pc_shop', 0, 'en', 'Description'),
+('description', 'pc_shop', 0, 'ru', 'Описание'),
+
+('attribute', 'pc_shop', 0, 'lt', 'Parametras'),
+('attribute', 'pc_shop', 0, 'en', 'Parameter'),
+('attribute', 'pc_shop', 0, 'ru', 'Параметр'),
+
+('attributes', 'pc_shop', 0, 'lt', 'Parametrai'),
+('attributes', 'pc_shop', 0, 'en', 'Parameters'),
+('attributes', 'pc_shop', 0, 'ru', 'Параметры'),
+
 ('cart', 'pc_shop', 0, 'en', 'Cart'),
 ('cart', 'pc_shop', 0, 'ru', 'Корзина'),
 ('cart', 'pc_shop', 0, 'lt', 'Krepšelis'),
@@ -532,9 +544,9 @@ INSERT IGNORE INTO `pc_variables` (`vkey`, `controller`, `site`, `ln`, `value`) 
 ('to_basket', 'pc_shop', 0, 'ru', 'B корзину'),
 ('to_basket', 'pc_shop', 0, 'lt', 'Į krepšelį'),
 
-('currency', 'pc_shop', 0, 'lt', 'Lt'),
-('currency', 'pc_shop', 0, 'en', 'Lt'),
-('currency', 'pc_shop', 0, 'ru', 'Лт'),
+('currency', 'pc_shop', 0, 'lt', 'Valiuta'),
+('currency', 'pc_shop', 0, 'en', 'Currency'),
+('currency', 'pc_shop', 0, 'ru', 'Валюта'),
 
 ('sort_by', 'pc_shop', 0, 'en', 'Sort by'),
 ('sort_by', 'pc_shop', 0, 'ru', 'Сортировать по'),

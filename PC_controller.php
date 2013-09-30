@@ -92,7 +92,7 @@ class PC_controller_pc_shop extends PC_controller {
 					$this->type = 'product';
 					$this->currentProduct = $d;
 					$this->currentCategory = $this->shop->categories->Get($d['category_id']);
-					$this->shop->categories->Load_path($this->currentCategory);
+					$this->shop->categories->Load_path($this->currentCategory, $this->site->loaded_page['route']);
 					$this->debug('$this->currentCategory:');
 					$this->debug($this->currentCategory);
 					if ($this->site->Is_opened($this->currentCategory['path'][0]['pid'])) {
@@ -591,8 +591,8 @@ class PC_controller_pc_shop extends PC_controller {
 	public function category_action($id) {
 		$this->debug("category_action($id)");
 		$c_params = array(
-			'load_path' => true
-			//'page_link' => $this->page->
+			'load_path' => true,
+			'page_link' => $this->site->loaded_page['route']
 		);
 		$this->shop->categories->debug = true;
 		$category_data = $this->shop->categories->Get($id, null, null, $c_params);

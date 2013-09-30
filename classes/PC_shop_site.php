@@ -842,7 +842,15 @@ class PC_shop_products_site extends PC_shop_products {
 		$fetch_link = true;
 		
 		$top_categories = false;
-		if (!is_null($categoryId) and (v($params['all_products_of_page']) or v($params['all_products_of_category']))) {
+		if ((v($params['all_products_of_page']) or v($params['all_products_of_category']))) {
+			$this_category_id = 0;
+			if (!is_null($categoryId)) {
+				$this_category_id = $categoryId;
+			}
+			if (!$this_category_id) {
+				$this_category_id = $params['all_products_of_page'];
+			}
+			
 			$top_categories_params = array(
 				'select' => 't.id, t.lft, t.rgt',
 				'content' => array(
@@ -851,15 +859,18 @@ class PC_shop_products_site extends PC_shop_products {
 				'where' => array(
 				),
 				'query_params' => array(
-					$categoryId
+					$this_category_id
 				)
 			);
 			if (v($params['all_products_of_page'])) {
 				$top_categories_params['where'][] = 'pid = ?';
 			}
 			elseif (v($params['all_products_of_category'])) {
+				if (!$this_category_id) {
+					$this_category_id = $params['all_products_of_category'];
+				}
 				$top_categories_params['where'][] = '(parent_id = ? OR t.id = ?)';
-				$top_categories_params['query_params'][] = $categoryId;
+				$top_categories_params['query_params'][] = $this_category_id;
 			}
 			//print_pre($top_categories_params);
 			$this->shop->categories->absorb_debug_settings($this);
@@ -1280,6 +1291,7 @@ class PC_shop_products_site extends PC_shop_products {
 		//. $this->sql_parser->group_concat($this->sql_parser->concat_ws("░", "'id".PC_sql_parser::SP3."'", 'a.id', "'ref".PC_sql_parser::SP3."'",'a.ref', "'name".PC_sql_parser::SP3."'",'ac.name', "'flags".PC_sql_parser::SP3."'",'ia.flags', "'is_custom".PC_sql_parser::SP3."'",'a.is_custom', "'is_searchable".PC_sql_parser::SP3."'",'a.is_searchable', "'item_is_category".PC_sql_parser::SP3."'",'a.is_category_attribute',"'value".PC_sql_parser::SP3."'",'ia.value',"'value_id".PC_sql_parser::SP3."'",'ia.value_id',"'avc_value".PC_sql_parser::SP3."'",'avc.value'), array('separator'=>'▓', 'distinct'=> true))." attributes"
 		//. $this->sql_parser->group_concat($this->sql_parser->concat_ws("░", 'a.id', 'a.ref', 'ac.name', 'ia.flags', 'a.is_custom', 'a.is_searchable', 'a.is_category_attribute', 'ia.value_id', 'avc.value'), array('separator'=>'▓', 'distinct'=> true))." attributes"
 		. $select_attributes_concat . $select_attributes_values_concat
+		. ",group_concat(distinct concat_ws(':', ppr.c_id, ppr.quantity, ppr.price) separator ';') product_prices"
 		. " FROM {$this->db_prefix}shop_products p"
 		. " LEFT JOIN {$this->db_prefix}shop_product_contents pc ON pc.product_id=p.id and pc.ln=?"
 		. $joins_s
@@ -1290,7 +1302,7 @@ class PC_shop_products_site extends PC_shop_products {
 		." LEFT JOIN {$this->db_prefix}shop_attribute_contents ac ON ac.attribute_id=a.id and ac.ln=?"
 		." LEFT JOIN {$this->db_prefix}shop_attribute_values av ON av.attribute_id=a.id and av.id=ia.value_id"
 		." LEFT JOIN {$this->db_prefix}shop_attribute_value_contents avc ON avc.value_id=av.id and avc.ln=?"
-		
+		." LEFT JOIN {$this->db_prefix}shop_product_prices ppr ON ppr.product_id=p.id"
 		//filters
 		.(count($where)?' WHERE '.implode(' and ', $where):'')
 		." GROUP BY p.id". ' ' . $group_s . $having_s . ' ' . $order . ' ' . $limit ;
@@ -1401,6 +1413,16 @@ class PC_shop_products_site extends PC_shop_products {
 			$this->click('resources', 'parse_resources');
 			//unset($d['resources']->logger);
 		}
+		
+		$decoded_prices = array();
+		$prices = explode(';', $d['product_prices']);
+		foreach ($prices as $price_string) {
+			@list($c_id,$quantity,$price) = explode(':', $price_string);
+			if (!empty($price)) {
+				$decoded_prices[$c_id] = $price;
+			}
+		}
+		$d['prices'] = $decoded_prices;
 		
 	}
 }

@@ -6,4 +6,4 @@
 	<div class="discount ptsans fb fi">- <?php echo floor($percentage_discount) ?>%</div>
 <?php } ?>
 
-<div class="price fr"><?php echo $this->core->Get_plugin_variable('price', 'pc_shop') . ': ' . $price ?></div>
+<div class="price fr"><?php echo $this->core->Get_plugin_variable('price', 'pc_shop') . ': <strong>' . $price ?> <?php echo $this->price->get_user_currency()?></strong></div>

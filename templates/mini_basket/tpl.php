@@ -5,15 +5,15 @@
 	<div class="panel-body">
 		<div class="row">
 			<div class="col-8 col-sm-8 col-lg-8 col-xs-8 col-sm-8"><p><?php echo $this->core->Get_plugin_variable('delivery_price', $this->plugin_name) ?>:</p></div>
-			<div class="col-4 col-sm-4 col-lg-4 col-xs-4 col-sm-2"><p class="pull-right"><?php echo $cart_data["delivery_price"] ?> <?php echo $this->core->Get_plugin_variable('currency', $this->plugin_name) ?></p></div>
+			<div class="col-4 col-sm-4 col-lg-4 col-xs-4 col-sm-2"><p class="pull-right"><?php echo $cart_data["delivery_price"] ?> <?php echo $this->price->get_user_currency() ?></p></div>
 		</div>
 		<div class="row">
 			<div class="col-8 col-sm-8 col-lg-8 col-xs-8 col-sm-8"><p><?php echo $this->core->Get_plugin_variable('items_price', $this->plugin_name) ?>:</p></div>
-			<div class="col-4 col-sm-4 col-lg-4 col-xs-4 col-sm-2"><p class="pull-right"><?php echo $cart_data["totalPrice"] ?> <?php echo $this->core->Get_plugin_variable('currency', $this->plugin_name) ?></p></div>
+			<div class="col-4 col-sm-4 col-lg-4 col-xs-4 col-sm-2"><p class="pull-right"><?php echo $cart_data["totalPrice"] ?> <?php echo $this->price->get_user_currency() ?></p></div>
 		</div>
 		<div class="row">
 			<div class="col-8 col-sm-8 col-lg-8 col-xs-8 col-sm-8"><p><?php echo $this->core->Get_plugin_variable('cart_full_price', $this->plugin_name) ?>:</p></div>
-			<div class="col-4 col-sm-4 col-lg-4 col-xs-4 col-sm-2"><p class="pull-right"><?php echo $cart_data["full_price"] ?> <?php echo $this->core->Get_plugin_variable('currency', $this->plugin_name) ?></p></div>
+			<div class="col-4 col-sm-4 col-lg-4 col-xs-4 col-sm-2"><p class="pull-right"><?php echo $cart_data["full_price"] ?> <?php echo $this->price->get_user_currency() ?></p></div>
 		</div>
 		<a href="<?php echo $cart_url ?>" title="" class="btn btn-primary pull-right"><?php echo $this->core->Get_plugin_variable('go_to_cart', $this->plugin_name) ?> »</a>
 	</div>

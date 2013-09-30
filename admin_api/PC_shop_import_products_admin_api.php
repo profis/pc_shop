@@ -173,7 +173,7 @@ class PC_shop_import_products_admin_api extends PC_shop_admin_api {
 	}
 	
 	/**
-	 * Method populates $this->_associations and $this->missing_products_stategy
+	 * Method populates $this->_associations and $this->missing_products_strategy
 	 * @param type $product_import_method
 	 */
 	protected function _load_fields_associations($product_import_method) {
@@ -183,7 +183,7 @@ class PC_shop_import_products_admin_api extends PC_shop_admin_api {
 		$this->core->Init_hooks('plugin/pc_shop/import-products/import-fields-associations/' . $product_import_method, array(
 			'id_fields'=> &$this->_id_fields,
 			'data'=> &$this->_associations,
-			'missing_products_strategy'=> &$this->missing_products_stategy,
+			'missing_products_strategy'=> &$this->missing_products_strategy,
 			'aliases' => &$aliases
 		));
 		foreach ($this->_associations as $key => $assoc) {
@@ -317,7 +317,7 @@ class PC_shop_import_products_admin_api extends PC_shop_admin_api {
 		}
 		
 		$this->products = $_POST['products'];
-		$this->missing_products_stategy = $_POST['missing_products_strategy'];
+		$this->missing_products_strategy = $_POST['missing_products_strategy'];
 		
 		$this->shop = $this->core->Get_object('PC_shop_manager');
 		$this->shop->products->debug = $this->shop->attributes->debug = $this->debug;
@@ -567,7 +567,7 @@ class PC_shop_import_products_admin_api extends PC_shop_admin_api {
 		$missing_products_scope_cond .= " AND state <> ?";
 		$missing_products_scope_params[] = PC_shop_product_model::STATE_IMPORTING;
 		
-		switch ($this->missing_products_stategy) {
+		switch ($this->missing_products_strategy) {
 			case PC_shop_import_products_admin_api::MISSING_PRODUCTS_STRATEGY_DELETE:
 				$this->shop->products->delete_all($missing_products_scope_cond, $missing_products_scope_params);
 				break;
