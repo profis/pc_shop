@@ -28,6 +28,10 @@ abstract class PC_plugin_pc_shop_widget extends PC_widget {
 		$this->shop = $this->core->Get_object('PC_shop_site');
 	}
 	
+	public function Get_variable($var) {
+		return $this->core->Get_plugin_variable($var, $this->plugin_name);
+	}
+	
 	protected function _get_url($page_only = false) {
 		$url = v($this->_config['url']);
 		if (empty($url)) {

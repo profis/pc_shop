@@ -10,7 +10,7 @@
 				?>
 			</p>
 			<p>
-				<a href="<?php echo $item["link"] ?>" title="" class="btn btn-primary">View details »</a>
+				<a href="<?php echo $item["link"] ?>" title="" class="btn btn-primary"><?php echo $this->Get_variable('details'); ?> »</a>
 				<?php 
 				include $this->core->Get_tpl_path($tpl_group, 'tpl.list.item.to_basket'); 
 				?>			</p>

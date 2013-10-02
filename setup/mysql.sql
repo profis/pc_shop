@@ -544,6 +544,10 @@ INSERT IGNORE INTO `pc_variables` (`vkey`, `controller`, `site`, `ln`, `value`) 
 ('to_basket', 'pc_shop', 0, 'ru', 'B корзину'),
 ('to_basket', 'pc_shop', 0, 'lt', 'Į krepšelį'),
 
+('details', 'pc_shop', 0, 'lt', 'Plačiau'),
+('details', 'pc_shop', 0, 'en', 'View details'),
+('details', 'pc_shop', 0, 'ru', 'Подробнее'),
+
 ('currency', 'pc_shop', 0, 'lt', 'Valiuta'),
 ('currency', 'pc_shop', 0, 'en', 'Currency'),
 ('currency', 'pc_shop', 0, 'ru', 'Валюта'),

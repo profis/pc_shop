@@ -105,6 +105,9 @@ PC.plugin.pc_shop.shop_currency_rates = Ext.extend(PC.ux.LocalCrud, {
 						}
 						else {
 							error = data.error;
+							if (this.ln.error && this.ln.error[error]) {
+								error = this.ln.error[error];
+							}
 						}
 					}
 					catch(e) {
@@ -149,6 +152,9 @@ PC.plugin.pc_shop.shop_currency_rates = Ext.extend(PC.ux.LocalCrud, {
 				}
 				else {
 					error = data.error;
+					if (this.ln.error && this.ln.error[error]) {
+						error = this.ln.error[error];
+					}
 				}
 			}
 			catch(e) {

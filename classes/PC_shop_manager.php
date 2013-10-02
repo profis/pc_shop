@@ -857,7 +857,8 @@ class PC_shop_products_manager extends PC_shop_products {
 		$query_params = array();
 		$query_params[] = PC_shop_products::PF_PUBLISHED;
 		
-		$query = "UPDATE {$this->db_prefix}{$this->_table} SET flags=flags^? 
+		//$query = "UPDATE {$this->db_prefix}{$this->_table} SET flags=flags^? 
+		$query = "UPDATE {$this->db_prefix}{$this->_table} SET flags=flags & (255-?)	
 			WHERE 1 = 1 $scope_cond";
 		$r = $this->db->prepare($query);
 		

@@ -129,13 +129,17 @@ PC_plugin_dialog_pc_shop.js_factory = {
 			if (Ext.getCmp('pc_shop_import_products_category').getValue() == '') {
 				category_node_id = '';
 			}
+			var import_data = PC_plugin_dialog_pc_shop.import_attributes_store.data.items;
+			if (PC_plugin_dialog_pc_shop.import_attributes_store.allData) {
+				import_data = PC_plugin_dialog_pc_shop.import_attributes_store.allData.items;
+			}
 			Ext.Ajax.request({
 				url: Plugin_pc_shop.api.Admin +'import_products/confirm',
 				method: 'POST',
 				params: {
 					category_id: category_node_id,
 					product_import_method: Ext.getCmp('pc_shop_import_products_product_import_method').getValue(),
-					products: Ext.encode(Ext.pluck(PC_plugin_dialog_pc_shop.import_attributes_store.data.items, 'data')),
+					products: Ext.encode(Ext.pluck(import_data, 'data')),
 					missing_products_strategy: null
 				},
 				success: function(result){
@@ -336,7 +340,9 @@ PC_plugin_dialog_pc_shop.view_factory = {
 		};
 		var default_value = false;
 		Ext.iterate(PC.plugin.pc_shop.product_import_methods, function(key, method) {
-			default_value = method.code;
+			if (!default_value) {
+				default_value = method.code;
+			}
 			var title = method.code;
 			if (method.title_js_var) {
 				title = eval(method.title_js_var);

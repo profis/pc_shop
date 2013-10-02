@@ -58,8 +58,8 @@ foreach ($this->order_data['items'] as $item) {
 	<tr>
 		<td><?php echo $item['name'];?></td>
 		<td><?php echo $item['quantity'];?></td>
-		<td><?php echo $item['price'];?></td>
-		<td><?php echo PC_shop_product_model::format_price($item['price'] * $item['quantity']);?></td>
+		<td><?php echo $item['price'];?> <?php echo $this->order_data['currency'];?></td>
+		<td><?php echo PC_shop_product_model::format_price($item['price'] * $item['quantity']);?> <?php echo $this->order_data['currency'];?></td>
 	</tr>
 <?php
 }
@@ -88,13 +88,13 @@ if ($delivery) {
 <?php
 if (v($this->order_data['delivery_price'], 0) > 0) {
 ?>
-	<strong> <?php echo $this->Get_variable('delivery_price');?></strong>: <?php echo $this->order_data['delivery_price'];?><br />
+	<strong> <?php echo $this->Get_variable('delivery_price');?></strong>: <?php echo $this->order_data['delivery_price'];?> <?php echo $this->order_data['currency'];?><br />
 <?php
 }
 
 if (v($this->order_data['cod_price'], 0) > 0) {
 ?>
-	<strong> <?php echo $this->Get_variable('cod_price');?></strong>: <?php echo $this->order_data['cod_price'];?><br />
+	<strong> <?php echo $this->Get_variable('cod_price');?></strong>: <?php echo $this->order_data['cod_price'];?> <?php echo $this->order_data['currency'];?><br />
 <?php
 }
 
@@ -102,7 +102,7 @@ if (v($this->order_data['cod_price'], 0) > 0) {
 <br />
 <?php
 ?>
-<strong> <?php echo $this->Get_variable('order_total_price');?></strong>: <?php echo $this->order_data['total_price'];?><br />
+<strong> <?php echo $this->Get_variable('order_total_price');?></strong>: <?php echo $this->order_data['total_price'];?> <?php echo $this->order_data['currency'];?><br />
 <?php
 
 ?>

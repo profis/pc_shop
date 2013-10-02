@@ -180,11 +180,13 @@ class PC_shop_import_products_admin_api extends PC_shop_admin_api {
 		$this->_id_fields = array();
 		$this->_associations = array();
 		$aliases = array();
+		$this->_additional_product_data = array();
 		$this->core->Init_hooks('plugin/pc_shop/import-products/import-fields-associations/' . $product_import_method, array(
 			'id_fields'=> &$this->_id_fields,
 			'data'=> &$this->_associations,
 			'missing_products_strategy'=> &$this->missing_products_strategy,
-			'aliases' => &$aliases
+			'aliases' => &$aliases,
+			'additional_product_data' => &$this->_additional_product_data
 		));
 		foreach ($this->_associations as $key => $assoc) {
 			if (!isset($assoc['title'])) {
@@ -373,6 +375,9 @@ class PC_shop_import_products_admin_api extends PC_shop_admin_api {
 		$items_updated = 0;
 		$items_skipped = 0;
 		foreach ($this->products as $key => $product) {
+			if (!empty($this->_additional_product_data)) {
+				$product = array_merge($this->_additional_product_data, $product);
+			}
 			$missing_id_fields = array_diff_key($this->_id_fields_flipped, $product);
 			if (!empty($missing_id_fields)) {
 				$this->debug($this->_id_fields_flipped, 6);
@@ -388,6 +393,11 @@ class PC_shop_import_products_admin_api extends PC_shop_admin_api {
 			}
 			$this->debug('Tried to detect product id: ', 4);
 			$this->debug($product_id, 5);
+			
+			if ($product_id == -1) {
+				$this->debug('Will skip, coz no way to detect product id: ', 4);
+				continue;
+			}
 			
 			$fields = array();
 			$contents = array();
@@ -610,6 +620,9 @@ class PC_shop_import_products_admin_api extends PC_shop_admin_api {
 		$scope = PC_model::create_scope();
 		$category_ids_arrays = array();
 		foreach ($this->_id_fields as $key => $id_field) {
+			if (empty($data[$id_field])) {
+				continue;
+			}
 			$field_name_data = $this->_get_field_name_data($id_field);
 			$this->debug('Field name data of ' . $id_field, 1);
 			$this->debug($field_name_data, 2);
@@ -696,6 +709,14 @@ class PC_shop_import_products_admin_api extends PC_shop_admin_api {
 				default:
 					break;
 			}
+		}
+		
+		if (empty($scope['where'])) {
+			return -1;
+		}
+		
+		if ($this->category_id) {
+			$scope['where']['t.category_id'] = $this->category_id;
 		}
 		
 		if (!empty($category_ids_arrays)) {

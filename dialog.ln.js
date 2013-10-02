@@ -29,6 +29,7 @@ var ln =  {
 		currency_rate_set: 'Currency rate',
 		import_rate: 'Import rate',
 		import_rates: 'Import rates',
+		import_rate_error: 'Failed to import currency rates',
 		base_currency_change_confirm: 'After changing the base currency exchange rates will be recalculated. Continue?',
 		_delete_order: {
 			button: 'Delete',
@@ -158,6 +159,7 @@ var ln =  {
 		currency_rate_set: 'Nustatytas kursas',
 		import_rate: 'Importuoti kursą',
 		import_rates: 'Importuoti kursus',
+		import_rate_error: 'Nepavyko importuoti valiutų kursų',
 		base_currency_change_confirm: 'Pakeitus bazinę valiutą bus perskaičiuoti valiutų kursai. <br />Ar tęsti?',
 		_delete_order: {
 			button: 'Ištrinti',
@@ -287,6 +289,7 @@ var ln =  {
 		currency_rate_set: 'Установленный курс',
 		import_rate: 'Импортировать курс',
 		import_rates: 'Импортировать курсы',
+		import_rate_error: 'Не удалось импортировать курсы валют',
 		base_currency_change_confirm: 'После изменения базовой валюты курсы валют будут пересчитаны. Продолжить?',
        _delete_order: {
 			button: 'Удалить',

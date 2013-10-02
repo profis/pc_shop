@@ -555,6 +555,8 @@ class PC_shop_products extends PC_shop_product_model {
 				$this->debug(":) data[$field] is not set", 2);
 			}
 		}
+		$this->debug('data after Encode_flags:', 3);
+		$this->debug($data, 4);
 		return true;
 	}
 	public function Decode_flags(&$data) {

@@ -1333,7 +1333,10 @@ function mod_pc_shop_click() {
 					}),
 					new PC.plugin.pc_shop.shop_currency_rates({
 						ln: {
-							title: ln.tab.currency_rates
+							title: ln.tab.currency_rates,
+							error: {
+								wrong_xml: ln.import_rate_error
+							}
 						}
 					})
 				]

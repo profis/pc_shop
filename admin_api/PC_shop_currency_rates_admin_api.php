@@ -59,7 +59,13 @@ class PC_shop_currency_rates_admin_api extends PC_shop_admin_api {
 		$this->debug($rated_currency_codes, 2);
 			
 		$file = 'http://www.ecb.europa.eu/stats/eurofxref/eurofxref-daily.xml';
-		$xml = simplexml_load_file($file);
+		$xml = @simplexml_load_file($file);
+		
+		if (!$xml or !v($xml->Cube) or !v($xml->Cube->Cube) or !v($xml->Cube->Cube->Cube)) {
+			$this->_out['success'] = false;
+			$this->_out['error'] = 'wrong_xml';
+			return;
+		}
 		
 		$data = array();
 		$base_currency = $this->cfg['pc_shop']['currency'];

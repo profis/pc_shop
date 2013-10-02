@@ -31,6 +31,7 @@ Register_class_autoloader('PC_shop_delivery_option_model', $clsPath.'models/PC_s
 Register_class_autoloader('PC_shop_payment_option_model', $clsPath.'models/PC_shop_payment_option_model.php');
 Register_class_autoloader('PC_shop_category_product_filter_model', $clsPath.'models/PC_shop_category_product_filter_model.php');
 Register_class_autoloader('PC_shop_product_price_model', $clsPath.'models/PC_shop_product_price_model.php');
+Register_class_autoloader('PC_shop_price_model', $clsPath.'models/PC_shop_price_model.php');
 
 Register_class_autoloader('PC_shop_payment_method', $clsPath . 'PC_shop_payment_method.php');
 Register_class_autoloader('PC_shop_price', $clsPath . 'PC_shop_price.php');

@@ -19,28 +19,7 @@ else {
 	include $this->core->Get_tpl_path($tpl_group, 'tpl.list.item._box');
 }
 
-return
 ?>
-
-<div class="pull-left fl">
-	
-	<a href="<?php echo $item["link"] ?>">
-		<div class="product_image center_image">
-			<span><span><img src="<?php echo $image ?>" alt="<?php echo $item["name"] ?>" /></span></span>
-		</div>
-	</a>
-	<a href="<?php echo $item["link"] ?>"><div class="name"><?php echo $item["name"] ?></div></a>
-
-	<?php 
-	include $this->core->Get_tpl_path($tpl_group, 'tpl.list.item.price'); 
-	?>
-	
-	<div class="clear"></div>
-	<?php 
-	include $this->core->Get_tpl_path($tpl_group, 'tpl.list.item.to_basket'); 
-	?>
-	
-</div>
 
 
 
