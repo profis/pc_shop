@@ -501,8 +501,9 @@ class PC_shop_products_manager extends PC_shop_products {
 		if (!$this->shop->categories->Exists($categoryId)) {
 			$params->errors->Add('category', 'Category was not found');
 		}
+		$current_time = time();
 		if (isset($data['hot']) and $data['hot']) {
-			$data['hot_from'] = time();
+			$data['hot_from'] = $current_time;
 		}
 		$d = array();
 		if (isset($data['contents'])) {
@@ -550,6 +551,7 @@ class PC_shop_products_manager extends PC_shop_products {
 		if (!isset($d['product']['position'])) {
 			$d['product']['position'] = $position;
 		}
+		$d['product']['created_on'] = $current_time;
 		$query = "INSERT INTO {$this->db_prefix}shop_products (category_id,".implode(',', array_keys($d['product'])).") VALUES(?,".implode(',', array_fill(0, count($d['product']), '?')).")";
 		$this->debug($query);
 		$this->debug(array_merge(array($categoryId), array_values($d['product'])));
