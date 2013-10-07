@@ -131,7 +131,7 @@ PC.plugin.pc_shop.shop_currency_rates = Ext.extend(PC.ux.LocalCrud, {
 			text: PC.i18n.mod.pc_shop.import_rates,
 			icon: 'images/money_euro.png',
 			handler: Ext.createDelegate(this.button_handler_for_import, this)
-		}
+		};
 	},
 			
 	button_handler_for_import: function() {

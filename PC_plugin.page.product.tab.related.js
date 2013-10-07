@@ -1,4 +1,4 @@
-PC_shop_product_tab_related = {}
+PC_shop_product_tab_related = {};
 
 PC_shop_product_tab_related.view_factory = {
 		
@@ -39,7 +39,7 @@ PC_shop_product_tab_related.view_factory = {
 			viewConfig: {
 				forceFit: true
 			}
-		}
+		};
 		return new Ext.grid.GridPanel(grid_config);
 	},
 	
@@ -163,7 +163,7 @@ PC_shop_product_tab_related.view_factory = {
 		
 		return tab;
 	}
-}
+};
 
 
 

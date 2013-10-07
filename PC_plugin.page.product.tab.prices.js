@@ -99,7 +99,7 @@ Plugin_pc_shop_product_prices_crud = Ext.extend(PC.ux.LocalCrud, {
 					url: 'api/plugin/pc_shop/currencies/get_for_combo?active_only&empty&ln=' + PC.global.admin_ln,
 					fields: [
 						'id', 
-						'name', 
+						'name'
 					],
 					idProperty: 'id',
 					autoLoad: true
@@ -145,7 +145,7 @@ PC.hooks.Register('plugin/pc_shop/load_tab_panel_for_product', function(params) 
 		grid.store.url = grid.pc_crud.api_url +'get/' + params.itemId + '/' + PC.global.ln;
 		grid.pc_crud.base_params = {
 			product_id: params.itemId
-		}
+		};
 		grid.store.proxy.setUrl(grid.store.url);
 		grid.store.proxy.url = grid.store.url;
 		grid.store.reload();

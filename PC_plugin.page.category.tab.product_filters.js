@@ -174,7 +174,7 @@ PC.hooks.Register('plugin/pc_shop/load_tab_panel_for_category', function(params)
 		grid.store.url = grid.pc_crud.api_url +'get/' + params.itemId + '/' + PC.global.ln;
 		grid.pc_crud.base_params = {
 			category_id: params.itemId
-		}
+		};
 		grid.store.proxy.setUrl(grid.store.url);
 		grid.store.proxy.url = grid.store.url;
 		grid.store.reload();

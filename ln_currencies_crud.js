@@ -60,7 +60,7 @@ PC.plugin.pc_shop.ln_currencies_crud = Ext.extend(PC.ux.crud, {
 					url: 'api/plugin/pc_shop/currencies/get_for_combo?empty&ln=' + PC.global.admin_ln,
 					fields: [
 						'id', 
-						'name', 
+						'name'
 					],
 					idProperty: 'id',
 					autoLoad: true

@@ -19,7 +19,7 @@ PC.plugin.pc_shop.crud_orders = Ext.extend(PC.ux.right_side_view_crud, {
 			{name: 'dateFormatted', mapping: 'date', convert: this.format_time_to_date}
 			//{name: 'is_paid_icon', mapping: 'is_paid', convert: dialog.is_paid_icon}
 			//{name: 'status_icon', mapping: 'status', convert: dialog.Get_status_icon}
-		]
+		];
 	},
 	
 	get_store: function() {
@@ -113,7 +113,7 @@ PC.plugin.pc_shop.crud_orders = Ext.extend(PC.ux.right_side_view_crud, {
 				sortable: true,
 				renderer: Ext.createDelegate(this._render_cell_delivery_option, this)
 			}
-        ]
+        ];
 	},
 	
 	get_add_form_fields: function(edit_mode) {
@@ -216,7 +216,7 @@ PC.plugin.pc_shop.crud_orders = Ext.extend(PC.ux.right_side_view_crud, {
 	get_view_xtemplate_empty: function() {
 		return [
 			'<strong>' + this.ln.order_info.choose_order + ':</strong>'
-		]
+		];
 	},
 	
 	get_view_xtemplate: function() {

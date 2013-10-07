@@ -1,4 +1,4 @@
-PC_plugin_dialog_pc_shop = {}
+PC_plugin_dialog_pc_shop = {};
 
 PC_plugin_dialog_pc_shop.js_factory = {
 	
@@ -52,7 +52,7 @@ PC_plugin_dialog_pc_shop.js_factory = {
 				ed._pc_shop_automera_category_import._import_file.fileInput.dom.value = '';
 			}
 		}
-		PC_plugin_dialog_pc_shop.import_attributes_store.store.removeAll()
+		PC_plugin_dialog_pc_shop.import_attributes_store.store.removeAll();
 	},
 		
 	get_store_for_attributes: function(config) {
@@ -136,6 +136,7 @@ PC_plugin_dialog_pc_shop.js_factory = {
 			Ext.Ajax.request({
 				url: Plugin_pc_shop.api.Admin +'import_products/confirm',
 				method: 'POST',
+				timeout:3000000,
 				params: {
 					category_id: category_node_id,
 					product_import_method: Ext.getCmp('pc_shop_import_products_product_import_method').getValue(),
@@ -179,7 +180,7 @@ PC_plugin_dialog_pc_shop.js_factory = {
 
 	
 	
-}
+};
 
 
 PC_plugin_dialog_pc_shop.view_factory = {
@@ -310,7 +311,7 @@ PC_plugin_dialog_pc_shop.view_factory = {
 					})
 				},
 				PC_plugin_dialog_pc_shop.view_factory._get_import_method_field(),
-				PC_plugin_dialog_pc_shop.view_factory._get_file_upload_field(),
+				PC_plugin_dialog_pc_shop.view_factory._get_file_upload_field()
 			]
 		});
 		//debugger;

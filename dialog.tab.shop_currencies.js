@@ -34,7 +34,7 @@ PC.plugin.pc_shop.shop_currencies = Ext.extend(Ext.Panel, {
 				url: 'api/plugin/pc_shop/currencies/get_for_combo?empty&ln=' + PC.global.admin_ln,
 				fields: [
 					'code', 
-					'name', 
+					'name' 
 				],
 				idProperty: 'code',
 				autoLoad: true
@@ -131,7 +131,7 @@ PC.plugin.pc_shop.shop_currencies = Ext.extend(Ext.Panel, {
 				grid.store.url = grid.pc_crud.api_url +'get/' + ln;
 				grid.pc_crud.base_params = {
 					ln: ln
-				}
+				};
 				grid.store.proxy.setUrl(grid.store.url);
 				grid.store.proxy.url = grid.store.url;
 				grid.store.reload();

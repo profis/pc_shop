@@ -254,7 +254,7 @@ Plugin.ln = PC.i18n.mod.pc_shop;
 Plugin.editorId = {
 	Product: PC.editors.FormatID(Plugin.Name, 'product'),
 	Category: PC.editors.FormatID(Plugin.Name, 'category')
-}
+};
 Plugin.ParseID = function(id) {
 	Plugin.Name = 'pc_shop';
 	var types = ['category', 'product'];
@@ -268,13 +268,13 @@ Plugin.ParseID = function(id) {
 		}
 	}
 	return false;
-}
+};
 Plugin.FormatId = function(type, id) {
 	return Plugin.Name +'/'+ type +'/'+ id;
-}
+};
 Plugin.CopyCategory = function(parentNode) {
 	Plugin.copied_category_id = parentNode.id;
-}
+};
 Plugin.PasteIntoCategory = function(parentNode) {
 	if (Plugin.copied_category_id) {
 		Ext.Ajax.request({
@@ -298,7 +298,7 @@ Plugin.PasteIntoCategory = function(parentNode) {
 			}
 		});
 	}	
-}
+};
 Plugin.CreateCategory = function(parentNode) {
 	var parent_id = Plugin.ParseID(parentNode.attributes.id);
 	if (parent_id.type == 'category') parent_id = parent_id.id;
@@ -308,7 +308,7 @@ Plugin.CreateCategory = function(parentNode) {
 		id: 0,
 		parent_id: parent_id,
 		resources: {add: [], remove: []}
-	}
+	};
 	if (parent_id == 0) {
 		d.pid = parentNode.attributes.id;
 	}
@@ -356,7 +356,7 @@ Plugin.CreateCategory = function(parentNode) {
 	
 	//open node
 	//on save - activate node
-}
+};
 Plugin.tree = {
 	actions: {
 		PreviewCategory: PC.tree.actions.Preview,
@@ -462,7 +462,7 @@ Plugin.tree = {
 					id: 0,
 					category_id: categoryId.id,
 					resources: {add: [], remove: []}
-				}
+				};
 				Ext.Ajax.request({
 					url: Plugin.api.Admin +'save/product',
 					method: 'POST',
@@ -549,7 +549,7 @@ Plugin.tree = {
 			}
 		})
 	}
-}
+};
 Plugin.tree.menus = {
 	shop: new Ext.menu.Menu({
 		id: 'pc_tree_menu_'+ Plugin.Name +'_shop',
@@ -588,7 +588,7 @@ Plugin.tree.menus = {
 			Plugin.tree.actions.DeleteProduct
 		]
 	})
-}
+};
 PC.hooks.Register('core/tree/menu/'+ Plugin.Name, function(params){
 	var id = Plugin.ParseID(params.node.id);
 	if (id === false) {
@@ -804,7 +804,7 @@ Plugin.media.GallerySave = function(link, rec, callback, params){
 		callback();
 	}
 	
-}
+};
 Plugin.attributes = {};
 Plugin.attributes.Store = new Ext.data.JsonStore({
 	autoLoad: true,
@@ -1151,7 +1151,7 @@ Plugin.attributes.Grid = {
 		{	icon: 'images/arrow-up.gif',
 			text: PC.i18n.move_up,
 			handler: function () {
-				Plugin.attributes.move_selected(PC.editors.Get().attributesGrid, 'up')
+				Plugin.attributes.move_selected(PC.editors.Get().attributesGrid, 'up');
 			}
 		},
 		{	icon: 'images/arrow-down.gif',
@@ -1168,7 +1168,7 @@ Plugin.attributes.Load = function(type, itemId){
 	ed.attributesGrid.store.setBaseParam('itemId', itemId);
 	ed.attributesGrid.store.setBaseParam('ln', PC.global.ln);
 	ed.attributesGrid.store.reload();
-}
+};
 
 Plugin.attributes.move_selected = function(grid, direction){
 	direction = direction || 'up';
@@ -1213,7 +1213,7 @@ Plugin.attributes.move_selected = function(grid, direction){
 		grid.getStore().insert(new_position, row_to_move);
 	}
 	
-}
+};
 
 
 Plugin.js_factory = {
@@ -1241,7 +1241,7 @@ Plugin.js_factory = {
 		return data_store;
 	}
 	
-}
+};
 
 Plugin.view_factory = {
 	
@@ -1270,7 +1270,7 @@ Plugin.view_factory = {
 						url: 'api/plugin/pc_shop/manufacturers/get_for_combo?empty&ln=' + PC.global.admin_ln,
 						fields: [
 							'id', 
-							'name', 
+							'name'
 						],
 						idProperty: 'id',
 						autoLoad: true
@@ -1947,7 +1947,7 @@ Plugin.view_factory = {
 								ed._import._import_file.fileInput.dom.value = '';
 							}
 						}
-						ed._import_data.store.removeAll()
+						ed._import_data.store.removeAll();
 					}
 				})
 			],
@@ -2063,7 +2063,7 @@ Plugin.view_factory = {
 					else {
 						ed._import.disable();
 						if (ed._import.isVisible()) {
-							ed._information.show()
+							ed._information.show();
 						}
 					}
 				}
@@ -2158,7 +2158,7 @@ Plugin.view_factory = {
 			IsDirty: function() {
 				return false;
 			}
-		}
+		};
 		
 		var hook_params = {
 			tabs: []
@@ -2358,7 +2358,7 @@ Plugin.view_factory = {
 		return tab_items;
 	}
 	
-}
+};
 
 
 
@@ -2671,7 +2671,7 @@ PC.editors.Register(Plugin.Name, 'product', function(){
 				}
 				var hook_params = {
 					itemId: idData.id
-				}
+				};
 				
 				if (!hook_params.itemId && data && data.data) {
 					hook_params.itemId = data.data.id;
@@ -2876,13 +2876,13 @@ Plugin.RenderPaging = function(node, productsCount) {
 				pagingEl.style.marginTop = '5px';
 			});
 		}, 70);
-	}
+	};
 	if (!node.expanded) {
 		if (!node.isExpandable()) return false;
 		node.expand(false, true, afterExpand, this);
 	}
 	else afterExpand(node);
-}
+};
 
 Plugin.IsValidPagingContainer = function(n) {
 	var ctrl = n.attributes.controller;
@@ -2892,7 +2892,7 @@ Plugin.IsValidPagingContainer = function(n) {
 		if (id.type != 'category') return false;
 	}
 	return true;
-}
+};
 
 PC.hooks.Register('tree.load', function(params){
 	var ln = PC.i18n.mod[Plugin.Name];

@@ -3,7 +3,7 @@
 -- http://www.phpmyadmin.net
 -- 
 -- Host: localhost
--- Generation Time: Sep 05, 2013 at 05:55 PM
+-- Generation Time: Oct 04, 2013 at 03:51 PM
 -- Server version: 5.5.32
 -- PHP Version: 5.3.10-1ubuntu3.7
 -- 
@@ -13,10 +13,10 @@
 -- --------------------------------------------------------
 
 -- 
--- Table structure for table `pc_shop_attribute_categories`
+-- Table structure for table `{prefix}shop_attribute_categories`
 -- 
 
-CREATE TABLE IF NOT EXISTS `pc_shop_attribute_categories` (
+CREATE TABLE IF NOT EXISTS `{prefix}shop_attribute_categories` (
   `id` smallint(5) unsigned NOT NULL AUTO_INCREMENT,
   `flags` smallint(5) unsigned NOT NULL DEFAULT '1',
   `ref` varchar(100) COLLATE utf8_unicode_ci NOT NULL,
@@ -26,10 +26,10 @@ CREATE TABLE IF NOT EXISTS `pc_shop_attribute_categories` (
 -- --------------------------------------------------------
 
 -- 
--- Table structure for table `pc_shop_attribute_category_contents`
+-- Table structure for table `{prefix}shop_attribute_category_contents`
 -- 
 
-CREATE TABLE IF NOT EXISTS `pc_shop_attribute_category_contents` (
+CREATE TABLE IF NOT EXISTS `{prefix}shop_attribute_category_contents` (
   `attr_category_id` int(10) unsigned NOT NULL,
   `ln` varchar(2) COLLATE utf8_unicode_ci NOT NULL,
   `name` varchar(100) COLLATE utf8_unicode_ci NOT NULL,
@@ -39,13 +39,14 @@ CREATE TABLE IF NOT EXISTS `pc_shop_attribute_category_contents` (
 -- --------------------------------------------------------
 
 -- 
--- Table structure for table `pc_shop_attribute_contents`
+-- Table structure for table `{prefix}shop_attribute_contents`
 -- 
 
-CREATE TABLE IF NOT EXISTS `pc_shop_attribute_contents` (
+CREATE TABLE IF NOT EXISTS `{prefix}shop_attribute_contents` (
   `attribute_id` int(10) unsigned NOT NULL,
   `ln` varchar(2) COLLATE utf8_unicode_ci NOT NULL,
   `name` varchar(100) COLLATE utf8_unicode_ci NOT NULL,
+  UNIQUE KEY `attribute_id_3` (`attribute_id`,`ln`),
   KEY `attribute_id` (`attribute_id`),
   KEY `attribute_id_2` (`attribute_id`,`ln`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
@@ -53,10 +54,10 @@ CREATE TABLE IF NOT EXISTS `pc_shop_attribute_contents` (
 -- --------------------------------------------------------
 
 -- 
--- Table structure for table `pc_shop_attribute_value_contents`
+-- Table structure for table `{prefix}shop_attribute_value_contents`
 -- 
 
-CREATE TABLE IF NOT EXISTS `pc_shop_attribute_value_contents` (
+CREATE TABLE IF NOT EXISTS `{prefix}shop_attribute_value_contents` (
   `value_id` int(10) unsigned NOT NULL,
   `ln` varchar(2) COLLATE utf8_unicode_ci NOT NULL,
   `value` varchar(100) COLLATE utf8_unicode_ci NOT NULL,
@@ -66,10 +67,10 @@ CREATE TABLE IF NOT EXISTS `pc_shop_attribute_value_contents` (
 -- --------------------------------------------------------
 
 -- 
--- Table structure for table `pc_shop_attribute_values`
+-- Table structure for table `{prefix}shop_attribute_values`
 -- 
 
-CREATE TABLE IF NOT EXISTS `pc_shop_attribute_values` (
+CREATE TABLE IF NOT EXISTS `{prefix}shop_attribute_values` (
   `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
   `attribute_id` int(10) unsigned NOT NULL,
   PRIMARY KEY (`id`),
@@ -79,10 +80,10 @@ CREATE TABLE IF NOT EXISTS `pc_shop_attribute_values` (
 -- --------------------------------------------------------
 
 -- 
--- Table structure for table `pc_shop_attributes`
+-- Table structure for table `{prefix}shop_attributes`
 -- 
 
-CREATE TABLE IF NOT EXISTS `pc_shop_attributes` (
+CREATE TABLE IF NOT EXISTS `{prefix}shop_attributes` (
   `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
   `is_custom` tinyint(1) unsigned NOT NULL,
   `is_searchable` tinyint(1) unsigned NOT NULL,
@@ -96,10 +97,10 @@ CREATE TABLE IF NOT EXISTS `pc_shop_attributes` (
 -- --------------------------------------------------------
 
 -- 
--- Table structure for table `pc_shop_categories`
+-- Table structure for table `{prefix}shop_categories`
 -- 
 
-CREATE TABLE IF NOT EXISTS `pc_shop_categories` (
+CREATE TABLE IF NOT EXISTS `{prefix}shop_categories` (
   `id` smallint(5) unsigned NOT NULL AUTO_INCREMENT,
   `parent_id` smallint(5) unsigned NOT NULL DEFAULT '0',
   `pid` int(10) unsigned DEFAULT NULL,
@@ -121,10 +122,10 @@ CREATE TABLE IF NOT EXISTS `pc_shop_categories` (
 -- --------------------------------------------------------
 
 -- 
--- Table structure for table `pc_shop_category_contents`
+-- Table structure for table `{prefix}shop_category_contents`
 -- 
 
-CREATE TABLE IF NOT EXISTS `pc_shop_category_contents` (
+CREATE TABLE IF NOT EXISTS `{prefix}shop_category_contents` (
   `category_id` smallint(5) unsigned NOT NULL,
   `ln` varchar(2) COLLATE utf8_unicode_ci NOT NULL,
   `name` varchar(255) COLLATE utf8_unicode_ci NOT NULL,
@@ -142,10 +143,10 @@ CREATE TABLE IF NOT EXISTS `pc_shop_category_contents` (
 -- --------------------------------------------------------
 
 -- 
--- Table structure for table `pc_shop_category_product_filter_contents`
+-- Table structure for table `{prefix}shop_category_product_filter_contents`
 -- 
 
-CREATE TABLE IF NOT EXISTS `pc_shop_category_product_filter_contents` (
+CREATE TABLE IF NOT EXISTS `{prefix}shop_category_product_filter_contents` (
   `filter_id` smallint(5) unsigned NOT NULL,
   `ln` varchar(2) CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
   `name` varchar(100) CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
@@ -155,10 +156,10 @@ CREATE TABLE IF NOT EXISTS `pc_shop_category_product_filter_contents` (
 -- --------------------------------------------------------
 
 -- 
--- Table structure for table `pc_shop_category_product_filters`
+-- Table structure for table `{prefix}shop_category_product_filters`
 -- 
 
-CREATE TABLE IF NOT EXISTS `pc_shop_category_product_filters` (
+CREATE TABLE IF NOT EXISTS `{prefix}shop_category_product_filters` (
   `id` int(10) NOT NULL AUTO_INCREMENT,
   `category_id` int(10) NOT NULL,
   `attribute` smallint(5) NOT NULL,
@@ -173,10 +174,10 @@ CREATE TABLE IF NOT EXISTS `pc_shop_category_product_filters` (
 -- --------------------------------------------------------
 
 -- 
--- Table structure for table `pc_shop_currencies`
+-- Table structure for table `{prefix}shop_currencies`
 -- 
 
-CREATE TABLE IF NOT EXISTS `pc_shop_currencies` (
+CREATE TABLE IF NOT EXISTS `{prefix}shop_currencies` (
   `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `name` varchar(80) CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
   `code` varchar(3) CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
@@ -189,10 +190,10 @@ CREATE TABLE IF NOT EXISTS `pc_shop_currencies` (
 -- --------------------------------------------------------
 
 -- 
--- Table structure for table `pc_shop_currency_contents`
+-- Table structure for table `{prefix}shop_currency_contents`
 -- 
 
-CREATE TABLE IF NOT EXISTS `pc_shop_currency_contents` (
+CREATE TABLE IF NOT EXISTS `{prefix}shop_currency_contents` (
   `currency_id` int(11) unsigned NOT NULL,
   `ln` varchar(2) CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
   `title` varchar(10) CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
@@ -202,10 +203,22 @@ CREATE TABLE IF NOT EXISTS `pc_shop_currency_contents` (
 -- --------------------------------------------------------
 
 -- 
--- Table structure for table `pc_shop_delivery_option_contents`
+-- Table structure for table `{prefix}shop_currency_rates`
 -- 
 
-CREATE TABLE IF NOT EXISTS `pc_shop_delivery_option_contents` (
+CREATE TABLE IF NOT EXISTS `{prefix}shop_currency_rates` (
+  `c_id` int(11) unsigned NOT NULL,
+  `rate` decimal(10,4) unsigned NOT NULL,
+  UNIQUE KEY `c_id` (`c_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+
+-- --------------------------------------------------------
+
+-- 
+-- Table structure for table `{prefix}shop_delivery_option_contents`
+-- 
+
+CREATE TABLE IF NOT EXISTS `{prefix}shop_delivery_option_contents` (
   `delivery_option_id` smallint(5) unsigned NOT NULL,
   `ln` varchar(2) CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
   `name` varchar(100) CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
@@ -215,10 +228,10 @@ CREATE TABLE IF NOT EXISTS `pc_shop_delivery_option_contents` (
 -- --------------------------------------------------------
 
 -- 
--- Table structure for table `pc_shop_delivery_options`
+-- Table structure for table `{prefix}shop_delivery_options`
 -- 
 
-CREATE TABLE IF NOT EXISTS `pc_shop_delivery_options` (
+CREATE TABLE IF NOT EXISTS `{prefix}shop_delivery_options` (
   `id` smallint(5) NOT NULL AUTO_INCREMENT,
   `code` varchar(20) CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
   `enabled` tinyint(1) NOT NULL DEFAULT '1',
@@ -234,10 +247,10 @@ CREATE TABLE IF NOT EXISTS `pc_shop_delivery_options` (
 -- --------------------------------------------------------
 
 -- 
--- Table structure for table `pc_shop_item_attributes`
+-- Table structure for table `{prefix}shop_item_attributes`
 -- 
 
-CREATE TABLE IF NOT EXISTS `pc_shop_item_attributes` (
+CREATE TABLE IF NOT EXISTS `{prefix}shop_item_attributes` (
   `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
   `item_id` mediumint(8) unsigned NOT NULL,
   `attribute_id` int(10) unsigned NOT NULL,
@@ -252,10 +265,10 @@ CREATE TABLE IF NOT EXISTS `pc_shop_item_attributes` (
 -- --------------------------------------------------------
 
 -- 
--- Table structure for table `pc_shop_ln_currencies`
+-- Table structure for table `{prefix}shop_ln_currencies`
 -- 
 
-CREATE TABLE IF NOT EXISTS `pc_shop_ln_currencies` (
+CREATE TABLE IF NOT EXISTS `{prefix}shop_ln_currencies` (
   `id` mediumint(7) NOT NULL AUTO_INCREMENT,
   `ln` varchar(2) CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
   `c_id` int(11) NOT NULL,
@@ -267,10 +280,10 @@ CREATE TABLE IF NOT EXISTS `pc_shop_ln_currencies` (
 -- --------------------------------------------------------
 
 -- 
--- Table structure for table `pc_shop_manufacturers`
+-- Table structure for table `{prefix}shop_manufacturers`
 -- 
 
-CREATE TABLE IF NOT EXISTS `pc_shop_manufacturers` (
+CREATE TABLE IF NOT EXISTS `{prefix}shop_manufacturers` (
   `id` smallint(5) unsigned NOT NULL AUTO_INCREMENT,
   `code` varchar(255) COLLATE utf8_unicode_ci DEFAULT NULL,
   `name` varchar(255) COLLATE utf8_unicode_ci NOT NULL,
@@ -281,10 +294,10 @@ CREATE TABLE IF NOT EXISTS `pc_shop_manufacturers` (
 -- --------------------------------------------------------
 
 -- 
--- Table structure for table `pc_shop_order_items`
+-- Table structure for table `{prefix}shop_order_items`
 -- 
 
-CREATE TABLE IF NOT EXISTS `pc_shop_order_items` (
+CREATE TABLE IF NOT EXISTS `{prefix}shop_order_items` (
   `order_id` mediumint(8) unsigned NOT NULL,
   `product_id` mediumint(8) unsigned NOT NULL,
   `quantity` mediumint(8) unsigned NOT NULL,
@@ -295,10 +308,10 @@ CREATE TABLE IF NOT EXISTS `pc_shop_order_items` (
 -- --------------------------------------------------------
 
 -- 
--- Table structure for table `pc_shop_order_statuses`
+-- Table structure for table `{prefix}shop_order_statuses`
 -- 
 
-CREATE TABLE IF NOT EXISTS `pc_shop_order_statuses` (
+CREATE TABLE IF NOT EXISTS `{prefix}shop_order_statuses` (
   `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
   `order_id` mediumint(8) unsigned NOT NULL,
   `status` varchar(30) COLLATE utf8_unicode_ci NOT NULL,
@@ -310,10 +323,10 @@ CREATE TABLE IF NOT EXISTS `pc_shop_order_statuses` (
 -- --------------------------------------------------------
 
 -- 
--- Table structure for table `pc_shop_orders`
+-- Table structure for table `{prefix}shop_orders`
 -- 
 
-CREATE TABLE IF NOT EXISTS `pc_shop_orders` (
+CREATE TABLE IF NOT EXISTS `{prefix}shop_orders` (
   `id` mediumint(9) NOT NULL AUTO_INCREMENT,
   `date` int(10) unsigned NOT NULL,
   `user_id` int(10) unsigned DEFAULT NULL,
@@ -337,10 +350,10 @@ CREATE TABLE IF NOT EXISTS `pc_shop_orders` (
 -- --------------------------------------------------------
 
 -- 
--- Table structure for table `pc_shop_payment_option_contents`
+-- Table structure for table `{prefix}shop_payment_option_contents`
 -- 
 
-CREATE TABLE IF NOT EXISTS `pc_shop_payment_option_contents` (
+CREATE TABLE IF NOT EXISTS `{prefix}shop_payment_option_contents` (
   `payment_option_id` smallint(5) unsigned NOT NULL,
   `ln` varchar(2) CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
   `name` varchar(100) CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
@@ -350,10 +363,10 @@ CREATE TABLE IF NOT EXISTS `pc_shop_payment_option_contents` (
 -- --------------------------------------------------------
 
 -- 
--- Table structure for table `pc_shop_payment_options`
+-- Table structure for table `{prefix}shop_payment_options`
 -- 
 
-CREATE TABLE IF NOT EXISTS `pc_shop_payment_options` (
+CREATE TABLE IF NOT EXISTS `{prefix}shop_payment_options` (
   `id` smallint(5) NOT NULL AUTO_INCREMENT,
   `code` varchar(20) CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
   `enabled` tinyint(1) NOT NULL DEFAULT '1',
@@ -368,10 +381,25 @@ CREATE TABLE IF NOT EXISTS `pc_shop_payment_options` (
 -- --------------------------------------------------------
 
 -- 
--- Table structure for table `pc_shop_product_categories`
+-- Table structure for table `{prefix}shop_prices`
 -- 
 
-CREATE TABLE IF NOT EXISTS `pc_shop_product_categories` (
+CREATE TABLE IF NOT EXISTS `{prefix}shop_prices` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `pkey` varchar(50) CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
+  `price` decimal(10,2) unsigned NOT NULL,
+  `c_id` int(11) unsigned NOT NULL DEFAULT '0',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `pkey` (`pkey`,`price`,`c_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+
+-- --------------------------------------------------------
+
+-- 
+-- Table structure for table `{prefix}shop_product_categories`
+-- 
+
+CREATE TABLE IF NOT EXISTS `{prefix}shop_product_categories` (
   `id` int(10) NOT NULL AUTO_INCREMENT,
   `product_id` int(10) NOT NULL,
   `category_id` int(10) NOT NULL,
@@ -383,10 +411,10 @@ CREATE TABLE IF NOT EXISTS `pc_shop_product_categories` (
 -- --------------------------------------------------------
 
 -- 
--- Table structure for table `pc_shop_product_contents`
+-- Table structure for table `{prefix}shop_product_contents`
 -- 
 
-CREATE TABLE IF NOT EXISTS `pc_shop_product_contents` (
+CREATE TABLE IF NOT EXISTS `{prefix}shop_product_contents` (
   `product_id` mediumint(8) unsigned NOT NULL,
   `ln` varchar(2) COLLATE utf8_unicode_ci NOT NULL,
   `name` varchar(255) COLLATE utf8_unicode_ci NOT NULL,
@@ -405,10 +433,10 @@ CREATE TABLE IF NOT EXISTS `pc_shop_product_contents` (
 -- --------------------------------------------------------
 
 -- 
--- Table structure for table `pc_shop_product_periods`
+-- Table structure for table `{prefix}shop_product_periods`
 -- 
 
-CREATE TABLE IF NOT EXISTS `pc_shop_product_periods` (
+CREATE TABLE IF NOT EXISTS `{prefix}shop_product_periods` (
   `id` int(10) NOT NULL AUTO_INCREMENT,
   `product_id` int(10) NOT NULL,
   `time_from` datetime DEFAULT NULL,
@@ -420,23 +448,26 @@ CREATE TABLE IF NOT EXISTS `pc_shop_product_periods` (
 -- --------------------------------------------------------
 
 -- 
--- Table structure for table `pc_shop_product_prices`
+-- Table structure for table `{prefix}shop_product_prices`
 -- 
 
-CREATE TABLE IF NOT EXISTS `pc_shop_product_prices` (
+CREATE TABLE IF NOT EXISTS `{prefix}shop_product_prices` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
   `product_id` mediumint(8) unsigned NOT NULL,
   `price` decimal(10,2) unsigned NOT NULL,
-  `quantity` mediumint(8) unsigned NOT NULL,
-  UNIQUE KEY `product_id` (`product_id`,`quantity`)
-) ENGINE=MyISAM DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+  `quantity` mediumint(8) unsigned NOT NULL DEFAULT '0',
+  `c_id` int(11) unsigned NOT NULL DEFAULT '0',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `product_id` (`product_id`,`quantity`,`c_id`)
+) ENGINE=MyISAM  DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
 -- --------------------------------------------------------
 
 -- 
--- Table structure for table `pc_shop_product_products`
+-- Table structure for table `{prefix}shop_product_products`
 -- 
 
-CREATE TABLE IF NOT EXISTS `pc_shop_product_products` (
+CREATE TABLE IF NOT EXISTS `{prefix}shop_product_products` (
   `id` int(10) NOT NULL AUTO_INCREMENT,
   `product_id` int(10) NOT NULL,
   `product_id_2` int(10) NOT NULL,
@@ -447,10 +478,10 @@ CREATE TABLE IF NOT EXISTS `pc_shop_product_products` (
 -- --------------------------------------------------------
 
 -- 
--- Table structure for table `pc_shop_products`
+-- Table structure for table `{prefix}shop_products`
 -- 
 
-CREATE TABLE IF NOT EXISTS `pc_shop_products` (
+CREATE TABLE IF NOT EXISTS `{prefix}shop_products` (
   `id` mediumint(8) unsigned NOT NULL AUTO_INCREMENT,
   `category_id` smallint(5) unsigned NOT NULL,
   `position` smallint(5) unsigned NOT NULL,
@@ -474,10 +505,10 @@ CREATE TABLE IF NOT EXISTS `pc_shop_products` (
 -- --------------------------------------------------------
 
 -- 
--- Table structure for table `pc_shop_resources`
+-- Table structure for table `{prefix}shop_resources`
 -- 
 
-CREATE TABLE IF NOT EXISTS `pc_shop_resources` (
+CREATE TABLE IF NOT EXISTS `{prefix}shop_resources` (
   `resource_id` int(10) unsigned NOT NULL AUTO_INCREMENT,
   `position` smallint(5) unsigned NOT NULL DEFAULT '1',
   `item_id` mediumint(8) unsigned NOT NULL,
@@ -491,10 +522,10 @@ CREATE TABLE IF NOT EXISTS `pc_shop_resources` (
 
 
 -- 
--- Dumping data for table `pc_variables`
+-- Dumping data for table `{prefix}variables`
 -- 
 
-INSERT IGNORE INTO `pc_variables` (`vkey`, `controller`, `site`, `ln`, `value`) VALUES 
+INSERT IGNORE INTO `{prefix}variables` (`vkey`, `controller`, `site`, `ln`, `value`) VALUES 
 
 ('description', 'pc_shop', 0, 'lt', 'Aprašymas'),
 ('description', 'pc_shop', 0, 'en', 'Description'),
