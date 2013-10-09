@@ -934,7 +934,7 @@ class PC_shop_products_site extends PC_shop_products {
 			}
 		}
 		else {
-			if (!is_null($categoryId)) {
+			if (!is_null($categoryId) and !empty($categoryId)) {
 				$queryParams[] = $categoryId;
 				$where[] = 'p.category_id=?';
 			}

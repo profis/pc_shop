@@ -8,7 +8,7 @@ class PC_plugin_pc_shop_newest_products_widget extends PC_plugin_pc_shop_product
 	
 	public function get_params() {
 		$params = parent::get_params();
-		$params['order_by'] = 'p.id desc';
+		$params['order_by'] = 'p.created_on desc';
 		return $params;
 	}
 	
