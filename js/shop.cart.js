@@ -1,9 +1,13 @@
 $(document).ready(function(){
 	
 	function updateCart($this, $type){
+		var del_parent = $this.parent().parent();
 		$this = $this.parent().parent().parent();
 		if ($type == 'plus' || $type == 'minus') {
 			$this = $this.parent();
+		}
+		if ($type == 'remove') {
+			$this = del_parent;
 		}
 		var $key = $this.attr("key");
 		//var $vnt_price = $this.attr("vnt_price");

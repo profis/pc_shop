@@ -69,8 +69,14 @@ class PC_plugin_pc_shop_products_widget extends PC_plugin_pc_shop_widget {
 		$category_id = null;
 		$base_url = $this->site->Get_link();
 		if (isset($this->_config['category'])) {
-			$category_id = $this->_config['category']['id'];
-			$base_url =$this->_config['category']['full_link'];
+			if (is_array($this->_config['category'])) {
+				$category_id = $this->_config['category']['id'];
+				$base_url =$this->_config['category']['full_link'];
+			}
+			else {
+				$category_id = $this->_config['category'];
+			}
+			
 		}
 		//$base_url = PC_utils::getCurrUrl();
 		
@@ -88,6 +94,8 @@ class PC_plugin_pc_shop_products_widget extends PC_plugin_pc_shop_widget {
 				$get_vars = $this->sort_widget_data['get_vars'];				
 			}
 		}
+		//print_pre($params);
+		//echo $category_id; 
 		$data = array(
 			'items' => $shop_products_site->Get(null, $category_id, $params),
 			'params' => $params,

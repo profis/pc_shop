@@ -43,7 +43,10 @@ class PC_plugin_pc_shop_search_products_widget extends PC_plugin_pc_shop_product
 		foreach ($this->_config['search_options'] as $key => $search_option) {
 			//print_pre($search_option);
 			$filter = $search_option;
-			$filter['value'] = $_GET[$search_option['input']];
+			$filter['value'] = trim(v($_GET[$search_option['input']]));
+			if (empty($filter['value'])) {
+				continue;
+			}
 			if ($search_option['op'] == 'like') {
 				if ($search_option['like_pref']) {
 					$filter['value'] = '%' . $filter['value'];

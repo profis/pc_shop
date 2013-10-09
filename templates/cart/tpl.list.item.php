@@ -14,7 +14,7 @@
 		</div>
 	</div>
 	<div class="col-1 col-sm-1 col-lg-1 pull-right">
-		<button class="btn btn-danger" type="button"><span class="glyphicon glyphicon-remove del_from_cart"></span></button>
+		<button class="btn btn-danger del_from_cart" type="button"><span class="glyphicon glyphicon-remove"></span></button>
 	</div>
 	<div class="col-2 col-sm-2 col-lg-2 pull-right">
 		<strong><?php echo  number_format($item['totalPrice'], 2, ",", "") ?> <?php echo $this->price->get_user_currency()?></strong>

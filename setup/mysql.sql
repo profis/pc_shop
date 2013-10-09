@@ -497,6 +497,7 @@ CREATE TABLE IF NOT EXISTS `{prefix}shop_products` (
   `price` decimal(10,2) unsigned NOT NULL,
   `import_method` varchar(255) COLLATE utf8_unicode_ci NOT NULL,
   `state` tinyint(3) NOT NULL DEFAULT '0',
+  `created_on` int(10) unsigned DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `external_id` (`external_id`),
   KEY `category_id` (`category_id`,`position`,`manufacturer_id`,`flags`)
