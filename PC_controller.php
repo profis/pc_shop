@@ -389,6 +389,7 @@ class PC_controller_pc_shop extends PC_controller {
 		$this->debug('Additional data:', 1);
 		$this->debug($data, 1);
 		$clear_cart = true;
+		//$clear_cart = false;
 		$r = $this->shop->orders->Create(null, $name, $address, $phone, $email, $comment, $params, $clear_cart, $payment_option, $delivery_option, 0, $data);
 		$this->order_id = $this->shop->orders->last_order_id;
 		$this->payment_option = $payment_option;

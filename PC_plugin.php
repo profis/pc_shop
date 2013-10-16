@@ -43,6 +43,9 @@ Register_class_autoloader('PC_plugin_pc_shop_categories_widget', $thisPath . 'wi
 Register_class_autoloader('PC_plugin_pc_shop_products_widget', $thisPath . 'widgets/PC_plugin_pc_shop_products_widget.php');
 Register_class_autoloader('PC_plugin_pc_shop_hot_products_widget', $thisPath . 'widgets/PC_plugin_pc_shop_hot_products_widget.php');
 Register_class_autoloader('PC_plugin_pc_shop_newest_products_widget', $thisPath . 'widgets/PC_plugin_pc_shop_newest_products_widget.php');
+Register_class_autoloader('PC_plugin_pc_shop_popular_products_widget', $thisPath . 'widgets/PC_plugin_pc_shop_popular_products_widget.php');
+
+
 Register_class_autoloader('PC_plugin_pc_shop_product_widget', $thisPath . 'widgets/PC_plugin_pc_shop_product_widget.php');
 Register_class_autoloader('PC_plugin_pc_shop_mini_basket_widget', $thisPath . 'widgets/PC_plugin_pc_shop_mini_basket_widget.php');
 Register_class_autoloader('PC_plugin_pc_shop_cart_widget', $thisPath . 'widgets/PC_plugin_pc_shop_cart_widget.php');

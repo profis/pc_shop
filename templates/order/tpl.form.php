@@ -34,6 +34,9 @@ $this->site->Add_script($this->cfg['directories']['media'] . '/form_validation.j
 	
 	<div class="clear"></div>
 	
+	<?php 
+	if (!empty($delivery_options)) {
+	?>
 	<div class="input_holder">
 		<label><?php echo $this->core->Get_plugin_variable('delivery', $this->plugin_name); ?>:<br /></label>
 		<?php 
@@ -49,6 +52,9 @@ $this->site->Add_script($this->cfg['directories']['media'] . '/form_validation.j
 		?>
 	</div>
 	<div class="clear"></div>
+	<?php 
+	} 
+	?>
 	
 	<div class="input_holder">
 		<label><?php echo $this->core->Get_plugin_variable('order_comment', $this->plugin_name); ?>:<br /><textarea name="comment"><?php echo $order_data["comment"];?></textarea></label>	

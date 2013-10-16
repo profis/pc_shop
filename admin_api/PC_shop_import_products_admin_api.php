@@ -112,10 +112,10 @@ class PC_shop_import_products_admin_api extends PC_shop_admin_api {
 			}
 		}
 		$d[$item_property_key] = (string) trim($item_property);
-		$this->_remember_field($item_property_key, $title);
+		$this->_remember_field($item_property_key, $title, v($association_data['on']));
 	}
 	
-	protected function _remember_field($field, $title = '') {
+	protected function _remember_field($field, $title = '', $on = null) {
 		if (!isset($this->_field_names[$field])) {
 			$parts = explode('-', $field, 3);
 			$type = false;
@@ -141,6 +141,7 @@ class PC_shop_import_products_admin_api extends PC_shop_admin_api {
 				'name' => $name,
 				'lang' => $lang,
 				'title' => $title,
+				'on' => $on
 			);
 			
 		}
@@ -181,12 +182,16 @@ class PC_shop_import_products_admin_api extends PC_shop_admin_api {
 		$this->_associations = array();
 		$aliases = array();
 		$this->_additional_product_data = array();
+		$this->_import_only_on = array();
+		$this->_product_scope = '';
 		$this->core->Init_hooks('plugin/pc_shop/import-products/import-fields-associations/' . $product_import_method, array(
 			'id_fields'=> &$this->_id_fields,
 			'data'=> &$this->_associations,
 			'missing_products_strategy'=> &$this->missing_products_strategy,
 			'aliases' => &$aliases,
-			'additional_product_data' => &$this->_additional_product_data
+			'additional_product_data' => &$this->_additional_product_data,
+			'import_only_on' => &$this->_import_only_on,
+			'product_scope' => &$this->_product_scope
 		));
 		foreach ($this->_associations as $key => $assoc) {
 			if (!isset($assoc['title'])) {
@@ -415,6 +420,15 @@ class PC_shop_import_products_admin_api extends PC_shop_admin_api {
 					continue;
 				}
 				$field_name_data = $this->_field_names[$product_property];
+				if (!$product_id and isset($this->_import_only_on['update']) and in_array($product_property, $this->_import_only_on['update'])) {
+					$this->debug(':( this property is for update only', 8);
+					continue;
+				}
+				if ($product_id and isset($this->_import_only_on['insert']) and in_array($product_property, $this->_import_only_on['insert'])) {
+					$this->debug(':( this property is for insert only', 8);
+					continue;
+				}
+				
 				switch (v($field_name_data['type'])) {
 					case 'field':
 						$fields[$field_name_data['name']] = $product_property_value;
@@ -715,7 +729,7 @@ class PC_shop_import_products_admin_api extends PC_shop_admin_api {
 			return -1;
 		}
 		
-		if ($this->category_id) {
+		if ($this->category_id and $this->_product_scope == 'category') {
 			$scope['where']['t.category_id'] = $this->category_id;
 		}
 		

@@ -817,6 +817,9 @@ class PC_shop_products_site extends PC_shop_products {
 	
 	public function Get($id=null, $categoryId=null, &$params=array()) {
 		$this->debug('PC_shop_products_site->Get()');
+		if (isset($params['product_id'])) {
+			$id = $params['product_id'];
+		}
 		$category_data = false;
 		if (is_array($categoryId) and isset($categoryId['id'])) {
 			$category_data = $categoryId;

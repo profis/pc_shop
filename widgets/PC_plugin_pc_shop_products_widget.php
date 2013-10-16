@@ -10,6 +10,7 @@ class PC_plugin_pc_shop_products_widget extends PC_plugin_pc_shop_widget {
 		return array(
 			'category' => false,
 			'params' => array(),
+			'limit' => 0,
 			'per_page' => 10,
 			'per_row' => 0,
 			'list_item_thumb_type' => 'small',
@@ -42,18 +43,40 @@ class PC_plugin_pc_shop_products_widget extends PC_plugin_pc_shop_widget {
 		vv($params['flags'], array());
 		$params['flags'][] = PC_shop_products::PF_PUBLISHED;
 		
-		$params['paging'] = array(
-			'perPage' => $this->_config['per_page'],
-			'page' => $paging_cr_pg,
-			'limit' => $this->_config['per_page'],
-		);
+		if ($this->_config['per_page']) {
+			$per_page = $this->_config['per_page'];
+			$limit = $this->_config['per_page'];
+			if ($this->_config['limit']) {
+				$limit = $this->_config['limit'];
+				if ($limit < $per_page) {
+					$per_page = $limit;
+					$this->_config['per_page'] = 0;
+					$paging_cr_pg = 1;
+				}
+			}
+			$params['paging'] = array(
+				'perPage' => $per_page,
+				'page' => $paging_cr_pg,
+				'limit' => $limit,
+			);
+		}
+		elseif($this->_config['limit']) {
+			$params['paging'] = array(
+				'perPage' => $this->_config['limit'],
+				'page' => 1,
+				'limit' => $this->_config['limit'],
+			);
+		}
+		
 		$params['parse'] = array(
 			//'description' => true,
 			//'attributes' => true,
 			//'recources' => true,
 			'recources' => 'first_img_only'
 		);
-		$params['full_links'] = true;
+		if (!isset($params['full_links'])) {
+			$params['full_links'] = true;
+		}
 		return $params;
 	}
 	

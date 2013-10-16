@@ -464,6 +464,9 @@ class PC_shop_categories_manager extends PC_shop_categories {
 			$this->shop->products->Create($new_category_id, 0, $product, $create_product_params);
 		}
 		
+		if ($id == $into_id) {
+			return;
+		}
 	
 		$categories = $this->shop->categories->get_all(array(
 			'select' => 'id',
