@@ -105,6 +105,17 @@ var ln =  {
 			key: 'Key',
 			test: 'Test payments'
 		},
+		coupons: {
+			code: 'Code',
+			time_from: 'Valid from',
+			time_to: 'Valid till',
+			use_limit: 'Limit',
+			category: 'Category',
+			is_for_hot: 'Valid for promo products',
+			error: {
+				//unique: 'Already exists'
+			}
+		},
 		settings: {
 			new_order_email_admin: 'New order notification email address'
 		},
@@ -234,6 +245,17 @@ var ln =  {
 			login: 'Prisijungimas',
 			key: 'Raktas',
 			test: 'Testiniai mokėjimai'
+		},
+		coupons: {
+			code: 'Kodas',
+			time_from: 'Galioja nuo',
+			time_to: 'Galioja iki',
+			use_limit: 'Limitas',
+			category: 'Kategorija',
+			is_for_hot: 'Galioja akcijinėms prekėms',
+			error: {
+				//unique: 'Jau egzistuoja'
+			}
 		},
 		settings: {
 			new_order_email_admin: 'E. paštas, kuriuo siunčiamas pranešimas apie nauja užsakymą'

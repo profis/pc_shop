@@ -184,6 +184,7 @@ class PC_shop_import_products_admin_api extends PC_shop_admin_api {
 		$this->_additional_product_data = array();
 		$this->_import_only_on = array();
 		$this->_product_scope = '';
+		$this->_hook_row = '';
 		$this->core->Init_hooks('plugin/pc_shop/import-products/import-fields-associations/' . $product_import_method, array(
 			'id_fields'=> &$this->_id_fields,
 			'data'=> &$this->_associations,
@@ -191,7 +192,8 @@ class PC_shop_import_products_admin_api extends PC_shop_admin_api {
 			'aliases' => &$aliases,
 			'additional_product_data' => &$this->_additional_product_data,
 			'import_only_on' => &$this->_import_only_on,
-			'product_scope' => &$this->_product_scope
+			'product_scope' => &$this->_product_scope,
+			'hook_row' => &$this->_hook_row
 		));
 		foreach ($this->_associations as $key => $assoc) {
 			if (!isset($assoc['title'])) {
@@ -382,6 +384,9 @@ class PC_shop_import_products_admin_api extends PC_shop_admin_api {
 		foreach ($this->products as $key => $product) {
 			if (!empty($this->_additional_product_data)) {
 				$product = array_merge($this->_additional_product_data, $product);
+			}
+			if ($this->_hook_row !== false and is_callable($this->_hook_row)) {
+				call_user_func_array($this->_hook_row, array(&$product));
 			}
 			$missing_id_fields = array_diff_key($this->_id_fields_flipped, $product);
 			if (!empty($missing_id_fields)) {

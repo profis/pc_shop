@@ -2213,6 +2213,24 @@ Plugin.view_factory = {
 									}
 								}]
 							},
+							//custom name
+							{	xtype: 'box',
+								style: 'padding: 6px',
+								html: PC.i18n.custom_name.replace(/\s/, '&nbsp;') + ':'
+							},
+							{	xtype: 'container',
+								//id: 'db_fld_name_container',
+								layout: 'fit',
+								height: 22,
+								items: [{
+									ref: '../../_custom_name',
+									xtype: 'textfield',
+									//xtype: 'profis_multilnfield',
+									editorCfg: {
+										title: PC.i18n.custom_name
+									}
+								}]
+							},
 							//route
 							{	xtype: 'box',
 								style: 'padding: 6px',
@@ -2621,6 +2639,7 @@ PC.editors.Register(Plugin.Name, 'product', function(){
 		Clear: function(editor) {
 			var fields = [
 				editor._information._name,
+				editor._information._custom_name,
 				editor._information._route,
 				editor._information._route_lock,
 				editor._information._title,
@@ -2690,6 +2709,7 @@ PC.editors.Register(Plugin.Name, 'product', function(){
 				//contents
 				if (data.contents != undefined) if (typeof data.contents[ln] == 'object') {
 					editor._information._name.setValue(data.contents[ln].name);
+					editor._information._custom_name.setValue(data.contents[ln].custom_name);
 					editor._information._route.setValue(data.contents[ln].route);
 					editor._information._title.setValue(data.contents[ln].seo_title);
 					editor._information._description.setValue(data.contents[ln].seo_description);
@@ -2744,6 +2764,7 @@ PC.editors.Register(Plugin.Name, 'product', function(){
 			if (d.contents[ln] == undefined) d.contents[ln] = {};
 			var c = d.contents[ln];
 			c.name = editor._information._name.getValue();
+			c.custom_name = editor._information._custom_name.getValue();
 			c.route = editor._information._route.getValue();
 			c.seo_title = editor._information._title.getValue();
 			c.seo_description = editor._information._description.getValue();

@@ -13,7 +13,7 @@ $(document).ready(function(){
 		//var $vnt_price = $this.attr("vnt_price");
 		var $quantity = $this.find("input.cart_quantity").val();
 		
-		var url="api/plugin/pc_shop/cart/";
+		var url = PC_base_url + "api/plugin/pc_shop/cart/";
 		
 		if ($type == "plus") url += "addAt/"+$key+"/1";
 		else if ($type == "minus") url += "remove/"+$key+"/1";

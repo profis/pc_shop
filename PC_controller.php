@@ -21,8 +21,10 @@ class PC_controller_pc_shop extends PC_controller {
 		//fast-order must enter this data: address, recipient, email (for order data to send)
 		$this->payment_logger = new PC_debug();
 		$this->payment_logger->debug = true;
+		$this->payment_logger->debug_forced = true;
 		$this->payment_logger->set_instant_debug_to_file($this->cfg['path']['logs'] . 'pc_shop/payments.html', false, 500);
-				
+		$this->payment_logger->debug('ip: ' . pc_ip());		
+		
 		if (isset($_GET['debug'])) {
 			$this->debug = true;
 			$this->set_instant_debug_to_file($this->cfg['path']['logs'] . 'pc_shop/controller_log.html', false, 5);
@@ -239,6 +241,7 @@ class PC_controller_pc_shop extends PC_controller {
 			$code = $this->order_data['payment_option'];
 		}
 		$this->payment_logger->debug('code:' . $code, 2);
+		//$payment_option_model->absorb_debug_settings($this->payment_logger);
 		return $payment_option_model->get_one(array(
 			'where' => array(
 				'code' => $code,
@@ -252,6 +255,7 @@ class PC_controller_pc_shop extends PC_controller {
 		if ($payment_option_data) {
 			$class_name = 'PC_shop_' . $payment_option_data['code'] . '_payment_method';
 			$payment_method_class_path = $this->cfg['path']['plugins'] . 'pc_shop_payment_' . $payment_option_data['code'] . '/' . $class_name . '.php';
+			$this->debug($payment_method_class_path);
 			if (file_exists($payment_method_class_path)) {
 				require_once $this->cfg['path']['plugins'] . 'pc_shop/classes/PC_shop_payment_method.php';
 				require_once $payment_method_class_path;
@@ -259,6 +263,9 @@ class PC_controller_pc_shop extends PC_controller {
 				$this->payment_method->absorb_debug_settings($this->payment_logger);
 				return $this->payment_method;
 			}
+		}
+		else {
+			$this->debug(':( Could not get payment option data', 3);
 		}
 		return false;
 	}
@@ -324,6 +331,9 @@ class PC_controller_pc_shop extends PC_controller {
 				$this->_order_set_is_paid();
 				$this->_inform_about_order(true);
 			}
+		}
+		else {
+			$this->payment_logger->debug(':( could not get payment method object', 3);
 		}
 		exit;
 	}

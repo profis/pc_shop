@@ -1,7 +1,7 @@
 <?php
 
 abstract class PC_shop_payment_method extends PC_base {
-	
+
 	const STATUS_SUCCESS = 'success';
 	const STATUS_ALREADY_PURCHASED = 'already_purchased';
 	const STATUS_WAITING = 'waiting';
@@ -9,6 +9,8 @@ abstract class PC_shop_payment_method extends PC_base {
 	const STATUS_ERROR = 'error';
 	
 	const _STATUS_IS_PAID = 'is_paid';
+
+	protected $_response_amount_in_cents = false;
 	
 	protected $_response;
 	
@@ -123,13 +125,17 @@ abstract class PC_shop_payment_method extends PC_base {
 		if (!$this->_get_response_payment_status()) {
 			throw new Exception("Payment hasn't been accepted yet");
 		}
-			
-		$this->order_id = $this->_get_response_order_id();
+		
+		if (empty($this->order_id)) {
+			$this->order_id = $this->_get_response_order_id();
+		}
 		if (!$this->order_id) {
 			throw new Exception(':( could not get respose order id');
 		}
-		$this->_order_data = $this->_get_order_data($this->order_id);
-
+		if (empty($this->order_id)) {
+			$this->_order_data = $this->_get_order_data($this->order_id);
+		}
+		
 		if (!$this->_order_data) {
 			throw new Exception('Order was not found');
 		}
@@ -146,9 +152,9 @@ abstract class PC_shop_payment_method extends PC_base {
 		$order_currency = $this->_get_order_currency();
 		
 		$amount = $this->_get_response_amount();
-		
-		if (number_format($amount, 0, '', '') != number_format(($total_price*100), 0, '', '')) {
-			throw new Exception('Bad amount: ' . $amount);
+		$expected_amount = $total_price*($this->_response_amount_in_cents?100:1);
+		if (number_format($amount, 0, '', '') != number_format(($expected_amount), 0, '', '')) {
+			throw new Exception('Bad amount: ' . $amount . ', expected: ' . $expected_amount);
 		}
 
 		

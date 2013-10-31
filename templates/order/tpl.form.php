@@ -93,7 +93,7 @@ $this->site->Add_script($this->cfg['directories']['media'] . '/form_validation.j
 			type: "POST",
 			data : postData,
 			cache: false,  
-			url: "api/plugin/pc_shop/order/save",   
+			url: PC_base_url + "api/plugin/pc_shop/order/save",   
 			success: function(data){
 				$("#tprice").text(data.totalPrice);
 				$("#dprice").text(data.order_delivery_price);

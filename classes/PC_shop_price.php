@@ -83,12 +83,21 @@ class PC_shop_price extends PC_base {
 		}
 		if (empty($currency) or !isset($this->currencies[$currency])) {
 			$currency = $this->base_currency;
-		}		
+			if (!isset($this->currencies[$currency])) {
+				$arr_keys = array_keys($this->currencies);
+				if (isset($arr_keys[0])) {
+					$currency = $arr_keys[0];
+				}
+			}
+		}
 		return $currency;
 	}
 	
 	public function get_user_currency_id() {
 		$currency = $this->get_user_currency();
+		if (!isset($this->currencies[$currency])) {
+			return false;
+		}
 		return $this->currencies[$currency];
 	}
 	

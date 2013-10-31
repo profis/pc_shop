@@ -52,7 +52,7 @@ abstract class PC_shop extends PC_base {
 		$fields['categories'] = array('flags', 'discount', 'percentage_discount', 'external_id', 'redirect');
 		$fields['category_contents'] = array('name', 'custom_name', 'description', 'seo_title', 'seo_description', 'seo_keywords', 'route', 'permalink');
 		$fields['products'] = array('manufacturer_id', 'mpn', 'quantity', 'flags', 'warranty', 'discount', 'percentage_discount', 'hot_from', 'price', 'external_id', 'import_method', 'state');
-		$fields['product_contents'] = array('name', 'short_description', 'description', 'seo_title', 'seo_description', 'seo_keywords', 'route', 'permalink');
+		$fields['product_contents'] = array('name', 'custom_name', 'short_description', 'description', 'seo_title', 'seo_description', 'seo_keywords', 'route', 'permalink');
 		foreach ($fields as $table=>&$cols) {
 			foreach ($cols as $col) {
 				$this->db->fields->Register('shop_'.$table, $col, array(

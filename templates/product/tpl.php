@@ -1,9 +1,14 @@
 <?php 
+$product_name = trim($this->product['custom_name']);
+if (empty($product_name)) {
+	$product_name = $this->product['name'];
+}
 //print_pre($this->product['attributes']);
 $attribute_categories = $this->shop->attributes->Get_categorized_keys($this->product['attributes']);
 //print_pre($attribute_categories);
 ?>
 
+<h1><?php echo $product_name?></h1>
 
 <div>
 <?php

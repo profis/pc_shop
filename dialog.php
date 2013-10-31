@@ -38,6 +38,7 @@ $mod['priority'] = 100;
 		'dialog.tab.manufacturers.js',
 		'dialog.tab.delivery_options.js',
 		'dialog.tab.payment_options.js',
+		'dialog.tab.coupons.js',
 		'dialog.tab.settings.js',
 		'ln_currencies_crud.js',
 		'dialog.tab.currencies.rates.js',
@@ -1315,7 +1316,9 @@ function mod_pc_shop_click() {
 			new PC.plugin.pc_shop.crud_orders({
 				ln: Ext.apply({title: ln.tab.orders}, ln)
 			}),
-			{title: ln.tab.coupons, html:'Under construction'},
+			new PC.plugin.pc_shop.crud_coupons({
+				ln: Ext.apply({title: ln.tab.coupons}, ln.coupons)
+			}),
 			dialog.attributes.tab,
 			new PC.plugin.pc_shop.crud_attribute_categories({
 				ln: Ext.apply({title: ln.tab.attribute_categories}, ln.attribute_categories),
@@ -1332,7 +1335,7 @@ function mod_pc_shop_click() {
 						title: ln.tab.currencies
 					}),
 					new PC.plugin.pc_shop.shop_currency_rates({
-						ln: {
+						'ln': {
 							title: ln.tab.currency_rates,
 							error: {
 								wrong_xml: ln.import_rate_error
