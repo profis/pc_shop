@@ -3,7 +3,7 @@
 -- http://www.phpmyadmin.net
 -- 
 -- Host: localhost
--- Generation Time: Oct 04, 2013 at 03:51 PM
+-- Generation Time: Oct 31, 2013 at 02:36 PM
 -- Server version: 5.5.32
 -- PHP Version: 5.3.10-1ubuntu3.7
 -- 
@@ -170,6 +170,25 @@ CREATE TABLE IF NOT EXISTS `{prefix}shop_category_product_filters` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `category_id` (`category_id`,`attribute`,`filter_type`)
 ) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+
+-- --------------------------------------------------------
+
+-- 
+-- Table structure for table `{prefix}shop_coupons`
+-- 
+
+CREATE TABLE IF NOT EXISTS `{prefix}shop_coupons` (
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `code` varchar(10) CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
+  `is_for_hot` tinyint(1) NOT NULL DEFAULT '0',
+  `time_from` datetime NOT NULL,
+  `time_to` datetime NOT NULL,
+  `category_id` smallint(5) NOT NULL,
+  `use_limit` smallint(8) NOT NULL DEFAULT '1',
+  `used` smallint(8) NOT NULL DEFAULT '0',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `code` (`code`)
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 
 -- --------------------------------------------------------
 
@@ -344,6 +363,8 @@ CREATE TABLE IF NOT EXISTS `{prefix}shop_orders` (
   `is_paid` tinyint(1) unsigned NOT NULL,
   `status` smallint(5) NOT NULL DEFAULT '0',
   `data` text COLLATE utf8_unicode_ci NOT NULL,
+  `token` varchar(100) COLLATE utf8_unicode_ci NOT NULL,
+  `transaction_id` varchar(100) COLLATE utf8_unicode_ci NOT NULL,
   KEY `id` (`id`)
 ) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
@@ -418,6 +439,7 @@ CREATE TABLE IF NOT EXISTS `{prefix}shop_product_contents` (
   `product_id` mediumint(8) unsigned NOT NULL,
   `ln` varchar(2) COLLATE utf8_unicode_ci NOT NULL,
   `name` varchar(255) COLLATE utf8_unicode_ci NOT NULL,
+  `custom_name` varchar(255) COLLATE utf8_unicode_ci NOT NULL,
   `short_description` text COLLATE utf8_unicode_ci NOT NULL,
   `description` mediumtext COLLATE utf8_unicode_ci NOT NULL,
   `seo_title` varchar(255) COLLATE utf8_unicode_ci NOT NULL,
@@ -494,10 +516,10 @@ CREATE TABLE IF NOT EXISTS `{prefix}shop_products` (
   `discount` decimal(10,2) unsigned DEFAULT NULL,
   `percentage_discount` decimal(5,2) unsigned DEFAULT NULL,
   `hot_from` int(10) unsigned DEFAULT NULL,
+  `created_on` int(10) unsigned DEFAULT NULL,
   `price` decimal(10,2) unsigned NOT NULL,
   `import_method` varchar(255) COLLATE utf8_unicode_ci NOT NULL,
   `state` tinyint(3) NOT NULL DEFAULT '0',
-  `created_on` int(10) unsigned DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `external_id` (`external_id`),
   KEY `category_id` (`category_id`,`position`,`manufacturer_id`,`flags`)
@@ -519,6 +541,7 @@ CREATE TABLE IF NOT EXISTS `{prefix}shop_resources` (
   UNIQUE KEY `item_id` (`item_id`,`file_id`,`flags`),
   KEY `position` (`position`)
 ) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+
 
 
 
