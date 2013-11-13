@@ -38,11 +38,15 @@ class PC_shop_categories_admin_api extends PC_shop_admin_api{
 		$this->_check_category_access(v($_POST['id']));
 		$this->_check_category_access(v($_POST['parentId']), true);
 		$this->_out['success'] = $tree->Move('shop_categories', v($_POST['id']), v($_POST['parentId']), v($_POST['position'], 0), $params);
-		if ($this->_out['success'] && isset($_POST['parent_pid'])) {
-			$this->_check_page_access($_POST['parent_pid']);
+		if ($this->_out['success']) {
+			$pid = '';
+			if (isset($_POST['parent_pid'])) {
+				$this->_check_page_access($_POST['parent_pid']);
+				$pid = $_POST['parent_pid'];
+			}
 			$query = "UPDATE {$this->cfg['db']['prefix']}shop_categories SET pid=? WHERE id=?";
 			$r = $this->db->prepare($query);
-			$query_params = array($_POST['parent_pid'], $_POST['id']);
+			$query_params = array($pid, $_POST['id']);
 			$tree->debug('----', 2);
 			$tree->debug_query($query, $query_params, 3);
 			$r->execute($query_params);

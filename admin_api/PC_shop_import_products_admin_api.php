@@ -25,6 +25,19 @@ class PC_shop_import_products_admin_api extends PC_shop_admin_api {
 		}
 	}
 	
+	protected function _get_products() {
+		
+		$this->product_import_method;
+		
+		$products = array();
+		
+		$this->core->Init_hooks('plugin/pc_shop/import-products/get_products/' . $this->product_import_method, array(
+			'products'=> &$products
+		));
+		
+		return $products;
+	}
+	
 	protected function _read_products_from_file() {
 		$this->debug('_get_products_from_file(' . $this->_file);
 		$ext = pathinfo($this->_file_name, PATHINFO_EXTENSION);
@@ -41,6 +54,8 @@ class PC_shop_import_products_admin_api extends PC_shop_admin_api {
 				break;
 			
 			default:
+				$items = $this->_get_products();
+				return $this->_read_products_from_array($items);
 				return array();
 				break;
 		}
@@ -93,6 +108,20 @@ class PC_shop_import_products_admin_api extends PC_shop_admin_api {
 					$data[] = $d;
 				}
 			}
+		}
+		return $data;
+	}
+	
+	protected function _read_products_from_array(&$items) {
+		$this->debug('_read_products_from_array');
+		
+		$data = array();
+		foreach ($items as $item) {
+			$d = array();
+			foreach ($item as $item_property_key => $item_property) {
+				$this->_append_data($d, $item_property_key, $item_property);
+			}
+			$data[] = $d;
 		}
 		return $data;
 	}
@@ -369,12 +398,13 @@ class PC_shop_import_products_admin_api extends PC_shop_admin_api {
 		$this->debug('products:', 3);
 		$this->debug($this->products, 3);
 		
-		
 		$this->_attr_model = new PC_shop_attribute_model();
 		$this->_attr_value_model = new PC_shop_attribute_value_model();
 		
 		$this->_attr_category_item_model = new PC_shop_attribute_item_model();
 		$this->_attr_category_item_model->set_category_attribute_scope();
+		
+		$this->_manufacturer_model = new PC_shop_manufacturer_model();
 		
 		$this->_field_names = array();
 		$items_imported = 0;
@@ -388,13 +418,7 @@ class PC_shop_import_products_admin_api extends PC_shop_admin_api {
 			if ($this->_hook_row !== false and is_callable($this->_hook_row)) {
 				call_user_func_array($this->_hook_row, array(&$product));
 			}
-			$missing_id_fields = array_diff_key($this->_id_fields_flipped, $product);
-			if (!empty($missing_id_fields)) {
-				$this->debug($this->_id_fields_flipped, 6);
-				$this->debug(':( Product has missing id keys ' . implode(',', array_keys($this->_id_fields_flipped)), 4);
-				$items_skipped++;
-				continue;
-			}
+			
 			$category_id = false;
 			$logs = array();
 			$product_id = $this->_get_product_id_from_product_import_data($product, $category_id, $logs);
@@ -464,10 +488,24 @@ class PC_shop_import_products_admin_api extends PC_shop_admin_api {
 						$category_attribute_values[$field_name_data['lang']][$field_name_data['name']] = $product_property_value;
 						break;
 					
+					case 'manufacturer':
+						$fields['manufacturer_id'] = $this->_manufacturer_model->get_id_from_field('name', $product_property_value);
+						$product['field-manufacturer_id'] = $fields['manufacturer_id'];
+						break;
+						
 					default:
 						break;
 				}
 			}
+			
+			$missing_id_fields = array_diff_key($this->_id_fields_flipped, $product);
+			if (!empty($missing_id_fields)) {
+				$this->debug($this->_id_fields_flipped, 6);
+				$this->debug(':( Product has missing id keys ' . implode(',', array_keys($this->_id_fields_flipped)), 4);
+				$items_skipped++;
+				continue;
+			}
+			
 			$this->debug('Fields, contents and attributes:', 3);
 			$this->debug($fields, 4); $this->debug($contents, 4); $this->debug($attributes, 4);
 			

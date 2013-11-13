@@ -246,7 +246,7 @@ PC.utils.localize('mod.'+ Plugin.Name, {
 var hook_params = {};
 PC.hooks.Init('plugin/pc_shop/localize', hook_params);
 if (hook_params.localize) {
-	PC.utils.localize(hook_params.localize.path, hook_params.localize.titles);
+	//PC.utils.localize(hook_params.localize.path, hook_params.localize.titles);
 }
 
 Plugin.ln = PC.i18n.mod.pc_shop;

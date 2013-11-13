@@ -55,7 +55,7 @@ class PC_shop_categories_site extends PC_shop_categories {
 				
 		$link_select .= ', concat('.$this->sql_parser->group_concat('link_cc.permalink', array('separator'=>'|','order'=>array('by'=>'link_c.lft'))).") permalinks";
 		
-		$link_join = " LEFT JOIN {$this->db_prefix}shop_categories link_c ON c.lft BETWEEN link_c.lft and link_c.rgt"
+		$link_join = " LEFT JOIN {$this->db_prefix}shop_categories link_c ON (c.lft BETWEEN link_c.lft and link_c.rgt) AND (link_c.pid = 0 OR link_c.parent_id = 0)"
 		." LEFT JOIN {$this->db_prefix}shop_category_contents link_cc ON link_cc.category_id = link_c.id and link_cc.ln=?";
 		
 		$queryParams = array();

@@ -1306,73 +1306,81 @@ function mod_pc_shop_click() {
 		layout: 'border',
 		items: [dialog.attributes.center, dialog.attributes.east]
 	}
+	var tabs = [];
+	
+	
+	var hook_params = {};
+	PC.hooks.Init('plugin/pc_shop/tabs', hook_params);
+	
+	if (!hook_params.allowed_tabs || hook_params.allowed_tabs.indexOf(0) != -1) {
+		tabs.push(new PC.plugin.pc_shop.crud_orders({
+			ln: Ext.apply({title: ln.tab.orders}, ln)
+		}));
+	}
+	
+	if (!hook_params.allowed_tabs || hook_params.allowed_tabs.indexOf(1) != -1) {
+		tabs.push(new PC.plugin.pc_shop.crud_coupons({
+			ln: Ext.apply({title: ln.tab.coupons}, ln.coupons)
+		}));
+	}
+	if (!hook_params.allowed_tabs || hook_params.allowed_tabs.indexOf(2) != -1) {
+		tabs.push(dialog.attributes.tab,
+			new PC.plugin.pc_shop.crud_attribute_categories({
+				ln: Ext.apply({title: ln.tab.attribute_categories}, ln.attribute_categories),
+				per_page: 2
+		}));
+	}
+	if (!hook_params.allowed_tabs || hook_params.allowed_tabs.indexOf(3) != -1) {
+		tabs.push(new Ext.TabPanel({
+			title: ln.tab.currencies,
+			activeTab: 0,
+			items: [
+				new PC.plugin.pc_shop.shop_currencies({
+					title: ln.tab.currencies
+				}),
+				new PC.plugin.pc_shop.shop_currency_rates({
+					'ln': {
+						title: ln.tab.currency_rates,
+						error: {
+							wrong_xml: ln.import_rate_error
+						}
+					}
+				})
+			]
+		}));
+	}
+	if (!hook_params.allowed_tabs || hook_params.allowed_tabs.indexOf(4) != -1) {
+		tabs.push(new PC.plugin.pc_shop.crud_manufacturers({
+			ln: Ext.apply({title: ln.tab.manufacturers}, ln.manufacturers)
+		}));
+	}
+	if (!hook_params.allowed_tabs || hook_params.allowed_tabs.indexOf(5) != -1) {
+		tabs.push(new PC.plugin.pc_shop.crud_delivery_options({
+			ln: Ext.apply({title: ln.tab.delivery_options}, ln.delivery_options)
+		}));
+	}
+	if (!hook_params.allowed_tabs || hook_params.allowed_tabs.indexOf(6) != -1) {
+		tabs.push(new PC.plugin.pc_shop.crud_payment_options({
+			ln: Ext.apply({title: ln.tab.payment_options}, ln.payment_options)
+		}));
+	}
+	if (!hook_params.allowed_tabs || hook_params.allowed_tabs.indexOf(7) != -1) {
+		tabs.push(new PC.plugin.pc_shop.settings({
+			ln: Ext.apply({title: ln.tab.settings}, ln.settings)
+		}));
+	}
+	if (!hook_params.allowed_tabs || hook_params.allowed_tabs.indexOf(8) != -1) {
+		tabs.push(PC_plugin_dialog_pc_shop.view_factory.get_tab_for_import());
+	}
+	
 	
 	/* Window Layout */
 	dialog.tab = new Ext.TabPanel({
 		region: 'center',
 		border: false,
-		items: [
-			//dialog.orders.tab,
-			new PC.plugin.pc_shop.crud_orders({
-				ln: Ext.apply({title: ln.tab.orders}, ln)
-			}),
-			new PC.plugin.pc_shop.crud_coupons({
-				ln: Ext.apply({title: ln.tab.coupons}, ln.coupons)
-			}),
-			dialog.attributes.tab,
-			new PC.plugin.pc_shop.crud_attribute_categories({
-				ln: Ext.apply({title: ln.tab.attribute_categories}, ln.attribute_categories),
-				per_page: 2
-			}),
-			//new PC.ux.crud({
-				//api_url: 'api/plugin/pc_shop/attribute_categories/'
-			//}),
-			new Ext.TabPanel({
-				title: ln.tab.currencies,
-				activeTab: 0,
-				items: [
-					new PC.plugin.pc_shop.shop_currencies({
-						title: ln.tab.currencies
-					}),
-					new PC.plugin.pc_shop.shop_currency_rates({
-						'ln': {
-							title: ln.tab.currency_rates,
-							error: {
-								wrong_xml: ln.import_rate_error
-							}
-						}
-					})
-				]
-			}),
-			
-			//{title: ln.tab.manufacturers, html:'Under construction'},
-			new PC.plugin.pc_shop.crud_manufacturers({
-				ln: Ext.apply({title: ln.tab.manufacturers}, ln.manufacturers)
-			}),
-			new PC.plugin.pc_shop.crud_delivery_options({
-				ln: Ext.apply({title: ln.tab.delivery_options}, ln.delivery_options)
-			}),
-			new PC.plugin.pc_shop.crud_payment_options({
-				ln: Ext.apply({title: ln.tab.payment_options}, ln.payment_options)
-			}),
-			new PC.plugin.pc_shop.settings({
-				ln: Ext.apply({title: ln.tab.settings}, ln.settings)
-			}),
-			PC_plugin_dialog_pc_shop.view_factory.get_tab_for_import()
-		],
+		items: tabs,
 		activeTab: 0
 	});
-	
-	var hook_params = {};
-	PC.hooks.Init('plugin/pc_shop/tabs', hook_params);
-	if (hook_params.allowed_tabs) {
-		var total_tabs = dialog.tab.items.length;
-		for(var i = total_tabs-1; i >= 0; i--) {
-			if (hook_params.allowed_tabs.indexOf(i) == -1) {
-				dialog.tab.items.removeAt(i);
-			}
-		};
-	}
 	
 	if (typeof(hook_params.active_tab) != "undefined") {
 		dialog.tab.activeTab = hook_params.active_tab;

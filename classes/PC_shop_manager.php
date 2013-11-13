@@ -225,7 +225,7 @@ class PC_shop_categories_manager extends PC_shop_categories {
 		$this->debug(" Get($id, $parentId, $pid)");
 		$this->debug($params);
 		$this->core->Init_params($params);
-		$query = "SELECT ".($params->Has_paging()?'SQL_CALC_FOUND_ROWS ':'')."* FROM {$this->db_prefix}shop_categories ".(!is_null($id)?'WHERE id'.(is_array($id)?' '.$this->sql_parser->in($id):'=? ORDER BY lft LIMIT 1'):(!is_null($parentId)?'WHERE parent_id=?'.(!is_null($pid)?' and pid=?':''):'').($params->Has_paging()?" ORDER BY lft LIMIT {$params->paging->Get_offset()},{$params->paging->Get_limit()}":''));
+		$query = "SELECT ".($params->Has_paging()?'SQL_CALC_FOUND_ROWS ':'')."* FROM {$this->db_prefix}shop_categories ".(!is_null($id)?'WHERE id'.(is_array($id)?' '.$this->sql_parser->in($id):'=? ORDER BY lft LIMIT 1'):((!is_null($parentId))?'WHERE '.($parentId != 0 ? 'parent_id=?': '1 = 1').(!is_null($pid)?' and pid=?':''):'').($params->Has_paging()?" ORDER BY lft LIMIT {$params->paging->Get_offset()},{$params->paging->Get_limit()}":''));
 		$r_category = $this->prepare($query);
 		$r_contents = $this->prepare("SELECT * FROM {$this->db_prefix}shop_category_contents WHERE category_id=?");
 		$queryParams = array();
@@ -236,7 +236,9 @@ class PC_shop_categories_manager extends PC_shop_categories {
 			else $queryParams[] = $id;
 		}
 		else if (!is_null($parentId)) {
-			$queryParams[] = $parentId;
+			if ($parentId != 0) {
+				$queryParams[] = $parentId;
+			}
 			if (!is_null($pid)) $queryParams[] = $pid;
 		}
 		$this->debug_query($query, $queryParams);

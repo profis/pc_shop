@@ -26,7 +26,7 @@ class PC_plugin_pc_shop_search_products_widget extends PC_plugin_pc_shop_product
 				'input' => 'q',
 				'op' => 'like',
 				'like_pref' => false,
-				'like_suff' => false,
+				'like_suff' => true,
 				'field' => 'pm.name',
 				'group' => 'text'
 			)

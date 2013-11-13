@@ -413,3 +413,6 @@ var ln =  {
 };
 
 PC.utils.localize('mod.pc_shop', ln);
+
+var hook_params = {};
+PC.hooks.Init('plugin/pc_shop/dialog-localize', hook_params);

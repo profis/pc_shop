@@ -25,7 +25,6 @@ class PC_plugin_pc_shop_category_menu_widget extends PC_vmenu_widget {
 		$data['menu']  = $this->shop->categories->Get(null, 0, $this->page->Get_id(), $params);
 		
 		$this->_build_menu($data['menu'], $params_array);
-		
 		return $data;
 	}
 	
