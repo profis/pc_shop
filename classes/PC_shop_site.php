@@ -55,7 +55,7 @@ class PC_shop_categories_site extends PC_shop_categories {
 				
 		$link_select .= ', concat('.$this->sql_parser->group_concat('link_cc.permalink', array('separator'=>'|','order'=>array('by'=>'link_c.lft'))).") permalinks";
 		
-		$link_join = " LEFT JOIN {$this->db_prefix}shop_categories link_c ON (c.lft BETWEEN link_c.lft and link_c.rgt) AND (link_c.pid = 0 OR link_c.parent_id = 0)"
+		$link_join = " LEFT JOIN {$this->db_prefix}shop_categories link_c ON (c.lft BETWEEN link_c.lft and link_c.rgt) AND (link_c.pid = 0 OR link_c.pid is null OR link_c.parent_id = 0)"
 		." LEFT JOIN {$this->db_prefix}shop_category_contents link_cc ON link_cc.category_id = link_c.id and link_cc.ln=?";
 		
 		$queryParams = array();
@@ -261,7 +261,8 @@ class PC_shop_categories_site extends PC_shop_categories {
 			if ($min_max_data) {
 				$pseudo_category = array(
 					'lft' => $min_max_data['min_lft'] - 1, 
-					'rgt' => $min_max_data['max_rgt'] + 1
+					'rgt' => $min_max_data['max_rgt'] + 1,
+					'page_id' => $params_array['all_children']['page_data']['pid']
 				);
 				$pseudo_category['link'] = '';//v($params_array['all_children']['page_data']['link'], '');
 				if (v($params->full_links)) {
@@ -278,50 +279,106 @@ class PC_shop_categories_site extends PC_shop_categories {
 		if (v($params_array['all_children']) && v($params_array['all_children']['category_data'])) {
 			$generate_link_for_category = false;
 			$this->debug('  adding lft and rgt conditions');
-			if (isset($params_array['all_children']['category_data']['lft'])) {
-				$where[] = 'c.lft > ?';
-				$queryParams[] = $params_array['all_children']['category_data']['lft'];
+			if (isset($params_array['all_children']['levels']) and $params_array['all_children']['levels'] > 0) {
+				$all_category_ids = array();
+				$children_category_ids = array();
+				if (isset($params_array['all_children']['category_data']['page_id'])) {
+					$children_category_ids = $this->get_all(array(
+						'where' => array(
+							'pid' => $params_array['all_children']['category_data']['page_id']
+						),
+						'value' => 'id'
+					));
+				}
+				else {
+					$children_category_ids = $this->get_all(array(
+						'where' => array(
+							'parent_id' => $params_array['all_children']['category_data']['id']
+						),
+						'value' => 'id'
+					));
+				}
+				if (!empty($children_category_ids)) {
+					$all_category_ids = array_merge($all_category_ids, $children_category_ids);
+				}
+				else {
+					return array();
+					//$all_category_ids[] = 
+				}
+				$this->debug('$children_category_ids:', 2);
+				$this->debug($children_category_ids, 2);
+				
+				
+				for ($index = 1; $index < $params_array['all_children']['levels']; $index++) {
+					if (empty($children_category_ids)) {
+						break;
+					}
+					$children_category_ids = $this->get_all(array(
+						'where' => array(
+							'parent_id' => $children_category_ids
+						),
+						'value' => 'id'
+					));
+					$all_category_ids = array_merge($all_category_ids, $children_category_ids);
+					
+				}
+				
+				$this->debug('final $all_category_ids:', 2);
+				$this->debug($all_category_ids, 2);
+				if (!empty($all_category_ids)) {
+					$where[] = 'c.id '.$this->sql_parser->in($all_category_ids);
+					$queryParams = array_merge($queryParams, $all_category_ids);
+				}
+				
 			}
-			
-			if (isset($params_array['all_children']['category_data']['rgt'])) {
-				$where[] = 'c.rgt < ?';
-				$queryParams[] = $params_array['all_children']['category_data']['rgt'];
-			}
-			
-			$hidden_query_params = array();
-			$hidden_query = "SELECT lft, rgt FROM pc_shop_categories c
-				WHERE " . $this->get_flag_query_condition(self::CF_PUBLISHED, $hidden_query_params, 'c', '<>');
-			
-			$this->debug('hidden query:', 2);
-			$this->debug_query($hidden_query, $hidden_query_params, 3);
-			
-			$r_hidden = $this->prepare($hidden_query);
-			$s_hiden = $r_hidden->execute($hidden_query_params);
-			
-			$hidden_ranges = array();
-			if ($s_hiden) {
-				while ($d_hidden = $r_hidden->fetch()) {
-					$add_range = true;
-					foreach ($hidden_ranges as $k => $range) {
-						if ($range['lft'] <= $d_hidden['lft'] and $range['rgt'] >= $d_hidden['rgt']) {
-							$add_range = false;
-							break;
+			else {
+				if (isset($params_array['all_children']['category_data']['lft'])) {
+					$where[] = 'c.lft > ?';
+					$queryParams[] = $params_array['all_children']['category_data']['lft'];
+				}
+
+				if (isset($params_array['all_children']['category_data']['rgt'])) {
+					$where[] = 'c.rgt < ?';
+					$queryParams[] = $params_array['all_children']['category_data']['rgt'];
+				}
+				
+				
+				$hidden_query_params = array();
+				$hidden_query = "SELECT lft, rgt FROM pc_shop_categories c
+					WHERE " . $this->get_flag_query_condition(self::CF_PUBLISHED, $hidden_query_params, 'c', '<>');
+
+				$this->debug('hidden query:', 2);
+				$this->debug_query($hidden_query, $hidden_query_params, 3);
+
+				$r_hidden = $this->prepare($hidden_query);
+				$s_hiden = $r_hidden->execute($hidden_query_params);
+
+				$hidden_ranges = array();
+				if ($s_hiden) {
+					while ($d_hidden = $r_hidden->fetch()) {
+						$add_range = true;
+						foreach ($hidden_ranges as $k => $range) {
+							if ($range['lft'] <= $d_hidden['lft'] and $range['rgt'] >= $d_hidden['rgt']) {
+								$add_range = false;
+								break;
+							}
+						}
+						if ($add_range and $d_hidden['lft'] + 1 < $d_hidden['rgt']) {
+							$hidden_ranges[$d_hidden['lft']] = array(
+								'lft' => $d_hidden['lft'],
+								'rgt' => $d_hidden['rgt']
+							);
 						}
 					}
-					if ($add_range and $d_hidden['lft'] + 1 < $d_hidden['rgt']) {
-						$hidden_ranges[$d_hidden['lft']] = array(
-							'lft' => $d_hidden['lft'],
-							'rgt' => $d_hidden['rgt']
-						);
-					}
 				}
-			}
-			$this->debug('Hidden ranges:', 4);
-			$this->debug($hidden_ranges, 5);
-		
-			$not_hidden_conds = array();
-			foreach ($hidden_ranges as $key => $range) {
-				$not_hidden_conds[] =  "!(c.lft > {$range['lft']} and c.rgt < {$range['rgt']})";
+				$this->debug('Hidden ranges:', 4);
+				$this->debug($hidden_ranges, 5);
+
+				$not_hidden_conds = array();
+				foreach ($hidden_ranges as $key => $range) {
+					$not_hidden_conds[] =  "!(c.lft > {$range['lft']} and c.rgt < {$range['rgt']})";
+				}
+				
 			}
 			
 		}
@@ -395,7 +452,8 @@ class PC_shop_categories_site extends PC_shop_categories {
 		//query!
 		$query = "SELECT ".($params->Has_paging()?'SQL_CALC_FOUND_ROWS ':'')."c.*,cc.*"
 		. $select_product_count
-		.",".$this->sql_parser->group_concat($this->sql_parser->concat_ws("░", "'id".PC_sql_parser::SP3."'", 'a.id',"'ref".PC_sql_parser::SP3."'",'a.ref',"'name".PC_sql_parser::SP3."'",'ac.name',"'flags".PC_sql_parser::SP3."'",'ia.flags',"'is_custom".PC_sql_parser::SP3."'",'a.is_custom',"'is_searchable".PC_sql_parser::SP3."'",'a.is_searchable',"'item_is_category".PC_sql_parser::SP3."'",'a.is_category_attribute',"'value".PC_sql_parser::SP3."'",'ia.value',"'value_id".PC_sql_parser::SP3."'",'ia.value_id',"'avc_value".PC_sql_parser::SP3."'",'avc.value'), array('separator'=>'▓', 'distinct'=> true))." attributes"
+		//.",".$this->sql_parser->group_concat($this->sql_parser->concat_ws("░", "'id".PC_sql_parser::SP3."'", 'a.id',"'ref".PC_sql_parser::SP3."'",'a.ref',"'name".PC_sql_parser::SP3."'",'ac.name',"'flags".PC_sql_parser::SP3."'",'ia.flags',"'is_custom".PC_sql_parser::SP3."'",'a.is_custom',"'is_searchable".PC_sql_parser::SP3."'",'a.is_searchable',"'item_is_category".PC_sql_parser::SP3."'",'a.is_category_attribute',"'value".PC_sql_parser::SP3."'",'ia.value',"'value_id".PC_sql_parser::SP3."'",'ia.value_id',"'avc_value".PC_sql_parser::SP3."'",'avc.value'), array('separator'=>'▓', 'distinct'=> true))." attributes"
+		.",".$this->sql_parser->group_concat($this->sql_parser->concat_ws("░", "'id".PC_sql_parser::SP3."'", 'a.id',"'ref".PC_sql_parser::SP3."'",'a.ref',"'name".PC_sql_parser::SP3."'",'ac.name',"'is_custom".PC_sql_parser::SP3."'",'a.is_custom',"'value".PC_sql_parser::SP3."'",'ia.value',"'value_id".PC_sql_parser::SP3."'",'ia.value_id',"'avc_value".PC_sql_parser::SP3."'",'avc.value'), array('separator'=>'▓', 'distinct'=> true))." attributes"
 		." FROM {$this->db_prefix}shop_categories c"
 		." LEFT JOIN {$this->db_prefix}shop_category_contents cc ON cc.category_id=c.id and cc.ln=?"
 		//count products in this category
@@ -494,18 +552,75 @@ class PC_shop_categories_site extends PC_shop_categories {
 		
 		$this->parse_logger = new PC_debug();
 		$this->parse_logger->debug = true;
+		
+		$parse_resources = $this->parse_params === false || v($this->parse_params['recources']);
+		if (!empty($this->categories_with_resources) and $parse_resources) {
+			$file_ids = array();
+			$category_ids = $this->categories_with_resources;
+			$item_resources = array();
+			$flags = 0x0;//PC_shop_resources::RF_AL_PUBLIC;
+			$flags |= PC_shop_resources::RF_IS_CATEGORY;
+			$query = "SELECT * FROM {$this->db_prefix}shop_resources WHERE item_id ".$this->sql_parser->in($category_ids)." and flags&?=? ORDER BY position";
+			$r = $this->db->prepare($query);
+			$category_ids[] = $flags;
+			$category_ids[] = $flags;
+			$s = $r->execute($category_ids);
+
+			$this->click('Resources for all categories were fetched');
+			
+			if ($s) {
+				while ($item_resource = $r->fetch()) {
+					//$this->logger->click('fetche_res', 'resource_where_fetched');
+					if (!isset($item_resources[$item_resource['item_id']])) {
+						$item_resources[$item_resource['item_id']] = array();
+					}
+					$item_resources[$item_resource['item_id']][] = $item_resource;
+					$file_ids[] = $item_resource['file_id'];
+				}
+				$this->click('Resources for all categories were arranged');
+				PC_shop_item_resources::$item_resources = $item_resources;
+				$all_files = $this->gallery->Get_file_by_id($file_ids, null, true);
+				$this->click('Files for all categories were fetched');
+				//print_pre($all_files);
+				$item_files = array();
+				
+				foreach ($item_resources as $i_id => $i_resources) {
+					$i_files = array();
+					foreach ($i_resources as $i_resource) {
+						$i_files[] = $all_files[$i_resource['file_id']];
+					}
+					$item_files[$i_id] = $i_files;
+				}
+				$this->click('Files for all categories were arranged');
+				//print_pre($item_files);
+				PC_shop_item_resources::$item_files = $item_files;
+				//print_pre(PC_shop_item_resources::$item_files);
+			}
+			
+		}
+		$list_id_to_parent_id = array();
+		$list_lft_to_parent_id = array();
+		$list_id_to_lft = array();
+		$this->click('before Data parsed');
+		$c_counter = 0;
 		foreach ($list as $key => $value) {
 			$this->Parse($list[$key]);
+			$list_id_to_parent_id[$value['id']] = $value['parent_id'];
+			$list_lft_to_parent_id[$value['lft']] = $value['parent_id'];
+			$list_id_to_lft[$value['id']] = $value['lft'];
+			$c_counter++;
 		}
+		$this->click('Data were parsed for number of categories:' . $c_counter);
 		
+		/*
 		$this->debug('Times from parse_logger');
 		$this->debug($this->parse_logger->get_exec_times_summary());
 		
 		$this->debug('Debug from parse_logger');
 		$this->debug($this->parse_logger->get_debug_string());
 		
-		$this->click('Data were parsed');
-		
+		$this->click('Debug fetched');
+		*/
 		if (v($params->load_path, false)) {
 			if (is_array($list[0])) $this->Load_path($list[0], v($params->page_link, ''));
 			$this->click('Path was loaded');
@@ -521,10 +636,15 @@ class PC_shop_categories_site extends PC_shop_categories {
 			ksort($list);
 			$this->click('List was sorted');
 			$this->debug(array_keys($list));
+			$this->debug('$list_lft_to_parent_id', 2);
+			$this->debug($list_lft_to_parent_id, 2);
+			$this->debug('$list_id_to_lft', 2);
+			$this->debug($list_id_to_lft, 2);
 			$this->children_datas = array();
 			$direct_children = array();
+			$empty_parents_data = array();
 			foreach ($list as $key => $child) {
-				$this->debug("   {$child['lft']}_{$child['rgt']}");
+				//$this->debug("   {$child['lft']}_{$child['rgt']}");
 				$parent_found = false;
 				$parent_lft = 0;
 				$my_data = array(
@@ -532,38 +652,64 @@ class PC_shop_categories_site extends PC_shop_categories {
 					'rgt' => $child['rgt'],
 					'children' => array()
 				);
+				$empty_parents_data[$key] = $my_data;
 				$closest_parent_lft = false;
-				$my_parent_lft = false;
-				$my_parent_rgt = false;
-				foreach ($this->children_datas as $k => $children_data) {
-					if ($children_data['lft'] < $child['lft'] and $children_data['rgt'] > $child['rgt']) {
-						$this->debug("one of the parents: {$children_data['lft']}_{$children_data['rgt']}", 2);
-						if ($my_parent_lft and $my_parent_rgt) {
-							if ($children_data['lft'] > $my_parent_lft and $children_data['rgt'] < $my_parent_rgt) {
-								$this->debug('                   we found even closer parent', 3);
+				$optimized = true;
+				if ($optimized) {
+					if (isset($list_lft_to_parent_id[$key])) {
+						if (isset($list_id_to_lft[$list_lft_to_parent_id[$key]])) {
+							$closest_parent_lft = $list_id_to_lft[$list_lft_to_parent_id[$key]];
+							//$this->debug('$closest_parent_lft determined: ' . $closest_parent_lft, 5);
+						}
+					}
+				}
+				
+				if (!$optimized) {
+					$my_parent_lft = false;
+					$my_parent_rgt = false;
+				
+					$this->click('children: before children were iterated', 'children: before children were iterated');
+					foreach ($this->children_datas as $k => $children_data) {
+						if ($children_data['lft'] < $child['lft'] and $children_data['rgt'] > $child['rgt']) {
+							$this->debug("one of the parents: {$children_data['lft']}_{$children_data['rgt']}", 6);
+							if ($my_parent_lft and $my_parent_rgt) {
+								if ($children_data['lft'] > $my_parent_lft and $children_data['rgt'] < $my_parent_rgt) {
+									$this->debug('                   we found even closer parent', 7);
+									$closest_parent_lft = $my_parent_lft =  $children_data['lft'];
+									$my_parent_rgt =  $children_data['rgt'];
+								}
+								else {
+									//$this->debug('----', 7);
+								}
+							}
+							else {
+								$this->debug('this is my first parent met so far', 7);
 								$closest_parent_lft = $my_parent_lft =  $children_data['lft'];
 								$my_parent_rgt =  $children_data['rgt'];
 							}
 						}
 						else {
-							$this->debug('this is my first parent met so far', 3);
-							$closest_parent_lft = $my_parent_lft =  $children_data['lft'];
-							$my_parent_rgt =  $children_data['rgt'];
+							//$this->debug('--', 6);
 						}
-						
+						$this->click('children: iteration', 'children: iteration');
 					}
+					$this->click('children: children were iterated', 'children: children were iterated');
 				}
 				if ($closest_parent_lft) {
+					if (!isset($this->children_datas[$closest_parent_lft])) {
+						$this->children_datas[$closest_parent_lft] = $empty_parents_data[$closest_parent_lft]; 
+					}
 					$this->children_datas[$closest_parent_lft]['children'][] = $key;
-					$this->debug("so my parent is: {$closest_parent_lft}_{$my_parent_rgt} and it now has these children: " . implode(',' , $this->children_datas[$closest_parent_lft]['children']), 1);
+					//$this->debug("so my parent is: {$closest_parent_lft}_{$my_parent_rgt} and it now has these children: " . implode(',' , $this->children_datas[$closest_parent_lft]['children']), 1);
 					$list[$key]['link'] = pc_append_route($list[$closest_parent_lft]['link'], $list[$key]['route']);
-					$this->debug("my link is: " . $list[$key]['link'], 1);
+					//$this->debug("my link is: " . $list[$key]['link'], 1);
 				}
 				else {
 					$direct_children[] = $key;
 					$list[$key]['link'] = pc_append_route($category_link, $list[$key]['route']);
+					//$this->debug("(2 $key) my link is: " . $list[$key]['link'], 1);
 				}
-				
+				$this->click('children: route_appended', 'children: route_appended');
 				$this->children_datas[$key] = $my_data;
 			}
 			$this->click('$children_datas were built');
@@ -679,7 +825,7 @@ class PC_shop_categories_site extends PC_shop_categories {
 		//*/
 		
 		///*
-		$query = "SELECT path.id,path.pid,path.flags,cc.name,cc.custom_name,cc.route,cc.seo_title,path.external_id"
+		$query = "SELECT path.id,path.pid,path.flags,path.lft,path.rgt,cc.name,cc.custom_name,cc.route,cc.seo_title,path.external_id"
 		.', count(cp.id) products'
 		//.",".$this->sql_parser->group_concat($this->sql_parser->concat_ws("░", 'a.id', 'ac.name', 'ia.flags', 'a.is_custom', 'a.is_searchable', 'a.is_category_attribute', 'ia.value', 'ia.value_id', 'avc.value'), array('separator'=>'▓', 'distinct'=> true))." attributes"
 		." FROM {$this->db_prefix}shop_categories c"
@@ -834,7 +980,7 @@ class PC_shop_products_site extends PC_shop_products {
 		}
 		$this->debug("Get($id_debug, $categoryId)");
 		$this->debug($params);
-		$this->click();
+		$this->click('Starting Get products');
 		
 		$this->parse_params = false;
 		$params_array = $params;
@@ -855,7 +1001,8 @@ class PC_shop_products_site extends PC_shop_products {
 			}
 			
 			$top_categories_params = array(
-				'select' => 't.id, t.lft, t.rgt',
+				'select' => 'min(t.lft) as min_lft, max(t.rgt) as max_rgt',
+				//'select' => 't.id, t.lft, t.rgt',
 				'content' => array(
 					'select' => 'ct.name, ct.route, ct.permalink'
 				),
@@ -877,10 +1024,20 @@ class PC_shop_products_site extends PC_shop_products {
 			}
 			//print_pre($top_categories_params);
 			$this->shop->categories->absorb_debug_settings($this);
-			$top_categories = $this->shop->categories->get_data(null, $top_categories_params);
-			$params['categories'] =  $top_categories;
+			$top_categories = $this->shop->categories->get_one($top_categories_params);
+			//$params['categories'] =  $top_categories;
+			$params['categories'] = array(
+				array(
+					'lft' => $top_categories['min_lft'],
+					'rgt' => $top_categories['max_rgt'],
+				)
+			);
 			$this->debug('Top categories:', 3);
 			$this->debug($top_categories, 4);
+			
+			$this->debug('$params[categories]:', 3);
+			$this->debug($params['categories'], 4);
+			
 			//print_pre($top_categories);
 			if (count($top_categories) == 1) {
 				
@@ -1287,25 +1444,43 @@ class PC_shop_products_site extends PC_shop_products {
 			$item_attributes_join_clause = ' AND ' . implode(' AND ', $item_attributes_join_where);
 		}
 		
+		$item_attributes_ids_clause = '';
+		if (isset($params->attribute_ids) and is_array($params->attribute_ids)) {
+			$item_attributes_ids_clause = ' AND ia.attribute_id ' . $this->sql_parser->in($params->attribute_ids);
+			$queryParams_after_join_item_attributes = array_merge($queryParams_after_join_item_attributes, $params->attribute_ids);
+		}
+		
+		$prices_join = '';
+		$real_price_select = '';
+		if (!v($params->no_price)) {
+			$prices_join = " LEFT JOIN {$this->db_prefix}shop_product_prices ppr ON ppr.product_id=p.id";
+			$real_price_select = "LEAST(p.price, (p.price - IFNULL(p.discount, 0)), ROUND(p.price * (100 - IFNULL(p.percentage_discount, 0)) / 100, 2)) as real_price,"
+			. "group_concat(distinct concat_ws(':', ppr.c_id, ppr.quantity, ppr.price) separator ';') product_prices, ";
+		}
+		
+		$attributes_select = '';
+		$attributes_join = '';
+		if (!v($params->no_attributes)) {
+	
+		}
+		
 		$select_s = ' ' . $select_s . ' ';
-		$real_price_select = "LEAST(p.price, (p.price - IFNULL(p.discount, 0)), ROUND(p.price * (100 - IFNULL(p.percentage_discount, 0)) / 100, 2)) as real_price,";
-		$query = $qry = "SELECT ".($params->Has_paging()?'SQL_CALC_FOUND_ROWS ':'').$select_s."p.*,".$real_price_select."pc.*,"
+		$query = $qry = "SELECT " . (v($params->sql_no_cache)?' SQL_NO_CACHE ':'') .($params->Has_paging()?'SQL_CALC_FOUND_ROWS ':'').$select_s."p.*,".$real_price_select.v($params->content_select, "pc.*").","
 		. $this->sql_parser->group_concat($this->sql_parser->concat_ws("░", "'id".PC_sql_parser::SP3."'", 'a.id', "'ref".PC_sql_parser::SP3."'",'a.ref',"'category_id".PC_sql_parser::SP3."'",'a.category_id', "'name".PC_sql_parser::SP3."'",'ac.name', "'flags".PC_sql_parser::SP3."'",'ia.flags', "'is_custom".PC_sql_parser::SP3."'",'a.is_custom', "'is_searchable".PC_sql_parser::SP3."'",'a.is_searchable', "'item_is_category".PC_sql_parser::SP3."'",'a.is_category_attribute', "'value".PC_sql_parser::SP3."'",'ia.value', "'value_id".PC_sql_parser::SP3."'",'ia.value_id', "'avc_value".PC_sql_parser::SP3."'",'avc.value'), array('separator'=>'▓', 'distinct'=> true))." attributes"
 		//. $this->sql_parser->group_concat($this->sql_parser->concat_ws("░", "'id".PC_sql_parser::SP3."'", 'a.id', "'ref".PC_sql_parser::SP3."'",'a.ref', "'name".PC_sql_parser::SP3."'",'ac.name', "'flags".PC_sql_parser::SP3."'",'ia.flags', "'is_custom".PC_sql_parser::SP3."'",'a.is_custom', "'is_searchable".PC_sql_parser::SP3."'",'a.is_searchable', "'item_is_category".PC_sql_parser::SP3."'",'a.is_category_attribute',"'value".PC_sql_parser::SP3."'",'ia.value',"'value_id".PC_sql_parser::SP3."'",'ia.value_id',"'avc_value".PC_sql_parser::SP3."'",'avc.value'), array('separator'=>'▓', 'distinct'=> true))." attributes"
 		//. $this->sql_parser->group_concat($this->sql_parser->concat_ws("░", 'a.id', 'a.ref', 'ac.name', 'ia.flags', 'a.is_custom', 'a.is_searchable', 'a.is_category_attribute', 'ia.value_id', 'avc.value'), array('separator'=>'▓', 'distinct'=> true))." attributes"
 		. $select_attributes_concat . $select_attributes_values_concat
-		. ",group_concat(distinct concat_ws(':', ppr.c_id, ppr.quantity, ppr.price) separator ';') product_prices"
 		. " FROM {$this->db_prefix}shop_products p"
 		. " LEFT JOIN {$this->db_prefix}shop_product_contents pc ON pc.product_id=p.id and pc.ln=?"
 		. $joins_s
 		. $category_join
 		//attributes
-		." LEFT JOIN {$this->db_prefix}shop_item_attributes ia ON ia.item_id=p.id and (ia.flags & ?)=?" . $item_attributes_join_clause
+		." LEFT JOIN {$this->db_prefix}shop_item_attributes ia ON ia.item_id=p.id and (ia.flags & ?)=?" .  $item_attributes_join_clause . $item_attributes_ids_clause
 		." LEFT JOIN {$this->db_prefix}shop_attributes a ON a.id=ia.attribute_id"
 		." LEFT JOIN {$this->db_prefix}shop_attribute_contents ac ON ac.attribute_id=a.id and ac.ln=?"
 		." LEFT JOIN {$this->db_prefix}shop_attribute_values av ON av.attribute_id=a.id and av.id=ia.value_id"
 		." LEFT JOIN {$this->db_prefix}shop_attribute_value_contents avc ON avc.value_id=av.id and avc.ln=?"
-		." LEFT JOIN {$this->db_prefix}shop_product_prices ppr ON ppr.product_id=p.id"
+		. $prices_join
 		//filters
 		.(count($where)?' WHERE '.implode(' and ', $where):'')
 		." GROUP BY p.id". ' ' . $group_s . $having_s . ' ' . $order . ' ' . $limit ;
@@ -1365,6 +1540,7 @@ class PC_shop_products_site extends PC_shop_products {
 				
 				$this->debug("category_link was generated: " . $category_links[$categoryId], 1);
 			}
+			$this->_price_attribute_ids = array();
 			while ($d = $r->fetch()) {
 				if (isset($d['category_id']) and !isset($category_links[$d['category_id']])) {
 					$shop_categories_site = $this->core->Get_object('PC_shop_categories_site');
@@ -1404,11 +1580,68 @@ class PC_shop_products_site extends PC_shop_products {
 		$this->Decode_flags($d);
 		$this->click('Decode_flags', 'Decode_flags');
 		
-		$d['multiple_attributes'] = $this->shop->attributes->ParseSQLResult($d['attributes']);
-		$this->click('ParseSQLResult', 'parse_ParseSQLResult');
+		$parse_attributes = $this->parse_params === false || v($this->parse_params['attributes']);
+		if ($parse_attributes) {
+			$d['multiple_attributes'] = $this->shop->attributes->ParseSQLResult($d['attributes']);
+			$this->click('ParseSQLResult', 'parse_ParseSQLResult');
+			if (!empty($d['multiple_attributes'])) {
+				$d['price_attributes'] = array();
+				$missing_refs = array_diff(array_keys($d['multiple_attributes']), $this->_price_attribute_ids);
+				if (!empty($missing_refs)) {
+					$attribute_model = $this->core->Get_object('PC_shop_attribute_model');
+					$new_ids = $attribute_model->get_all(array(
+						'where' => array(
+							'ref' => $missing_refs,
+						),
+						'key' => 'ref',
+						'value' => 'id',
+						//'query_only' => true
+					));
+					if ($new_ids) {
+						$this->_price_attribute_ids = array_merge($this->_price_attribute_ids, $new_ids);
+					}
+					//print_pre($this->_price_attribute_ids);
+					if (!empty($this->_price_attribute_ids)) {
+						$product_price_model = $this->core->Get_object('PC_shop_product_price_model');
+						$product_attribute_prices = $product_price_model->get_all(array(
+							'where' => array(
+								'product_id' => $d['id'],
+								't.c_id' => 0,
+								't.attribute_id' => array_values($this->_price_attribute_ids),
+								array(
+									'field' => 'attribute_value_id',
+									'op' => '<>',
+									'value' => 0
+								)
+							),
+							'join' => " LEFT JOIN {$this->db_prefix}shop_item_attributes ia ON ia.item_id = t.product_id and ia.attribute_id=t.attribute_id AND t.attribute_value_id = ia.value_id",
+							//'join_params' => array($d['id']),
+							
+							'order' => 't.attribute_id, ia.position',
+							//'query_only' => true
+						)); 
+						//print_pre($product_attribute_prices);
+						$this->price_attribute_refs = $price_attribute_refs = array_flip($this->_price_attribute_ids);
+						foreach ($product_attribute_prices as $key => $pa) {
+							//print_pre($price_attribute);
+							$my_key = $price_attribute_refs[$pa['attribute_id']];
+							vv($d['price_attributes'][$my_key], array());
+							$d['price_attributes'][$my_key][$pa['attribute_value_id']] = $pa;
+						}
+					}
+					
+				}
+				
+			}
+		}
 		
-		$this->page->Parse_html_output($d['description'], $d['short_description']);
-		$this->click('description', 'parse_description');
+		
+		$parse_description = $this->parse_params === false  || v($this->parse_params['description']);
+		if (isset($d['description']) and $parse_description) {
+			$this->page->Parse_html_output($d['description'], $d['short_description']);
+			$this->click('description', 'parse_description');
+		}
+		
 		
 		$parse_resources = $this->parse_params === false || v($this->parse_params['recources']);
 		if ($parse_resources) {
@@ -1417,15 +1650,18 @@ class PC_shop_products_site extends PC_shop_products {
 			//unset($d['resources']->logger);
 		}
 		
-		$decoded_prices = array();
-		$prices = explode(';', $d['product_prices']);
-		foreach ($prices as $price_string) {
-			@list($c_id,$quantity,$price) = explode(':', $price_string);
-			if (!empty($price)) {
-				$decoded_prices[$c_id] = $price;
+		if (isset($d['product_prices'])) {
+			$decoded_prices = array();
+			$prices = explode(';', $d['product_prices']);
+			foreach ($prices as $price_string) {
+				@list($c_id,$quantity,$price) = explode(':', $price_string);
+				if (!empty($price)) {
+					$decoded_prices[$c_id] = $price;
+				}
 			}
+			$d['prices'] = $decoded_prices;
 		}
-		$d['prices'] = $decoded_prices;
+		
 		
 	}
 }

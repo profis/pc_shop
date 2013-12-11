@@ -213,11 +213,13 @@ class PC_shop_import_products_admin_api extends PC_shop_admin_api {
 		$this->_additional_product_data = array();
 		$this->_import_only_on = array();
 		$this->_product_scope = '';
+		$this->_missing_products_scope = '';
 		$this->_hook_row = '';
 		$this->core->Init_hooks('plugin/pc_shop/import-products/import-fields-associations/' . $product_import_method, array(
 			'id_fields'=> &$this->_id_fields,
 			'data'=> &$this->_associations,
 			'missing_products_strategy'=> &$this->missing_products_strategy,
+			'missing_products_scope'=> &$this->_missing_products_scope,
 			'aliases' => &$aliases,
 			'additional_product_data' => &$this->_additional_product_data,
 			'import_only_on' => &$this->_import_only_on,
@@ -395,8 +397,8 @@ class PC_shop_import_products_admin_api extends PC_shop_admin_api {
 			return;
 		}
 		
-		$this->debug('products:', 3);
-		$this->debug($this->products, 3);
+		//$this->debug('products:', 3);
+		//$this->debug($this->products, 3);
 		
 		$this->_attr_model = new PC_shop_attribute_model();
 		$this->_attr_value_model = new PC_shop_attribute_value_model();
@@ -411,7 +413,13 @@ class PC_shop_import_products_admin_api extends PC_shop_admin_api {
 		$items_inserted = 0;
 		$items_updated = 0;
 		$items_skipped = 0;
+		$items_unidentifyable = 0;
+		$items_not_inserted = 0;
+		$updated_products_ids = array();
+		$not_updated_products_ids = array();
 		foreach ($this->products as $key => $product) {
+			$this->debug('<hr />', 4);
+			$this->debug('product array key: ' . $key, 5);
 			if (!empty($this->_additional_product_data)) {
 				$product = array_merge($this->_additional_product_data, $product);
 			}
@@ -425,11 +433,15 @@ class PC_shop_import_products_admin_api extends PC_shop_admin_api {
 			if (!$category_id) {
 				$category_id = $this->category_id;
 			}
+			$this->debug('Queries for category detection: ', 7);
+			$this->debug($logs, 7);
+				
 			$this->debug('Tried to detect product id: ', 4);
 			$this->debug($product_id, 5);
 			
 			if ($product_id == -1) {
 				$this->debug('Will skip, coz no way to detect product id: ', 4);
+				$items_unidentifyable++;
 				continue;
 			}
 			
@@ -523,10 +535,12 @@ class PC_shop_import_products_admin_api extends PC_shop_admin_api {
 				if ($edited) {
 					$items_updated++;
 					$this->debug(' :) Product was updated with an id ' . $product_id, 5);
+					$updated_products_ids[] = $product_id;
 				}
 				else {
 					$this->debug(' :( Product could not be edited. Errors:', 5);
 					$this->debug($edit_params->errors->Get_all(), 6);
+					$not_updated_products_ids[] = $product_id;
 				}
 			}
 			elseif ($category_id) {
@@ -546,11 +560,11 @@ class PC_shop_import_products_admin_api extends PC_shop_admin_api {
 				else {
 					$this->debug(' :( Product could not be created. Errors:', 5);
 					$this->debug($create_params->errors->Get_all(), 6);
+					$items_not_inserted++;
 				}
 			}
 			else {
 				$this->debug(':( Skipping coz no product id (for updating) and no category_id (for iserting) was detected ', 5);
-				$this->debug($logs, 7);
 				$items_skipped++;
 			}
 			if ($product_id) {
@@ -586,8 +600,14 @@ class PC_shop_import_products_admin_api extends PC_shop_admin_api {
 		$this->_import_products_scope_cond = '';
 		$this->_import_products_scope_params = array();
 	
-		$this->_import_products_scope_cond .= " AND import_method = ?";
-		$this->_import_products_scope_params[] = $this->product_import_method;
+		if ($this->category_id and $this->_missing_products_scope == 'category') {
+			$this->_import_products_scope_cond .= " AND category_id = ?";
+			$this->_import_products_scope_params[] = $this->category_id;
+		}
+		else {
+			$this->_import_products_scope_cond .= " AND import_method = ?";
+			$this->_import_products_scope_params[] = $this->product_import_method;
+		}
 		
 		$this->_apply_missing_products_strategy();
 		
@@ -598,6 +618,14 @@ class PC_shop_import_products_admin_api extends PC_shop_admin_api {
 		$this->_out['inserted'] = $items_inserted;
 		$this->_out['updated'] = $items_updated;
 		$this->_out['skipped'] = $items_skipped;
+		
+		$updated_products_ids = array_unique($updated_products_ids);
+		$this->_out['updated_ids_count'] = count($updated_products_ids);
+		
+		$this->_out['not_updated_products_ids'] = count($not_updated_products_ids);
+		
+		$this->_out['unidentifyable'] = $items_unidentifyable;
+		$this->_out['not_inserted'] = $items_not_inserted;
 		
 		$this->debug('$this->_field_names:', 2);
 		$this->debug($this->_field_names, 3);
@@ -774,6 +802,9 @@ class PC_shop_import_products_admin_api extends PC_shop_admin_api {
 		
 		if ($this->category_id and $this->_product_scope == 'category') {
 			$scope['where']['t.category_id'] = $this->category_id;
+		}
+		elseif($this->_product_scope == 'import_method') {
+			$scope['where']['t.import_method'] = $this->product_import_method;
 		}
 		
 		if (!empty($category_ids_arrays)) {

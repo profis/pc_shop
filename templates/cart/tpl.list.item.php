@@ -1,3 +1,6 @@
+<?php
+
+?>
 <div class="row" qty="<?php echo $item['quantity'] ?>" prid="<?php echo $item['id'] ?>" key="<?php echo $key ?>">
 	<div class="col-6 col-sm-6 col-lg-6">
 		<strong><a href="<?php echo $item['link'] ?>"><?php echo $item['name'] ?></a></strong>

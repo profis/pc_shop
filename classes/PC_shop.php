@@ -51,7 +51,7 @@ abstract class PC_shop extends PC_base {
 		$fields = array();
 		$fields['categories'] = array('flags', 'discount', 'percentage_discount', 'external_id', 'redirect');
 		$fields['category_contents'] = array('name', 'custom_name', 'description', 'seo_title', 'seo_description', 'seo_keywords', 'route', 'permalink');
-		$fields['products'] = array('manufacturer_id', 'mpn', 'quantity', 'flags', 'warranty', 'discount', 'percentage_discount', 'hot_from', 'price', 'external_id', 'import_method', 'state');
+		$fields['products'] = array('manufacturer_id', 'mpn', 'quantity', 'flags', 'warranty', 'discount', 'percentage_discount', 'hot_from', 'price', 'external_id', 'import_method', 'state', 'info_1', 'info_2', 'info_3');
 		$fields['product_contents'] = array('name', 'custom_name', 'short_description', 'description', 'seo_title', 'seo_description', 'seo_keywords', 'route', 'permalink');
 		foreach ($fields as $table=>&$cols) {
 			foreach ($cols as $col) {
@@ -92,6 +92,9 @@ abstract class PC_shop extends PC_base {
 			case 'price': return true;
 			case 'short_description': return true;
 			case 'import_method':
+			case 'info_1':
+			case 'info_2':
+			case 'info_3':
 				return true;
 			case 'external_id':
 				if (empty($value)) $value = null;
@@ -705,6 +708,9 @@ class PC_shop_resources extends PC_base {
 class PC_shop_item_resources{
 	protected $itemId, $isCategory;
 	
+	public static $item_resources = array();
+	public static $item_files = array();
+	
 	/**
 	 *
 	 * @var PC_debug
@@ -741,29 +747,59 @@ class PC_shop_item_resources{
 		global $db, $cfg, $gallery;
 		//flags
 		$flags = 0x0;//PC_shop_resources::RF_AL_PUBLIC;
-		if ($this->Is_category()) $flags |= PC_shop_resources::RF_IS_CATEGORY;
-		$query = "SELECT * FROM {$cfg['db']['prefix']}shop_resources WHERE item_id=? and flags&?=? ORDER BY position";
-		$r = $db->prepare($query);
-		$query_params = array($this->itemId, $flags, $flags);
-		$s = $r->execute($query_params);
 		
-		//$this->logger->debug('Load query returned results: ' . $r->rowCount());
-		//$this->logger->debug_query($query, $query_params);
+		$item_resources = array();
 		
-		//$this->logger->click('load_select', 'load_resources_query');
-		if (!$s) return false;
+		if (isset(self::$item_resources[$this->itemId])) {
+			$item_resources = self::$item_resources[$this->itemId];
+		}
+		else {
+			if ($this->Is_category()) $flags |= PC_shop_resources::RF_IS_CATEGORY;
+			$query = "SELECT * FROM {$cfg['db']['prefix']}shop_resources WHERE item_id=? and flags&?=? ORDER BY position";
+			$r = $db->prepare($query);
+			$query_params = array($this->itemId, $flags, $flags);
+			$s = $r->execute($query_params);
+
+			//$this->logger->debug('Load query returned results: ' . $r->rowCount());
+			//$this->logger->debug_query($query, $query_params);
+
+			//$this->logger->click('load_select', 'load_resources_query');
+			if (!$s) return false;
+			
+			while ($d = $r->fetch()) {
+				//$this->logger->click('fetche_res', 'resource_where_fetched');
+				$item_resources[] = $d;
+			}
+		}
+		
+		
 		$list = array();
 		$ids = array();
-		while ($d = $r->fetch()) {
-			//$this->logger->click('fetche_res', 'resource_where_fetched');
+		
+		
+		
+		
+		
+		foreach ($item_resources as $d) {
 			$ids[] = $d['file_id'];
 			PC_shop_resources::Decode_flags($d);
 			//$this->logger->click('flag_decode', 'flags were decoded');
 			$list[] = $d;
 		}
+		
+		if (empty($ids)) {
+			$this->list = $list;
+			return $this->list;
+		}
+		
 		//$this->logger->debug('ids:');
 		//$this->logger->debug($ids);
-		$files = $gallery->Get_file_by_id($ids);//, //$this->logger);
+		if (isset(self::$item_files[$this->itemId])) {
+			$files = self::$item_files[$this->itemId];
+		}
+		else {
+			$files = $gallery->Get_file_by_id($ids);//, //$this->logger);
+		}
 		//$this->logger->click('Get_file_by_id', 'Get_file_by_id');
 		foreach ($files as $file) {
 			foreach ($list as &$res) {
@@ -831,7 +867,7 @@ class PC_shop_attributes extends PC_shop_attribute_model {
 		return true;
 	}
 	public function ParseSQLResult(&$d) {
-		$this->debug('ParseSQLResult('.$d.')');
+		//$this->debug('ParseSQLResult('.$d.')');
 		$attribs = array();
 		$multiple_attributes = array();
 		if (!empty($d) && $d != '▓') {
@@ -840,14 +876,14 @@ class PC_shop_attributes extends PC_shop_attribute_model {
 				if (empty($attr)) continue;
 				$attrData = array();
 				$attr = explode('░', $attr);
-				$this->debug($attr);
+				//$this->debug($attr);
 				$name = '';
 				foreach ($attr as $k => $v) {
-					$this->debug($v, 3);
+					//$this->debug($v, 3);
 					$n_array = explode(PC_sql_parser::SP3, $v, 2);
 					if (count($n_array) > 1) {
 						$name = $n_array[0];
-						$this->debug("name: $name", 4);
+						//$this->debug("name: $name", 4);
 						continue;
 					}
 					if (!empty($name)) {
@@ -857,20 +893,38 @@ class PC_shop_attributes extends PC_shop_attribute_model {
 				}
 				$key = v($attrData['ref']);
 
-				$this->Decode_flags($attrData);
+				if (isset($attrData['flags'])) {
+					$this->Decode_flags($attrData);
+				}
 				
 				if (!v($attrData['is_custom']) and isset($attrData['avc_value'])) {
 					$attrData['value'] = $attrData['avc_value'];
 				}
 				
-				$this->debug($attrData, 5);
+				//$this->debug($attrData, 5);
 				if (!empty($key)) {
 					if (isset($attribs[$key])) {
-						if (!isset($multiple_attributes[$key])) {
-							$multiple_attributes[$key] = array();
-							$multiple_attributes[$key][] = $attribs[$key];
+						$check_key = $key;
+						if (v($attribs[$key]['value_id'])) {
+							///$check_key = $attribs[$key]['value_id'];
 						}
-						$multiple_attributes[$key][] = $attrData;
+						//echo $check_key . '<hr />';
+						if (!isset($multiple_attributes[$check_key])) {
+							$multiple_attributes[$key] = array();
+							if (v($attribs[$key]['value_id'])) {
+								$multiple_attributes[$key][$attribs[$key]['value_id']] = $attribs[$key];
+							}
+							else {
+								$multiple_attributes[$key][] = $attribs[$key];
+							}
+						}
+						if (v($attrData['value_id'])) {
+							$multiple_attributes[$key][$attrData['value_id']] = $attrData;
+						}
+						else {
+							$multiple_attributes[$key][] = $attrData;
+						}
+						
 					}
 					$attribs[$key] = $attrData;
 				}
@@ -1328,6 +1382,14 @@ class PC_shop_attributes extends PC_shop_attribute_model {
 			$order .= ' ORDER BY a.position, at.position, at.id';
 		}
 		
+		if ($itemType == self::ITEM_IS_PRODUCT) {
+			$select .= ', pp.price_diff, pp.discount, pp.info_1, pp.info_2, pp.info_3';
+			$join .= " LEFT JOIN {$this->db_prefix}shop_product_prices pp 
+						ON pp.product_id=a.item_id AND pp.attribute_id=a.attribute_id
+						AND pp.attribute_value_id = a.value_id 
+						AND pp.attribute_value_id <> 0";
+		}
+		
 		$query = "SELECT $select FROM {$this->db_prefix}shop_item_attributes a"
 		. $join
 		." WHERE a.item_id=? AND (a.flags&?)=?" . $order;
@@ -1543,6 +1605,59 @@ class PC_shop_attributes extends PC_shop_attribute_model {
 			else {
 				$this->Edit_for_item($i['id'], $i['value_id'], $i['value']);
 			}
+			if ($itemType == self::ITEM_IS_PRODUCT and $i['value_id'] and isset($i['price_diff'])) {
+				$product_price_model = $this->core->Get_object('PC_shop_product_price_model');
+				$product_price_model->absorb_debug_settings($this);
+				$key_fields = array(
+					'product_id' => $itemId,
+					'attribute_id' => $i['attribute_id'],
+					'attribute_value_id' => $i['value_id'],
+				);
+				if ($i['price_diff'] == 0) {
+					$product_price_model->delete(array(
+						'where' => $key_fields
+					));
+				}
+				else {
+					$existing_price_data = $product_price_model->get_one(array(
+						'where' => $key_fields
+					));
+					$other_fields  = array(
+						'price_diff' => $i['price_diff'],
+						'info_1' => v($i['info_1']),
+						'info_2' => v($i['info_2']),
+						'info_3' => v($i['info_3']),
+					);
+					if (v($i['price_diff']) and $i['price_diff'] > 0) {
+						if (v($i['discount']) and $i['discount'] > 0) {
+							$other_fields['discount'] = $i['discount'];
+						}
+						else {
+							$other_fields['discount'] = null;
+						}
+					}
+					else {
+						$other_fields['discount'] = null;
+					}
+					if ($existing_price_data) {
+						
+						$product_price_model->update(
+							$other_fields,
+							array(
+								'where' => array(
+									'id' => $existing_price_data['id'],
+							)
+					));
+					}
+					else {
+						$product_price_model->insert(
+							array_merge($other_fields, $key_fields)
+						);
+					}
+				}
+				$this->debug($product_price_model->get_debug_string());
+				$product_price_model->clear_debug_string();
+			}
 		}
 		if (count(v($data['remove'], array()))) foreach ($data['remove'] as $id) {
 			$this->Remove_from_item($id);
@@ -1704,19 +1819,39 @@ class PC_shop_orders extends PC_shop_order_model {
 		if (!$s) return false;
 		if (!$r->rowCount()) return array();
 		$list = array();
+		$product_ids = array();
 		while ($product = $r->fetch()) {
-			$list[$product['product_id']] = array(
+			$product_ids[] = $product['product_id'];
+			$list[] = array(
 				'id'=> $product['product_id'],
 				'quantity'=> $product['quantity'],
-				'price'=> $product['price']
+				'price'=> $product['price'],
+				'attributes' => PC_utils::string_to_array($product['attributes'])
 			);
 		}
 		unset($product);
+		$product_ids = array_unique($product_ids);
 		//fill product data
-		$products = $this->shop->products->Get(array_keys($list));
-		$this->debug($products, 1);
+		//$products = $this->shop->products->Get($product_ids);
+		$shop_site = $this->core->Get_object('PC_shop_site');
+		$shop_products_params = array(
+			'id_keys' => true
+		);
+		$shop_site_products = $shop_site->products->Get($product_ids, null, $shop_products_params);
+		$this->debug($shop_site_products, 1);
 		//print_pre($products);
-		foreach ($products as &$product) {
+		//print_pre($shop_site_products);
+		foreach ($list as $key => &$list_item) {
+			//$product = 
+			$list[$key]['name'] = $shop_site_products[$list_item['id']]['name'];
+			$price = $shop_site->products->get_price($shop_site_products[$list_item['id']]);
+			$price_data = $shop_site->products->adjust_price($price, $shop_site_products[$list_item['id']], $list_item['attributes']);
+			//print_pre($price_data);
+			if (!empty($price_data['attributes_string'])) {
+				$list[$key]['name'] .= ' (' . $price_data['attributes_string'] . ')';
+			}
+			$list[$key]['short_description'] = $shop_site_products[$list_item['id']]['short_description'];
+			continue;
 			if (isset($product['contents'])) {
 				$list[$product['id']]['name'] = v($product['contents'][$this->site->ln]['name']);
 				$list[$product['id']]['short_description'] = v($product['contents'][$this->site->ln]['short_description']);
@@ -1844,7 +1979,7 @@ class PC_shop_orders extends PC_shop_order_model {
 			return false;
 		}
 		$this->last_order_id = $orderId = $this->db->lastInsertId($this->sql_parser->Get_sequence('shop_orders'));
-		$insert_item_query = "INSERT INTO {$this->db_prefix}shop_order_items (order_id,product_id,quantity,price) VALUES(?,?,?,?)";
+		$insert_item_query = "INSERT INTO {$this->db_prefix}shop_order_items (order_id,product_id,quantity,attributes,price) VALUES(?,?,?,?,?)";
 		$rInsertItem = $this->prepare($insert_item_query);
 		
 		$totalPrice = 0;
@@ -1866,9 +2001,11 @@ class PC_shop_orders extends PC_shop_order_model {
 				$params->errors->Add('unknown_product', 'Unknown product in the cart');
 			}
 			else {
-				$price = $this->shop->products->get_price($product);
+				$discount;
+				$discount_percentage;
+				$price = $this->shop->products->get_price($product, $discount, $discount_percentage, $product_basket_data[3]);
 				$totalPrice += $price * $quantity;
-				$insert_item_query_params = array($orderId, $productId, $quantity, $price);
+				$insert_item_query_params = array($orderId, $productId, $quantity, PC_utils::array_to_string($product_basket_data[3]), $price);
 				$this->debug_query($insert_item_query, $insert_item_query_params);
 				$s = $rInsertItem->execute($insert_item_query_params);
 				if ($s) continue;
@@ -2034,7 +2171,9 @@ class PC_shop_cart extends PC_base {
 		$this->shop->products->absorb_debug_settings($this);
 		$this->shop->products->clear_debug_string();
 		$this->debug(v($_SESSION['pc_shop']));
-		$productList = $this->shop->products->Get(array_keys($_SESSION['pc_shop']['cart']["productIndex"]), null, $my_params);
+		$product_ids = array_keys($_SESSION['pc_shop']['cart']["productIndex"]);
+		$product_ids = array_unique($product_ids);
+		$productList = $this->shop->products->Get($product_ids, null, $my_params);
 		$this->debug($this->shop->products->get_debug_string());
 		$this->click('after products->Get');
 		$params = $my_params;
@@ -2045,10 +2184,35 @@ class PC_shop_cart extends PC_base {
 		foreach ($_SESSION['pc_shop']['cart']['items'] as $ciid => $cartItemInfo) {
 			$d['total']++;
 			$p = &$products[$cartItemInfo[0]];
-			$d['items'][$ciid] = &$p;
+			$item_regular_price = $item_price = $this->shop->products->get_price($p);
+			$item_price_data = $this->shop->products->adjust_price($item_price, $p, $cartItemInfo[3]);
+			//print_pre($item_price_data);
+			$item_price = $item_price_data['price'];
+			$item_total_price = $item_price * $cartItemInfo[1];
+			$cart_item = array(
+				'id' => $cartItemInfo[0],
+				'product_id' => $cartItemInfo[0],
+				'basket_quantity' => $cartItemInfo[1],
+				'attributes' => $cartItemInfo[3],
+				'price' => $item_price,
+				'price_data' => $item_price_data,
+				'total_price' => $item_total_price,
+				'totalPrice' => $item_total_price,
+				'name' => $products[$cartItemInfo[0]]['name'],
+				'link' => $products[$cartItemInfo[0]]['link']
+			);
+			$cart_item['original_name'] = $cart_item['name'];
+			if (v($cart_item['price_data']['attributes_string'])) {
+				$cart_item['name'] .= ' (' . $cart_item['price_data']['attributes_string'] . ')';
+			}
+			$attributes_string;
+			//$cart_item['attributes_info'] = $this->shop->products->get_attributes_info($p, $cart_item['attributes']);
+			//$cart_item['attributes_string'] = $attributes_string;
+			$d['items'][$ciid] = $cart_item;
 			// $d['totalPrice'] += $p['totalPrice'] = $shop->products->Get_price($cartItemInfo[0], $cartItemInfo[1]);
-			$d['totalPrice'] += $p['totalPrice'] = $this->shop->products->get_price($p) * ($p["basket_quantity"] = $cartItemInfo[1]);
+			$d['totalPrice'] += $item_total_price;
 		}
+		$d['products'] = $products;
 		$d['totalPrice'] = number_format($d['totalPrice'], 2, ".", "");
 		$default_order_data = array();
 		if (is_array($raw)) {
@@ -2060,7 +2224,16 @@ class PC_shop_cart extends PC_base {
 		return $d;
 	}
 	/** Finds a product entry CIID by productId and attributes */
-	public function Find($productId, $attributes=null) {
+	public function Find($productId, $attributes = null) {
+		
+		foreach ($_SESSION['pc_shop']['cart']['items'] as $key => $item) {
+			if ($productId == $item[0]) {
+				if ($attributes == $item[3]) {
+					return $key;
+				}
+			}
+		}
+		return null;
 		if( empty($_SESSION['pc_shop']['cart']['productIndex'][$productId]) )
 			return null;
 
@@ -2069,6 +2242,8 @@ class PC_shop_cart extends PC_base {
 		// added to cart so "search" algorithm is quite simple.
 		// Later some hook might be needed to add possibility to create custom
 		// search algorithm implementations.
+		
+		
 		
 		reset($_SESSION['pc_shop']['cart']['productIndex'][$productId]);
 		return key($_SESSION['pc_shop']['cart']['productIndex'][$productId]);
@@ -2106,12 +2281,13 @@ class PC_shop_cart extends PC_base {
 			// will give us faster search and removal in Remove method.
 			$_SESSION['pc_shop']['cart']['productIndex'][$productId][$ciid] = 1;
 			
-			// At the moment only productId and quantity are needed for item
+			// At the moment only productId, quantity and attributes are needed for item
 			// entries in the cart.
 			$_SESSION['pc_shop']['cart']['items'][$ciid] = Array(
 				$productId,
 				$qty = $quantity,
-				$available_quantity
+				$available_quantity,
+				$attributes
 			);
 			$_SESSION['pc_shop']['cart']['totalQuantity'] += $qty;
 			$this->product_was_added = true;

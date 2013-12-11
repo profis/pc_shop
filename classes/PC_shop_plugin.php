@@ -490,7 +490,7 @@ final class PC_shop_plugin extends PC_base {
 		$highlight_cart = false;
 	
 		if (isset($_POST['add_to_basket']) and isset($_POST['product_id'])) {
-			$shop->product_was_added_to_cart = $shop->cart->Add(intval($_POST['product_id']), 1);
+			$shop->product_was_added_to_cart = $shop->cart->Add(intval($_POST['product_id']), 1, v($_POST['attributes']));
 			$highlight_cart = $shop->cart->product_was_added;
 		}
 		

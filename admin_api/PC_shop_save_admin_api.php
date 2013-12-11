@@ -90,6 +90,7 @@ class PC_shop_save_admin_api extends PC_shop_admin_api {
 		if (isset($this->d['manufacturer'])) {
 			$this->d['manufacturer_id'] = $this->d['manufacturer'];
 		}
+		$this->shop->attributes->absorb_debug_settings($this->shop->products);
 		if ($this->d['id'] == 0) {
 			$s = $this->shop->products->Create($this->d['category_id'], 0, $this->d, $params);
 			$this->_out['id'] = $this->d['id'] = $s;
@@ -117,6 +118,9 @@ class PC_shop_save_admin_api extends PC_shop_admin_api {
 	
 		}
 
+		$this->debug('Debug from attributes:', 1);
+		$this->debug($this->shop->attributes->get_debug_string(), 2);
+		
 		if (!$s) {
 			$this->_out['error'] = 'Error while saving main product data';
 			return;

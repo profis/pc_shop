@@ -36,6 +36,9 @@ class PC_shop_product_prices_admin_api extends PC_shop_admin_api {
 			'value' => $base_currency_id
 		);
 		$params['where']['product_id'] = intval(v($_POST['product_id'], v($this->route[3])));
+		$params['where']['attribute_id'] = intval(v($_POST['attribute_id'], 0));
+		$params['where']['attribute_value_id'] = intval(v($_POST['attribute_value_id'], 0));
+		
 		vv($params['join'], array());
 		$params['join'][] = "LEFT JOIN {$this->db_prefix}shop_currencies sc ON sc.id = t.c_id";
 		$params['select'] = 't.*, sc.code';

@@ -21,6 +21,8 @@ PC.utils.localize('mod.'+ Plugin.Name, {
 			currency: 'Currency',
 			base_currency: 'Base currency'
 		},
+		product_name: 'Name',
+		products: 'Products',
 		new_category: 'New category',
 		new_subcategory: 'New subcategory',
 		copy_category: 'Copy category',
@@ -37,6 +39,11 @@ PC.utils.localize('mod.'+ Plugin.Name, {
 		external_id: 'External ID',
 		discount: 'Discount',
 		attributes: 'Attributes',
+		attributes_labels: {
+			'info_1': '',
+			'info_2': '',
+			'info_3': ''
+		},
 		manufacturer: 'Manufacturer',
 		mpn: 'Manufacturer product number (MPN)',
 		quantity: 'Quantity',
@@ -101,6 +108,8 @@ PC.utils.localize('mod.'+ Plugin.Name, {
 			currency: 'Valiuta',
 			base_currency: 'Bazinė Valiuta'
 		},
+		product_name: 'Pavadinimas',
+		products: 'Produktai',
 		new_category: 'Nauja kategorija',
 		new_subcategory: 'Nauja subkategorija',
 		copy_category: 'Kopijuoti kategoriją',
@@ -117,6 +126,11 @@ PC.utils.localize('mod.'+ Plugin.Name, {
 		external_id: 'Išorinis ID kodas',
 		discount: 'Nuolaida',
 		attributes: 'Atributai',
+		attributes_labels: {
+			'info_1': '',
+			'info_2': '',
+			'info_3': ''
+		},
 		manufacturer: 'Gamintojas',
 		mpn: 'Gamintojo kodas (MPN)',
 		quantity: 'Kiekis',
@@ -182,6 +196,8 @@ PC.utils.localize('mod.'+ Plugin.Name, {
 			currency: 'Валюта',
 			base_currency: 'Базисная валюта'
 		},
+		product_name: 'Название',
+		products: 'Товары',
 		new_category: 'Новая категория',
 		new_subcategory: 'Новая субкатегория',
 		copy_category: 'Копировать категорию',
@@ -198,6 +214,11 @@ PC.utils.localize('mod.'+ Plugin.Name, {
 		external_id: 'Внешний ID код',
 		discount: 'Скидка',
 		attributes: 'Атрибуты',
+		attributes_labels: {
+			'info_1': '',
+			'info_2': '',
+			'info_3': ''
+		},
 		manufacturer: 'Производитель',
 		mpn: 'Производственный код (MPN)',
 		quantity: 'Кол-во',
@@ -837,7 +858,8 @@ Plugin.attributes.ParseAttributeValue = function(id, n) {
 Plugin.attributes.ItemStore = new Ext.data.JsonStore({
 	url: Plugin.api.Admin +'attributes/getForItem',
 	fields: [
-		'id', 'item_id', 'attribute_id', 'flags', 'value_id', 'value',
+		'id', 'item_id', 'attribute_id', 'flags', 'value_id', 'value', 'price_diff', 'discount',
+		'info_1', 'info_2', 'info_3', 
 		{name: 'attributeName', mapping: 'attribute_id', convert: Plugin.attributes.ParseAttributeName},
 		{name: 'displayValue', mapping: 'value_id', convert: Plugin.attributes.ParseAttributeValue}
 	],
@@ -865,6 +887,11 @@ Plugin.attributes.ItemStore = new Ext.data.JsonStore({
 				id: rec.data.id,
 				attribute_id: rec.data.attribute_id,
 				value_id: rec.data.value_id,
+				price_diff: rec.data.price_diff,
+				discount: rec.data.discount,
+				info_1: rec.data.info_1,
+				info_2: rec.data.info_2,
+				info_3: rec.data.info_3,
 				value: rec.data.value
 			});
 		});
@@ -899,7 +926,12 @@ Plugin.attributes.Grid = {
 	columns: [
 		//dialog.expander,
 		{header: 'Attribute', dataIndex: 'attributeName', width: 200},
-		{header: 'Value', dataIndex: 'displayValue', id: 'pc_shop_item_attribute_value_col'}
+		{header: 'Value', dataIndex: 'displayValue', id: 'pc_shop_item_attribute_value_col'},
+		{header: 'Price difference', dataIndex: 'price_diff'},
+		{header: 'Discount', dataIndex: 'discount'},
+		{header: Plugin.ln.attributes_labels.info_1, dataIndex: 'info_1'},
+		{header: Plugin.ln.attributes_labels.info_2, dataIndex: 'info_2'},
+		{header: Plugin.ln.attributes_labels.info_3, dataIndex: 'info_3'}
 	],
 	autoExpandColumn: 'pc_shop_item_attribute_value_col',
 	_insertRecord: function(rec, cfg) {
@@ -985,7 +1017,32 @@ Plugin.attributes.Grid = {
 							field.fireEvent('change', field, record.data.id);
 						}
 					}
-				}
+				},
+				{	xtype: 'numberfield',
+					fieldLabel: 'Price difference',
+					ref: '_price_diff',
+					value: rec.data.price_diff
+				},
+				{	xtype: 'numberfield',
+					fieldLabel: 'Discount',
+					ref: '_discount',
+					value: rec.data.discount
+				},
+				{	xtype: 'textfield',
+					fieldLabel: Plugin.ln.attributes_labels.info_1,
+					ref: '_info_1',
+					value: rec.data.info_1
+				},
+				{	xtype: 'textfield',
+					fieldLabel: Plugin.ln.attributes_labels.info_2,
+					ref: '_info_2',
+					value: rec.data.info_2
+				},
+				{	xtype: 'textfield',
+					fieldLabel: Plugin.ln.attributes_labels.info_3,
+					ref: '_info_3',
+					value: rec.data.info_3
+				}	
 			);
 		}
 		var windowCfg = {
@@ -1010,6 +1067,11 @@ Plugin.attributes.Grid = {
 				else {
 					var newId = w._value_id.getValue();
 					rec.set('value_id', newId);
+					rec.set('price_diff', w._price_diff.getValue());
+					rec.set('discount', w._discount.getValue());
+					rec.set('info_1', w._info_1.getValue());
+					rec.set('info_2', w._info_2.getValue());
+					rec.set('info_3', w._info_3.getValue());
 					rec.set('displayValue', Plugin.attributes.ParseAttributeValue(newId, rec.data.attribute_id));
 				}
 				w.close();
@@ -1074,7 +1136,7 @@ Plugin.attributes.Grid = {
 	},
 	listeners: {
 		celldblclick: function(grid, rowIndex, columnIndex, ev) {
-			if (columnIndex == 1) {
+			if (true || columnIndex == 1) {
 				var rec = Plugin.attributes.ItemStore.getAt(rowIndex);
 				grid._insertRecord(rec, {
 					grid: grid,
@@ -1159,7 +1221,15 @@ Plugin.attributes.Grid = {
 			handler: function () {
 				Plugin.attributes.move_selected(PC.editors.Get().attributesGrid, 'down')
 			}
+		}/*,
+		{	icon: 'images/money_euro.png',
+			text: 'Kainos skirtumas',
+			handler: function () {
+				debugger;
+				//PC.editors.Get().attributesGrid
+			}
 		}
+		*/
 	]
 };
 Plugin.attributes.Load = function(type, itemId){

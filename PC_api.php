@@ -49,7 +49,7 @@ function process_api_for_cart($route = '') {
 			$sendCartState = true;
 			break;
 		case 'add':
-			$out['success'] = $shop->cart->Add($routes->Get(3), $routes->Get(4, 1));
+			$out['success'] = $shop->cart->Add($routes->Get(3), $routes->Get(4, 1), v($_POST['attributes']));
 			$sendCartState = true;
 			break;
 		case 'set':
@@ -60,15 +60,25 @@ function process_api_for_cart($route = '') {
 			$out['success'] = $shop->cart->Remove($ciid = $routes->Get(3), $routes->Get(4, 0));
 			$sendCartState = true;
 			break;
+		case 'debug':
+			echo 'session cart:';
+			print_pre($_SESSION['pc_shop']['cart']);
+			echo 'shop cart get:';
+			print_pre($shop->cart->Get());
+			exit;
+			break;
 		default: $out['error'] = 'Invalid cart action';
 	}
 	if( $sendCartState ) {
 		$cart_data = $shop->cart->Get();
 		//print_pre($cart_data);
-		$out['totalUnique'] = $shop->cart->Count();
-		$out['total'] = $shop->cart->Count(false);
-		$out['totalPrice'] = number_format($cart_data["totalPrice"], 2, ".", "");
-		$shop->cart->Calculate_prices($out);
+		$out = array_merge($out, $cart_data);
+		unset($out['items']);
+		unset($out['products']);
+		//$out['totalUnique'] = $shop->cart->Count();
+		//$out['total'] = $shop->cart->Count(false);
+		//$out['totalPrice'] = number_format($cart_data["totalPrice"], 2, ".", "");
+		//$shop->cart->Calculate_prices($out);
 		if( !is_null($ciid) ) {
 			$item_real_key = false;
 

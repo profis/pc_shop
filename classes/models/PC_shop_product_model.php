@@ -56,7 +56,25 @@ class PC_shop_product_model extends PC_model {
 		return number_format($price, 2, ".", "");
 	}
 	
-	public function get_price(&$data, &$discount = 0, &$percentage_discount = 0) {
+	public function get_attributes_info(&$data, $attributes, $attributes_string = '') {
+		$attributes_string = '';
+		$attributes_strings = array();
+		$attributes_info = array();
+		print_pre($this->price_attribute_refs);
+		print_pre($data);
+		foreach ($attributes as $attribute_id => $attribute_value_id) {
+			if (v($this->price_attribute_refs) and v($this->price_attribute_refs[$attribute_id])) {
+				$ref = $this->price_attribute_refs[$attribute_id];
+			}
+			//$attributes_strings[] = $data["multiple_attributes"][$ref][$price_attribute["attribute_value_id"]]['name'] . ' - ' . $data["multiple_attributes"][$ref][$price_attribute["attribute_value_id"]]['value'];
+			//$attributes_strings[] = 
+			$attributes_info[$key] = array(
+				''
+			);
+		}
+	}
+	
+	public function get_price(&$data, &$discount = 0, &$percentage_discount = 0, $attributes = array()) {
 		$discount = 0;
 		$percentage_discount = 0;
 		$full_price = $price = $data['price'];
@@ -83,6 +101,12 @@ class PC_shop_product_model extends PC_model {
 				}
 			}
 		}
+		
+		if (!empty($attributes)) {
+			$price_data = $this->adjust_price($price, $data, $attributes);
+			$price = $price_data['price'];
+		}
+		
 		$discount = $full_price - $price;
 		if ($discount and $full_price) {
 			$percentage_discount = $discount * 100 / $full_price;
@@ -91,6 +115,77 @@ class PC_shop_product_model extends PC_model {
 			$price = 0;
 		}
 		return number_format($price, 2, ".", "");;
+	}
+	
+	public function adjust_price($price, &$data, $attributes = array()) {
+		//echo 'adjust price';
+		$discount = 0;
+		$percentage_discount = 0;
+		
+		$additional_discount = 0;
+		if ($price == $data['real_price'] and $data['price'] > $data['real_price']) {
+			$additional_discount = $data['price'] - $data['real_price'];
+			$price = $data['price'];
+		}
+		
+		$full_price = $price;
+		
+		$price_data = array(
+			'price' => $price,
+			'full_price' => $price,
+			'discount' => $discount,
+			'percentage_discount' => $percentage_discount,
+		);
+		
+		
+		$attributes_strings = array();
+		$attributes_info = array();
+		//$cart_item['attributes_info'] = $this->shop->products->get_attributes_info($p, $cart_item['attributes']);
+		//print_pre($attributes);
+		//print_pre($this->price_attribute_refs);
+		if (is_array($attributes)) {
+			foreach ($attributes as $attribute_id => $attribute_value_id) {
+				$ref = v($this->price_attribute_refs[$attribute_id]);
+				if (!$ref) {
+					continue;
+				}
+				if (v($data['price_attributes'][$ref]) and v($data['price_attributes'][$ref][$attribute_value_id])) {
+					$attribute_price_data = $data['price_attributes'][$ref][$attribute_value_id];
+					$price += $attribute_price_data['price_diff'];
+					$full_price = $price;
+					$discount = v($attribute_price_data['discount']);
+					if ($discount and $price) {
+						//$percentage_discount = $discount * 100 / $price;
+						$price -= $discount;
+					}
+					$attributes_strings[] = $data["multiple_attributes"][$ref][$attribute_value_id]['name'] . ' - ' . $data["multiple_attributes"][$ref][$attribute_value_id]['value'];
+					//$attributes_strings[] = 
+					vv($attributes_info[$attribute_id], array());
+					$attributes_info[$attribute_id][$attribute_value_id] = array(
+						'price_data' => $attribute_price_data,
+						'data' => $data["multiple_attributes"][$ref][$attribute_value_id]
+					);
+				}
+
+			}
+		}
+		
+		//print_pre($attributes_strings);
+		
+		if ($additional_discount > 0) {
+			$additional_discount;
+			$price -= $additional_discount;
+			$discount += $additional_discount;
+		}
+		
+		$price_data['price'] = $price;
+		$price_data['full_price'] = $full_price;
+		$price_data['discount'] = $discount;
+		$price_data['percentage_discount'] = $discount * 100 / $price;
+		$price_data['attributes_info'] = $attributes_info;
+		$price_data['attributes_string'] = implode('; ', $attributes_strings);
+		//print_pre($price_data);
+		return $price_data;
 	}
 	
 	public function get_full_price(&$data) {

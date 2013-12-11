@@ -36,6 +36,19 @@ function pc_shop_install($controller) {
 	), array('ignore' => true));
 	
 	
+	$payment_option_model->insert(array('code' => 'check'), array(
+		'lt' => array(
+			'name' => 'Čekiu'
+		),
+		'en' => array(
+			'name' => 'Check'
+		),
+		'ru' => array(
+			'name' => 'Банковский чек'
+		)
+	), array('ignore' => true));
+	
+	
 	$delivery_option_model = new PC_shop_delivery_option_model();
 	$delivery_option_model->absorb_debug_settings($logger);
 	
@@ -66,8 +79,8 @@ function pc_shop_install($controller) {
 	//$core->Set_config('delivery_price', '', 'pc_shop');
 	//$core->Set_config('cod_price', '', 'pc_shop');
 	//$core->Set_config('amount_for_free_delivery', '', 'pc_shop');
-	$core->Set_config('currency', 'LTL', 'pc_shop');
-	$core->Set_config('new_order_email_admin', '', 'pc_shop');
+	$core->Set_config_if('currency', 'LTL', 'pc_shop');
+	$core->Set_config_if('new_order_email_admin', '', 'pc_shop');
 	
 	
 	//Import currency list
