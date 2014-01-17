@@ -39,8 +39,12 @@ PC.ux.categoryField = Ext.extend(Ext.form.CompositeField, {
 				}, 
 				{
 					callback: Ext.createDelegate(function(value, lang, node_id){
-						debugger;
-						//Ext.getCmp('pc_shop_import_products_category_hidden').setValue(node_id);
+						var node_id_parts = node_id.split('/');
+						if (node_id_parts.length == 3) {
+							if (node_id_parts[0] == 'pc_shop' && node_id_parts[1] == 'category') {
+								this.items.items[0].setValue(node_id_parts[2]);
+							}
+						}
 					}, this),
 					page_selector_params: {
 						tree_params : {
@@ -62,8 +66,11 @@ PC.ux.categoryField = Ext.extend(Ext.form.CompositeField, {
 	},
 			
 	getValue: function() {
-		return '';
-		return this.crud.get_store_data(true);
+		return this.items.items[0].getValue();
+	},
+	
+	setValue: function(value) {
+		this.items.items[0].setValue(value);
 	},
 			
 	isDirty: function() {

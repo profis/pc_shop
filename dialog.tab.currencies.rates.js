@@ -76,17 +76,7 @@ PC.plugin.pc_shop.shop_currency_rates = Ext.extend(PC.ux.LocalCrud, {
 			this.get_button_for_refresh()
 		];
 		return buttons;
-	},
-			
-	get_button_for_refresh: function() {
-		return {	
-			ref: '../action_refresh',
-			icon: 'images/refresh.gif',
-			handler: Ext.createDelegate(function() {
-				this.store.reload();
-			}, this)
-		};
-	},		
+	},	
 			
 	button_handler_for_import_single: function(currency_code) {
 		Ext.Ajax.request({

@@ -16,17 +16,27 @@ include $this->core->Get_tpl_path($tpl_group, 'tpl.images');
 ?>
 </div>
 
-<div>
 <?php
-include $this->core->Get_tpl_path($tpl_group, 'tpl.price');
-?>
-</div>
+//print_pre($product_variants);
+foreach ($product_variants as $product_variant) {
 
-<div>
-<?php
-include $this->core->Get_tpl_path($tpl_group, 'tpl.to_basket');
 ?>
-</div>
+	<h4><?php echo $product_variant['name']?></h4>
+	<div>
+	<?php
+	include $this->core->Get_tpl_path($tpl_group, 'tpl.price');
+	?>
+	</div>
+
+	<div>
+	<?php
+	include $this->core->Get_tpl_path($tpl_group, 'tpl.to_basket');
+	?>
+	</div>
+
+<?php
+}
+?>
 
 <!-- ATTRIBUTES -->
 <div id="product_attributes">

@@ -5,12 +5,19 @@ if (!PC_plugin_dialog_pc_shop.tabs) {
 PC.plugin.pc_shop.crud_coupons = Ext.extend(PC.ux.crud, {
 	api_url: 'api/plugin/pc_shop/coupons/',
 	
+	store_admin_ln: true,
+	
+	reload_after_save: true,
+	
 	no_ln_fields: true,
+	
+	add_window_width: 350,
+	edit_window_width: 550,
 	
 	get_store_fields: function() {
 		return [
-			'time_from', 'time_to', 'category_id',
-			'id', 'code', 'is_for_hot', 'use_limit', 'used'
+			'time_from', 'time_to', 'category_id', 'category_name',
+			'id', 'code', 'is_for_hot', 'use_limit', 'used', 'percentage_discount', 'prices_key'
 		];
 	},
 	
@@ -21,8 +28,10 @@ PC.plugin.pc_shop.crud_coupons = Ext.extend(PC.ux.crud, {
 			{header: this.ln.time_from, dataIndex: 'time_from', width: 150},
 			{header: this.ln.time_to, dataIndex: 'time_to', width: 150},
 			{header: this.ln.use_limit, dataIndex: 'use_limit'},
-			{header: this.ln.category, dataIndex: 'category_id'},
-			{header: this.ln.is_for_hot, dataIndex: 'is_for_hot', renderer: this._render_cell_yes_no}
+			{header: this.ln.category, dataIndex: 'category_name'},
+			{header: 'Category id', dataIndex: 'category_id'},
+			{header: this.ln.is_for_hot, dataIndex: 'is_for_hot', renderer: this._render_cell_yes_no},
+			{header: this.ln.discount + ' %', dataIndex: 'percentage_discount'},
 		];
 	},
 	
@@ -43,7 +52,29 @@ PC.plugin.pc_shop.crud_coupons = Ext.extend(PC.ux.crud, {
 				editable: false,
 				forceSelection: true,
 				value: '',
-				allowBlank: true
+				allowBlank: false
+			},
+			
+			{	_fld: 'time_from',
+				ref: '_time_from',
+				name: 'time_from',
+				fieldLabel: this.ln.time_from,
+				anchor: '100%',
+				xtype: 'pc_date_time_field',
+				mode: 'local',
+				editable: false,
+				forceSelection: true
+			},
+			
+			{	_fld: 'time_to',
+				ref: '_time_to',
+				name: 'time_to',
+				fieldLabel: this.ln.time_to,
+				anchor: '100%',
+				xtype: 'pc_date_time_field',
+				mode: 'local',
+				editable: false,
+				forceSelection: true
 			},
 			
 			{
@@ -93,15 +124,40 @@ PC.plugin.pc_shop.crud_coupons = Ext.extend(PC.ux.crud, {
 				value_text: '',
 				allowBlank: true
 			}
+			,
 			
-			
-			
+			{	_fld: 'percentage_discount',
+				ref: '_percentage_discount',
+				name: 'percentage_discount',
+				fieldLabel: this.ln.discount + ' %',
+				anchor: '100%',
+				xtype: 'numberfield',
+				mode: 'local',
+				editable: false,
+				forceSelection: true,
+				allowBlank: true
+			}
 		];
 	},
+			
+	get_empty_edit_form_fields: function() {
+		var fields = PC.plugin.pc_shop.crud_coupons.superclass.get_empty_edit_form_fields.call(this);
+		fields.push({
+			_fld: 'prices_key',
+			ref: '_prices_key',
+			//name: 'prices',
+			fieldLabel: 'Prices',
+			_do_not_save: true,
+			xtype: 'pc_shop_price_field'
+		});
+		return fields;
+	},			
+			
 	get_tbar_buttons: function() {
 		var buttons =  [
 			this.get_button_for_add(),
 			this.get_button_for_edit(),
+			this.get_button_for_refresh(),
 			this.get_button_for_del()
 		];
 		if (this.sortable) {
@@ -109,6 +165,11 @@ PC.plugin.pc_shop.crud_coupons = Ext.extend(PC.ux.crud, {
 			//buttons.push(this.get_button_for_move_down());
 		}
 		return buttons;
+	},
+	
+	_after_update: function() {
+		this.form_field_container._prices_key.sync();
 	}
+	
 }); 
 //debugger;

@@ -81,6 +81,22 @@ class PC_shop_category_model extends PC_model {
 		}
 	} 
 	
+	public function is_descendant($descendant, $ancestor) {
+		if (!is_array($descendant)) {
+			$descendant = $this->get_one($descendant);
+		}
+		if (!is_array($ancestor)) {
+			$ancestor = $this->get_one($ancestor);
+		}
+		if (!is_array($descendant) or !is_array($ancestor)) {
+			return false;
+		}
+		if ($descendant['lft'] >= $ancestor['lft'] and $descendant['rgt'] <= $ancestor['rgt']) {
+			return true;
+		}
+		return false;
+	}
+	
 	/**
 	 * 
 	 * @param array $category_data

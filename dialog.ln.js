@@ -82,6 +82,7 @@ var ln =  {
 			comment: 'Comment',
 			delivery_price: 'Delivery price',
 			cod_price: 'Cash on delivery fee',
+			discount: 'Discount',
 			total_price: 'Total price of the order'
 		},
 		attribute_categories: {
@@ -110,6 +111,7 @@ var ln =  {
 			time_from: 'Valid from',
 			time_to: 'Valid till',
 			use_limit: 'Limit',
+			discount: 'Discount',
 			category: 'Category',
 			is_for_hot: 'Valid for promo products',
 			error: {
@@ -222,6 +224,7 @@ var ln =  {
 			comment: 'Komentaras',
 			delivery_price: 'Pristatymo kaina',
 			cod_price: 'Atsiskaitant grynaisiais pristatymo metu mokestis',
+			discount: 'Pritaikyta nuolaida',
 			total_price: 'Visa užsakymo suma'
 		},
 		attribute_categories: {
@@ -251,6 +254,7 @@ var ln =  {
 			time_from: 'Galioja nuo',
 			time_to: 'Galioja iki',
 			use_limit: 'Limitas',
+			discount: 'Nuolaida',
 			category: 'Kategorija',
 			is_for_hot: 'Galioja akcijinėms prekėms',
 			error: {
@@ -363,6 +367,7 @@ var ln =  {
 			comment: 'Комментарий',
 			delivery_price: 'Стоимость доставки',
 			cod_price: 'Сбор за наложенный платеж',
+			discount: 'Ваучер скидка',
 			total_price: 'Вся сумма заказа'
 		},
 		attribute_categories: {

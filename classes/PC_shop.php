@@ -638,21 +638,43 @@ class PC_shop_resources extends PC_base {
 	}
 	public function Get($id=null, $itemId=null, $flags=self::RF_AL_PUBLIC) {
 		$this->debug("Get($id, $itemId, $flags");
-		if (!is_array($flags)) $flags = array($flags);
-		$flagsCheck = 0x0;
-		if (count($flags)) foreach ($flags as $flag) {
-			$flagsCheck |= $flag;
+		if (!is_array($flags)) {
+			$flags = array($flags);
 		}
-		$query = $qry = "SELECT * FROM {$this->db_prefix}shop_resources WHERE flags&{$flagsCheck}={$flagsCheck}".(!is_null($id)?" AND resource_id=?":!is_null($itemId)?" and item_id=?":"")." ORDER BY flags&?, position".(!is_null($id)?" LIMIT 1":"");
+		$flagsCheck = 0x0;
+		//print_r($flags);
+		//echo $this->get_callstack();
+		$category_flag_used = false;
+		$queryParams = array();
+		$flag_clauses = array();
+		if (count($flags)) foreach ($flags as $flag) {
+			if ($flag == '' or is_null($flag)) {
+				continue;
+			}
+			if ($flag == self::RF_IS_CATEGORY) {
+				$category_flag_used = true;
+			}
+			$flagsCheck |= $flag;
+			$flag_clauses[] = $this->db->get_flag_query_condition($flag, $queryParams);
+		}
+		if (!$category_flag_used) {
+			$flag_clauses[] = $this->db->get_flag_query_condition(self::RF_IS_CATEGORY, $queryParams, 'flags', '', '!=');
+		}
+		$flag_clause = implode(' AND ', $flag_clauses);
+		//$queryParams = array();
+		//$flag_clause = "flags&{$flagsCheck}={$flagsCheck}";
+		
+		$query = $qry = "SELECT * FROM {$this->db_prefix}shop_resources WHERE $flag_clause ".(!is_null($id)?" AND resource_id=?":!is_null($itemId)?" and item_id=?":"")." ORDER BY flags&?, position".(!is_null($id)?" LIMIT 1":"");
 		$r = $this->prepare($query);
 		
-		$queryParams = array();
 		if (!is_null($id)) $queryParams[] = $id;
 		elseif (!is_null($itemId)) $queryParams[] = $itemId;
 		$queryParams[] = PC_shop_resources::RF_IS_ATTACHMENT;
+		//echo $this->get_debug_query_string($query, $queryParams);
 		$this->debug_query($query, $queryParams, 1);
 		$s = $r->execute($queryParams);
 		if (!$s) return false;
+		
 		
 		$list = array();
 		while ($d = $r->fetch()) {
@@ -754,8 +776,12 @@ class PC_shop_item_resources{
 			$item_resources = self::$item_resources[$this->itemId];
 		}
 		else {
-			if ($this->Is_category()) $flags |= PC_shop_resources::RF_IS_CATEGORY;
-			$query = "SELECT * FROM {$cfg['db']['prefix']}shop_resources WHERE item_id=? and flags&?=? ORDER BY position";
+			$flag_op = '=';
+			$flags |= PC_shop_resources::RF_IS_CATEGORY;
+			if (!$this->Is_category()) {
+				$flag_op = '!=';
+			}
+			$query = "SELECT * FROM {$cfg['db']['prefix']}shop_resources WHERE item_id=? and flags&?$flag_op? ORDER BY position";
 			$r = $db->prepare($query);
 			$query_params = array($this->itemId, $flags, $flags);
 			$s = $r->execute($query_params);
@@ -876,6 +902,7 @@ class PC_shop_attributes extends PC_shop_attribute_model {
 				if (empty($attr)) continue;
 				$attrData = array();
 				$attr = explode('░', $attr);
+				//print_pre($attr);
 				//$this->debug($attr);
 				$name = '';
 				foreach ($attr as $k => $v) {
@@ -900,7 +927,8 @@ class PC_shop_attributes extends PC_shop_attribute_model {
 				if (!v($attrData['is_custom']) and isset($attrData['avc_value'])) {
 					$attrData['value'] = $attrData['avc_value'];
 				}
-				
+				//print_pre($attrData);
+						
 				//$this->debug($attrData, 5);
 				if (!empty($key)) {
 					if (isset($attribs[$key])) {
@@ -914,12 +942,18 @@ class PC_shop_attributes extends PC_shop_attribute_model {
 							if (v($attribs[$key]['value_id'])) {
 								$multiple_attributes[$key][$attribs[$key]['value_id']] = $attribs[$key];
 							}
+							elseif (v($attribs[$key]['ia_id'])) {
+								$multiple_attributes[$key]['#' . $attribs[$key]['ia_id']] = $attribs[$key];
+							}
 							else {
 								$multiple_attributes[$key][] = $attribs[$key];
 							}
 						}
 						if (v($attrData['value_id'])) {
 							$multiple_attributes[$key][$attrData['value_id']] = $attrData;
+						}
+						elseif (v($attribs[$key]['ia_id'])) {
+							$multiple_attributes[$key]['#' . $attrData['ia_id']] = $attrData;
 						}
 						else {
 							$multiple_attributes[$key][] = $attrData;
@@ -934,7 +968,6 @@ class PC_shop_attributes extends PC_shop_attribute_model {
 				
 			}
 		}
-		
 		$d = $attribs;
 		return $multiple_attributes;
 	}
@@ -1383,11 +1416,14 @@ class PC_shop_attributes extends PC_shop_attribute_model {
 		}
 		
 		if ($itemType == self::ITEM_IS_PRODUCT) {
-			$select .= ', pp.price_diff, pp.discount, pp.info_1, pp.info_2, pp.info_3';
+			$select .= ', pp.price, pp.price_diff, pp.discount, pp.info_1, pp.info_2, pp.info_3';
 			$join .= " LEFT JOIN {$this->db_prefix}shop_product_prices pp 
 						ON pp.product_id=a.item_id AND pp.attribute_id=a.attribute_id
-						AND pp.attribute_value_id = a.value_id 
-						AND pp.attribute_value_id <> 0";
+						AND (
+							pp.attribute_value_id <> 0 AND pp.attribute_value_id = a.value_id 
+							OR 
+							pp.attribute_item_id <> 0 AND pp.attribute_item_id = a.id 
+						)";
 		}
 		
 		$query = "SELECT $select FROM {$this->db_prefix}shop_item_attributes a"
@@ -1600,20 +1636,31 @@ class PC_shop_attributes extends PC_shop_attribute_model {
 		if (!is_array($data)) return false;
 		if (count(v($data['save'], array()))) foreach ($data['save'] as $i) {
 			if ($insert or $i['id'] == 0) {
-				$this->Assign_to_item($itemId, $itemType, $i['attribute_id'], $i['value_id'], $i['value']);
+				$attribute_item_id = $this->Assign_to_item($itemId, $itemType, $i['attribute_id'], $i['value_id'], $i['value']);
 			}
 			else {
+				$attribute_item_id = $i['id'];
 				$this->Edit_for_item($i['id'], $i['value_id'], $i['value']);
 			}
-			if ($itemType == self::ITEM_IS_PRODUCT and $i['value_id'] and isset($i['price_diff'])) {
+			if ($itemType == self::ITEM_IS_PRODUCT and (isset($i['price']) or isset($i['price_diff']))) {
 				$product_price_model = $this->core->Get_object('PC_shop_product_price_model');
 				$product_price_model->absorb_debug_settings($this);
-				$key_fields = array(
-					'product_id' => $itemId,
-					'attribute_id' => $i['attribute_id'],
-					'attribute_value_id' => $i['value_id'],
-				);
-				if ($i['price_diff'] == 0) {
+				if ($i['value_id']) {
+					$key_fields = array(
+						'product_id' => $itemId,
+						'attribute_id' => $i['attribute_id'],
+						'attribute_value_id' => $i['value_id'],
+					);
+				}
+				else {
+					$key_fields = array(
+						'product_id' => $itemId,
+						'attribute_id' => $i['attribute_id'],
+						'attribute_item_id' => $attribute_item_id,
+					);
+				}
+				
+				if (v($i['price'], 0) == 0 and v($i['price_diff'], 0) == 0) {
 					$product_price_model->delete(array(
 						'where' => $key_fields
 					));
@@ -1623,12 +1670,13 @@ class PC_shop_attributes extends PC_shop_attribute_model {
 						'where' => $key_fields
 					));
 					$other_fields  = array(
+						'price' => $i['price'],
 						'price_diff' => $i['price_diff'],
 						'info_1' => v($i['info_1']),
 						'info_2' => v($i['info_2']),
 						'info_3' => v($i['info_3']),
 					);
-					if (v($i['price_diff']) and $i['price_diff'] > 0) {
+					if (v($i['price']) and $i['price'] > 0 or v($i['price_diff']) and $i['price_diff'] > 0) {
 						if (v($i['discount']) and $i['discount'] > 0) {
 							$other_fields['discount'] = $i['discount'];
 						}
@@ -1843,6 +1891,9 @@ class PC_shop_orders extends PC_shop_order_model {
 		//print_pre($shop_site_products);
 		foreach ($list as $key => &$list_item) {
 			//$product = 
+			if (!isset($shop_site_products[$list_item['id']])) {
+				continue;
+			}
 			$list[$key]['name'] = $shop_site_products[$list_item['id']]['name'];
 			$price = $shop_site->products->get_price($shop_site_products[$list_item['id']]);
 			$price_data = $shop_site->products->adjust_price($price, $shop_site_products[$list_item['id']], $list_item['attributes']);
@@ -1933,6 +1984,22 @@ class PC_shop_orders extends PC_shop_order_model {
 		if (is_null($order_data) or !is_array($order_data)) {
 			if (isset($_POST['order'])) {
 				$order_data = $_POST['order'];
+				//print_pre($order_data);
+				if (!is_array($order_data)) {
+					$order_data = array();
+				}
+				if (!isset($order_data['order_data']) or !is_array($order_data['order_data'])) {
+					$order_data['order_data'] = array();
+				}
+				foreach ($order_data as $key => $value) {
+					$starting = 'order_data[';
+					if (strpos($key, $starting) === 0) {
+						$new_key = substr($key, strlen($starting));
+						$new_key = trim($new_key, ']');
+						$order_data['order_data'][$new_key] = $value;
+					}
+				}
+				//print_pre($order_data['order_data']);
 			}
 		}
 		if (is_array($order_data)) {
@@ -1983,6 +2050,7 @@ class PC_shop_orders extends PC_shop_order_model {
 		$rInsertItem = $this->prepare($insert_item_query);
 		
 		$totalPrice = 0;
+		$eligible_discount = 0;
 		$this->debug('Cart data:', 3);
 		$this->debug($_SESSION['pc_shop'], 3);
 		$order_items_model = $this->core->Get_object('PC_shop_order_item_model');
@@ -1993,9 +2061,20 @@ class PC_shop_orders extends PC_shop_order_model {
 			)
 		));
 		$this->debug($order_items_model->get_debug_string(), 6);
-		foreach ($_SESSION['pc_shop']['cart']['items'] as $ciid => $product_basket_data) {
-			$productId = $product_basket_data[0];
-			$quantity = $product_basket_data[1];
+		
+		$preserved_coupon_data = $this->shop->cart->get_preserved_coupon_data(true);
+		
+		$shop_cart_data = $this->shop->cart->Get();
+		
+		$cart_data = array(
+			'products' => $shop_cart_data['products'],
+			'items' => array()
+		);
+		
+		//foreach ($_SESSION['pc_shop']['cart']['items'] as $ciid => $product_basket_data) {
+		foreach ($shop_cart_data['items'] as $ciid => $product_basket_data) {
+			$productId = $product_basket_data['id'];
+			$quantity = $product_basket_data['basket_quantity'];
 			$product = $this->shop->products->Get($productId);
 			if (!$product) {
 				$params->errors->Add('unknown_product', 'Unknown product in the cart');
@@ -2003,28 +2082,41 @@ class PC_shop_orders extends PC_shop_order_model {
 			else {
 				$discount;
 				$discount_percentage;
-				$price = $this->shop->products->get_price($product, $discount, $discount_percentage, $product_basket_data[3]);
-				$totalPrice += $price * $quantity;
-				$insert_item_query_params = array($orderId, $productId, $quantity, PC_utils::array_to_string($product_basket_data[3]), $price);
+				$price = $this->shop->products->get_price($product, $discount, $discount_percentage, $product_basket_data['attributes']);
+				$insert_item_query_params = array($orderId, $productId, $quantity, PC_utils::array_to_string($product_basket_data['attributes']), $price);
 				$this->debug_query($insert_item_query, $insert_item_query_params);
 				$s = $rInsertItem->execute($insert_item_query_params);
-				if ($s) continue;
+				if ($s) {
+					$total_item_price = $price * $quantity;
+					$totalPrice += $total_item_price;
+					$cart_data['items'][$ciid] = $product_basket_data;
+					
+					$eligible_discount += $this->shop->products->get_eligible_coupon_discount($preserved_coupon_data, $total_item_price, $product);
+					
+					continue;
+				}
 				else $params->errors->Add('insert_order_item', '');
 			}
 			return false;
 		}
-		$cart_data = array(
-			'totalPrice' => $totalPrice
-		);
-		$this->shop->cart->Calculate_prices($cart_data);
+		$cart_data['totalPrice'] = $totalPrice;
+		$cart_data['eligible_discount'] = number_format($eligible_discount, 2, ".", "");
+		
+		$coupon_id = null;
+		if ($preserved_coupon_data and v($preserved_coupon_data['id'])) {
+			$coupon_id = $preserved_coupon_data['id'];
+		}
+		
+		$this->shop->cart->Calculate_prices($cart_data, array(), $preserved_coupon_data);
 		//set total price
 		$this->debug("Prices were calculated:, ", 3);
 		$this->debug($cart_data, 4);
-		$rPrice = $this->prepare("UPDATE {$this->db_prefix}shop_orders SET delivery_price = ?, cod_price = ? , total_price = ? WHERE id=?");
-		$s = $rPrice->execute(array(v($cart_data['order_delivery_price'], 0), v($cart_data['order_cod_price'], 0), v($cart_data['order_full_price'], $totalPrice), $orderId));
+		$rPrice = $this->prepare("UPDATE {$this->db_prefix}shop_orders SET delivery_price = ?, cod_price = ? , total_price = ?, coupon_id = ?, discount = ? WHERE id=?");
+		$s = $rPrice->execute(array(v($cart_data['order_delivery_price'], 0), v($cart_data['order_cod_price'], 0), v($cart_data['order_full_price'], $totalPrice), $coupon_id, v($cart_data['coupon_discount'], 0), $orderId));
 		if ($clearCart) {
 			$this->shop->cart->Clear();
 			$this->Clear_preserved_order_data();
+			$this->shop->cart->cancel_coupon();
 		}
 		$this->Assign_status($orderId, PC_shop_order_model::STATUS_NEW);
 		return true;
@@ -2045,11 +2137,43 @@ class PC_shop_cart extends PC_base {
 			$this->Clear();
 	}
 	
+	public function set_coupon_data($coupon_data) {
+		$_SESSION['pc_shop']['coupon'] = $coupon_data;
+	}
+	
+	public function cancel_coupon() {
+		if (isset($_SESSION['pc_shop']['coupon'])) {
+			unset($_SESSION['pc_shop']['coupon']);
+		}
+	}
+	
+	public function get_preserved_coupon_data($refresh = false) {
+		if (isset($_SESSION['pc_shop']['coupon'])) {
+			$shop_price = $this->core->Get_object('PC_shop_price');
+			$user_currency_id = $shop_price->get_user_currency_id();
+			if ($user_currency_id != v($_SESSION['pc_shop']['coupon']['_currency'])) {
+				$refresh = true;
+			}
+			if ($refresh) {
+				$coupon_model = $this->core->Get_object('PC_shop_coupon_model');
+				$coupon_data = $coupon_model->get_valid_coupon($_SESSION['pc_shop']['coupon']['code']);
+				if (!$coupon_data) {
+					$this->cancel_coupon();
+					return false;
+				}
+				$this->set_coupon_data($coupon_data);
+				return $coupon_data;
+			}
+			return $_SESSION['pc_shop']['coupon'];
+		}
+		return false;
+	}
+	
 	/**
 	 * 
 	 * @param type $data array with key 'totalPrice' (total price of items)
 	 */
-	public function Calculate_prices(&$data, $default_order_data = array()) {
+	public function Calculate_prices(&$data, $default_order_data = array(), $coupon_data = array()) {
 		$delivery_price = v($this->cfg['pc_shop']['delivery_price'], 0);
 		if (empty($delivery_price)) {
 			$delivery_price = 0;
@@ -2130,10 +2254,28 @@ class PC_shop_cart extends PC_base {
 		
 		$this->core->Init_hooks('pc_shop/cart/calculate_prices', array(
 			'data'=> &$data,
-			'order_data' => $order_data
+			'order_data' => $order_data,
+			'coupon_data' => $coupon_data
 		));
 		
+		$data['coupon_discount'] = 0;
+		
+		if (v($data['eligible_discount'])) {
+			$coupon_discount = $data['eligible_discount'];
+			$max_coupon_discount = $data['totalPrice'] * v($this->cfg['pc_shop']['max_coupon_percentage'], 25) / 100;
+			$max_coupon_discount = round($max_coupon_discount, 2);
+			if ($coupon_discount > $max_coupon_discount) {
+				$coupon_discount = $max_coupon_discount;
+			}
+			$data['coupon_discount'] = $coupon_discount;
+		}
+		
+		$total_price = $items_price + $data['order_delivery_price'] + $data['order_cod_price'] - $data['coupon_discount'];
+		$data['order_full_price'] = $total_price;
+		
 		$data['order_delivery_prices'] = $data['order_cod_price'] + $data['order_delivery_price'];
+		
+		$data['coupon_discount'] = number_format($data['coupon_discount'], 2, ".", "");
 		
 		$data['cod_price'] = number_format($data['cod_price'], 2, ".", "");
 		$data['delivery_price'] = number_format($data['delivery_price'], 2, ".", "");
@@ -2142,6 +2284,7 @@ class PC_shop_cart extends PC_base {
 		$data['order_cod_price'] = number_format($data['order_cod_price'], 2, ".", "");
 		$data['order_delivery_price'] = number_format($data['order_delivery_price'], 2, ".", "");
 		$data['order_full_price'] = number_format($data['order_full_price'], 2, ".", "");
+		
 	}
 	
 	/**
@@ -2181,6 +2324,11 @@ class PC_shop_cart extends PC_base {
 		foreach( $productList as &$p )
 			$products[$p["id"]] = &$p;
 		
+		
+		$preserved_coupon_data = $this->get_preserved_coupon_data();
+		
+		$amount_eligible_for_coupon = 0;
+		
 		foreach ($_SESSION['pc_shop']['cart']['items'] as $ciid => $cartItemInfo) {
 			$d['total']++;
 			$p = &$products[$cartItemInfo[0]];
@@ -2201,6 +2349,7 @@ class PC_shop_cart extends PC_base {
 				'name' => $products[$cartItemInfo[0]]['name'],
 				'link' => $products[$cartItemInfo[0]]['link']
 			);
+			$amount_eligible_for_coupon += $this->shop->products->get_eligible_coupon_discount($preserved_coupon_data, $item_total_price, $p);
 			$cart_item['original_name'] = $cart_item['name'];
 			if (v($cart_item['price_data']['attributes_string'])) {
 				$cart_item['name'] .= ' (' . $cart_item['price_data']['attributes_string'] . ')';
@@ -2214,12 +2363,13 @@ class PC_shop_cart extends PC_base {
 		}
 		$d['products'] = $products;
 		$d['totalPrice'] = number_format($d['totalPrice'], 2, ".", "");
+		$d['eligible_discount'] = number_format($amount_eligible_for_coupon, 2, ".", "");
 		$default_order_data = array();
 		if (is_array($raw)) {
 			$default_order_data = $raw;
 		}
 		$this->click('before calculate prices');
-		$this->Calculate_prices($d, $default_order_data);
+		$this->Calculate_prices($d, $default_order_data, $preserved_coupon_data);
 		$this->click('Get finished()');
 		return $d;
 	}

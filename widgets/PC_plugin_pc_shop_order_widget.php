@@ -49,13 +49,17 @@ class PC_plugin_pc_shop_order_widget extends PC_plugin_pc_shop_widget {
 		$data = array(
 			'cart_data' => $shop->cart->Get($this->_config['default_order_data']),
 			'order_data' => $shop->orders->Get_preserved_order_data(),
+			'coupon_data' => $shop->cart->get_preserved_coupon_data(),
 			'delivery_options' => $this->get_delivery_options(),
 			'payment_options' => $this->get_payment_options()
 		);
+		if ($data['coupon_data']) {
+			$data['cart_data']['coupon'] = $data['coupon_data']['code'];
+		}
 		if (!$data['order_data']) {
 			$data['order_data'] = array();
 		}
-		$data['order_data'] = array_merge($default_order_data, $data['order_data']);
+		$data['order_data'] = array_merge($this->_config['default_order_data'], $data['order_data']);
 		return $data;
 	}
 }

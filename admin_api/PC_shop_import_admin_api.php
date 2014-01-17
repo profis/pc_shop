@@ -215,10 +215,37 @@ class PC_shop_import_admin_api extends PC_shop_admin_api {
 								}
 								//ksort($sections);
 								$totalFlats = 0;
+								$flat_int_number = 0;
+								$all_flats = array();
 								foreach ($sections as $a => $section_value) {
-									$sectionData = explode('/', $sections[$a]);
+									$section_custom_columns = array();
+									if (strpos($section_value, '[')) {
+										list($section_data_1, $section_data_2) = explode('[', $section_value);
+										$section_data_1 = trim($section_data_1);
+										$section_data_2 = trim($section_data_2, ']');
+										$section_data_2 = trim($section_data_2);
+										$section_custom_columns = PC_utils::string_to_array($section_data_2);
+										
+										$section_value = $section_data_1;
+									}
+									$this->debug("section_custom_columns: ", 1);
+									$this->debug($section_custom_columns, 1);
+									
+									$sectionData = explode('/', $section_value);
 									if (!$sectionData) break;
 									//echo 'Section '.$a.': '; print_pre($sectionData);
+									for ($index_floor = 1; $index_floor <= $sectionData[0]; $index_floor++) {
+										for ($index_col = 1; $index_col <= $sectionData[1]; $index_col++) {
+											$custom_part = '';
+											if (!isset($section_custom_columns[$index_col])) {
+												$flat_int_number++;
+											}
+											else {
+												$custom_part = $section_custom_columns[$index_col];
+											}
+											$all_flats[] = $flat_int_number . $custom_part;
+										}
+									}
 									$totalFlats += $sectionData[0] * $sectionData[1];
 								}
 								/*
@@ -230,12 +257,21 @@ class PC_shop_import_admin_api extends PC_shop_admin_api {
 								}
 								*/
 								$this->debug("totalFlats: " . $totalFlats, 1);
+								/*
 								for ($a=1; $a<=$totalFlats; $a++) {
 									$params = array();
 									$data =  array('category_id'=> $id, 'contents'=> array(), 'published'=> false);
 									$data['contents'][$this->site->ln] = array('name'=> $a);
 									$this->shop->products->Create($id, $a, $data, $params);
 								}
+								*/
+							   foreach ($all_flats as $pos => $a) {
+									$params = array();
+									$data =  array('category_id'=> $id, 'contents'=> array(), 'published'=> false);
+									$data['contents'][$this->site->ln] = array('name'=> $a);
+									$this->shop->products->Create($id, $pos + 1, $data, $params);
+								}
+								
 								$this->_out['success'] = true;
 								$this->_out['productsCount'] = $this->shop->products->Count($id);
 							}
@@ -479,7 +515,8 @@ class PC_shop_import_admin_api extends PC_shop_admin_api {
 	}
 	
 	protected function _import_set_debug() {
-		$this->set_instant_debug_to_file('logs/pc_shop_parse_excel_file.html');
+		$this->debug = true;
+		$this->set_instant_debug_to_file($this->cfg['path']['logs'] . 'pc_shop_parse_excel_file.html');
 		$this->debug('only parse and return data:');
 	}
 	

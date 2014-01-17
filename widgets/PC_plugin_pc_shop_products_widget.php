@@ -84,6 +84,7 @@ class PC_plugin_pc_shop_products_widget extends PC_plugin_pc_shop_widget {
 		$shop_products_site = $this->core->Get_object('PC_shop_products_site');
 		$shop_products_site->debug = true;
 		$shop_products_site->set_instant_debug_to_file($this->cfg['path']['logs'] . 'pc_shop/widget_products.html');
+		$shop_products_site->absorb_debug_settings($this);
 		$params = $this->get_params();
 		$get_vars = false;
 		$this->sort_widget = false;

@@ -61,6 +61,8 @@ function process_api_for_cart($route = '') {
 			$sendCartState = true;
 			break;
 		case 'debug':
+			echo 'session coupon:';
+			print_pre(v($_SESSION['pc_shop']['coupon']));
 			echo 'session cart:';
 			print_pre($_SESSION['pc_shop']['cart']);
 			echo 'shop cart get:';

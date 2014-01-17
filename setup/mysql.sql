@@ -3,9 +3,9 @@
 -- http://www.phpmyadmin.net
 -- 
 -- Host: localhost
--- Generation Time: Oct 31, 2013 at 02:36 PM
--- Server version: 5.5.32
--- PHP Version: 5.3.10-1ubuntu3.7
+-- Generation Time: Jan 17, 2014 at 04:42 PM
+-- Server version: 5.5.34
+-- PHP Version: 5.3.10-1ubuntu3.9
 -- 
 -- Database: `cms4`
 -- 
@@ -186,6 +186,7 @@ CREATE TABLE IF NOT EXISTS `{prefix}shop_coupons` (
   `category_id` smallint(5) NOT NULL,
   `use_limit` smallint(8) NOT NULL DEFAULT '1',
   `used` smallint(8) NOT NULL DEFAULT '0',
+  `percentage_discount` decimal(5,2) unsigned DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `code` (`code`)
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
@@ -320,8 +321,9 @@ CREATE TABLE IF NOT EXISTS `{prefix}shop_order_items` (
   `order_id` mediumint(8) unsigned NOT NULL,
   `product_id` mediumint(8) unsigned NOT NULL,
   `quantity` mediumint(8) unsigned NOT NULL,
+  `attributes` tinytext COLLATE utf8_unicode_ci NOT NULL,
   `price` decimal(10,2) unsigned NOT NULL,
-  UNIQUE KEY `order_id` (`order_id`,`product_id`)
+  UNIQUE KEY `order_id` (`order_id`,`product_id`,`attributes`(14))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
 -- --------------------------------------------------------
@@ -354,7 +356,9 @@ CREATE TABLE IF NOT EXISTS `{prefix}shop_orders` (
   `address` varchar(255) COLLATE utf8_unicode_ci NOT NULL,
   `phone` varchar(50) COLLATE utf8_unicode_ci NOT NULL,
   `comment` tinytext COLLATE utf8_unicode_ci,
+  `coupon_id` int(10) NOT NULL,
   `total_price` decimal(10,2) unsigned NOT NULL,
+  `discount` decimal(10,2) unsigned NOT NULL,
   `currency` varchar(3) COLLATE utf8_unicode_ci NOT NULL,
   `payment_option` varchar(20) COLLATE utf8_unicode_ci NOT NULL,
   `delivery_option` varchar(20) COLLATE utf8_unicode_ci NOT NULL,
@@ -411,7 +415,7 @@ CREATE TABLE IF NOT EXISTS `{prefix}shop_prices` (
   `price` decimal(10,2) unsigned NOT NULL,
   `c_id` int(11) unsigned NOT NULL DEFAULT '0',
   PRIMARY KEY (`id`),
-  UNIQUE KEY `pkey` (`pkey`,`price`,`c_id`)
+  UNIQUE KEY `pkey` (`pkey`,`c_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 
 -- --------------------------------------------------------
@@ -444,7 +448,7 @@ CREATE TABLE IF NOT EXISTS `{prefix}shop_product_contents` (
   `description` mediumtext COLLATE utf8_unicode_ci NOT NULL,
   `seo_title` varchar(255) COLLATE utf8_unicode_ci NOT NULL,
   `seo_description` varchar(255) COLLATE utf8_unicode_ci NOT NULL,
-  `seo_keywords` varchar(255) COLLATE utf8_unicode_ci NOT NULL,
+  `seo_keywords` text COLLATE utf8_unicode_ci NOT NULL,
   `route` varchar(255) COLLATE utf8_unicode_ci NOT NULL,
   PRIMARY KEY (`product_id`,`ln`),
   KEY `route` (`route`),
@@ -477,10 +481,18 @@ CREATE TABLE IF NOT EXISTS `{prefix}shop_product_prices` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `product_id` mediumint(8) unsigned NOT NULL,
   `price` decimal(10,2) unsigned NOT NULL,
+  `price_diff` decimal(10,2) NOT NULL DEFAULT '0.00',
+  `discount` decimal(10,2) unsigned DEFAULT NULL,
   `quantity` mediumint(8) unsigned NOT NULL DEFAULT '0',
   `c_id` int(11) unsigned NOT NULL DEFAULT '0',
+  `attribute_id` int(10) NOT NULL DEFAULT '0',
+  `attribute_value_id` int(10) NOT NULL DEFAULT '0',
+  `attribute_item_id` int(10) NOT NULL DEFAULT '0',
+  `info_1` varchar(20) COLLATE utf8_unicode_ci NOT NULL,
+  `info_2` varchar(40) COLLATE utf8_unicode_ci NOT NULL,
+  `info_3` varchar(80) COLLATE utf8_unicode_ci NOT NULL,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `product_id` (`product_id`,`quantity`,`c_id`)
+  UNIQUE KEY `product_id` (`product_id`,`quantity`,`c_id`,`attribute_id`,`attribute_value_id`,`attribute_item_id`)
 ) ENGINE=MyISAM  DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
 -- --------------------------------------------------------
@@ -520,6 +532,9 @@ CREATE TABLE IF NOT EXISTS `{prefix}shop_products` (
   `price` decimal(10,2) unsigned NOT NULL,
   `import_method` varchar(255) COLLATE utf8_unicode_ci NOT NULL,
   `state` tinyint(3) NOT NULL DEFAULT '0',
+  `info_1` varchar(10) COLLATE utf8_unicode_ci NOT NULL,
+  `info_2` varchar(80) COLLATE utf8_unicode_ci NOT NULL,
+  `info_3` varchar(255) COLLATE utf8_unicode_ci NOT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `external_id` (`external_id`),
   KEY `category_id` (`category_id`,`position`,`manufacturer_id`,`flags`)
@@ -541,7 +556,6 @@ CREATE TABLE IF NOT EXISTS `{prefix}shop_resources` (
   UNIQUE KEY `item_id` (`item_id`,`file_id`,`flags`),
   KEY `position` (`position`)
 ) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
-
 
 
 
@@ -804,6 +818,11 @@ INSERT IGNORE INTO `{prefix}variables` (`vkey`, `controller`, `site`, `ln`, `val
 ('filter_cancel', 'pc_shop', 0, 'en', 'Cancel'),
 ('filter_cancel', 'pc_shop', 0, 'ru', 'Отменить'),
 
+('coupon_discount', 'pc_shop', 0, 'lt', 'Pritaikyta nuolaida'),
+('coupon_discount', 'pc_shop', 0, 'en', 'Voucher discount'),
+('coupon_discount', 'pc_shop', 0, 'ru', 'Ваучер скидка'),
+
 ('manufacturer', 'pc_shop', 0, 'lt', 'Gamintojas'),
 ('manufacturer', 'pc_shop', 0, 'en', 'Manufacturer'),
 ('manufacturer', 'pc_shop', 0, 'ru', 'Производитель');
+

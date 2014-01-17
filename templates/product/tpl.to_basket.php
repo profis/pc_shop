@@ -1,9 +1,20 @@
 
 <?php 
+
+
 if ($item['quantity'] > 0){  ?>
 	<form method="POST" action="">
 		<input type="hidden" name="product_id" value="<?php echo $item["id"] ?>" />
 		<input type="hidden" name="add_to_basket" value="1" />
+		<?php
+		if (v($product_variant['post_price_attributes']) and is_array(v($product_variant['post_price_attributes']))) {
+			foreach ($product_variant['post_price_attributes'] as $product_variant_price_attr_id => $product_variant_price_attr_value) {
+			?>
+				<input type="hidden" name="attributes[<?php echo $product_variant_price_attr_id ?>]" value="<?php echo $product_variant_price_attr_value ?>" />
+			<?php
+			}
+		}
+		?>
 		<div class="to_cart btn btn-success" onclick="this.parentNode.submit();return false;"><?php echo $this->core->Get_plugin_variable('to_basket', 'pc_shop') ?></div>
 	</form>
 <?php 

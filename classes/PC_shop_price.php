@@ -14,6 +14,12 @@ class PC_shop_price extends PC_base {
 	 */
 	public $currencies;
 	
+	/**
+	 *
+	 * @var array
+	 */
+	public $currency_codes;
+	
 	public $base_currency;
 	
 	/**
@@ -38,6 +44,7 @@ class PC_shop_price extends PC_base {
 			'value' => 'id',
 			'order' => 't.position'
 		));
+		$this->currency_codes = array_flip($this->currencies);
 	}
 	
 	public function load_prices($all_ln = false) {
@@ -51,6 +58,9 @@ class PC_shop_price extends PC_base {
 	}
 	
 	public function get_converted_price_in_currency($price, $currency_code, $do_not_round = false) {
+		if (!$currency_code) {
+			return false;
+		}
 		$converted_price = 0;
 		if ($currency_code == $this->base_currency) {
 			return $price;
@@ -65,12 +75,26 @@ class PC_shop_price extends PC_base {
 		return $converted_price;
 	}
 		
-	public function get_price_in_user_currency($base_price) {
-		return 10;
+	public function get_converted_price_in_currency_id($price, $currency_id, $do_not_round = false) {
+		if (isset($this->currency_codes[$currency_id])) {
+			return $this->get_converted_price_in_currency($price,$this->currency_codes[$currency_id], $do_not_round);
+		}
+		return false;
+	}
+	
+	public function get_price_in_user_currency($base_price, $do_not_round = false) {
+		return $this->get_converted_price_in_currency($base_price, $this->get_user_currency(), $do_not_round);
 	}
 	
 	public function get_base_currency() {
 		return $this->base_currency;
+	}
+	
+	public function get_base_currency_id() {
+		if (!isset($this->currencies[$this->base_currency])) {
+			return false;
+		}
+		return $this->currencies[$this->base_currency];
 	}
 	
 	public function get_user_currency() {

@@ -257,11 +257,15 @@ class PC_controller_pc_shop extends PC_controller {
 			$payment_method_class_path = $this->cfg['path']['plugins'] . 'pc_shop_payment_' . $payment_option_data['code'] . '/' . $class_name . '.php';
 			$this->debug($payment_method_class_path);
 			if (file_exists($payment_method_class_path)) {
+				$this->debug('Creating payment method object', 3);
 				require_once $this->cfg['path']['plugins'] . 'pc_shop/classes/PC_shop_payment_method.php';
 				require_once $payment_method_class_path;
 				$this->payment_method = $this->core->Get_object($class_name, array($payment_option_data, v($this->order_data, array()), $this->shop));
 				$this->payment_method->absorb_debug_settings($this->payment_logger);
 				return $this->payment_method;
+			}
+			else {
+				$this->debug(':( payment method file does not exist', 3);
 			}
 		}
 		else {
@@ -271,10 +275,11 @@ class PC_controller_pc_shop extends PC_controller {
 	}
 	
 	protected function _make_payment() {
-		$this->debug('_make_payment()');
+		$this->debug('controller:_make_payment()');
 		
 		if ($this->_get_payment_method_object()) {
 			$this->payment_method->make_online_payment();
+			$this->debug('controller:onlined payment made ' . $this->payment_method->file);
 		}
 		else {
 			$this->ordered_action();
@@ -407,6 +412,17 @@ class PC_controller_pc_shop extends PC_controller {
 		$this->site->Register_data('createOrderParams', $params);
 	}
 
+	protected function _set_coupon() {
+		if (isset($_POST['pc_shop_coupon'])) {
+			$coupon_model = $this->core->Get_object('PC_shop_coupon_model');
+			$coupon_data = $coupon_model->get_valid_coupon($_POST['pc_shop_coupon']);
+			if ($coupon_data) {
+				$this->shop->cart->set_coupon_data($coupon_data);
+			}
+			
+		}
+	}
+	
 	public function order_action() {
 		if ($this->routes->Get(3) == 'online_payment_cancel') {
 			$this->_order_online_payment_cancel();
@@ -443,6 +459,7 @@ class PC_controller_pc_shop extends PC_controller {
 				$this->_make_payment();
 			}
 			if (!v($this->action_rendered)) {
+				$this->_set_coupon();
 				$this->Render('order');
 				$this->_before_action_finish();
 			}

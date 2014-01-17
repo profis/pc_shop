@@ -961,6 +961,24 @@ class PC_shop_products_site extends PC_shop_products {
 		return $link;
 	}
 	
+	public function set_order_by_attribute(&$params, $attr_id, $direction = '', $decimal = true) {
+		vv($params['joins'], array());
+		vv($params['joins_params'], array());
+		
+		$params['joins'][] = "LEFT JOIN pc_shop_item_attributes ia_order ON ia_order.item_id=p.id and (ia_order.flags & 2)=2 and ia_order.attribute_id = ?";
+		$params['joins_params'][] = $attr_id;
+		
+		if (!$decimal) {
+			$params['order_by'] = 'ia_order.value';
+		}
+		else {
+			$params['order_by'] = 'convert(ia_order.value, decimal(15,4))';
+		}
+		if (!empty($direction)) {
+			$params['order_direction'] = $direction;
+		}
+	}
+	
 	public function Get($id=null, $categoryId=null, &$params=array()) {
 		$this->debug('PC_shop_products_site->Get()');
 		if (isset($params['product_id'])) {
@@ -1466,7 +1484,7 @@ class PC_shop_products_site extends PC_shop_products {
 		
 		$select_s = ' ' . $select_s . ' ';
 		$query = $qry = "SELECT " . (v($params->sql_no_cache)?' SQL_NO_CACHE ':'') .($params->Has_paging()?'SQL_CALC_FOUND_ROWS ':'').$select_s."p.*,".$real_price_select.v($params->content_select, "pc.*").","
-		. $this->sql_parser->group_concat($this->sql_parser->concat_ws("░", "'id".PC_sql_parser::SP3."'", 'a.id', "'ref".PC_sql_parser::SP3."'",'a.ref',"'category_id".PC_sql_parser::SP3."'",'a.category_id', "'name".PC_sql_parser::SP3."'",'ac.name', "'flags".PC_sql_parser::SP3."'",'ia.flags', "'is_custom".PC_sql_parser::SP3."'",'a.is_custom', "'is_searchable".PC_sql_parser::SP3."'",'a.is_searchable', "'item_is_category".PC_sql_parser::SP3."'",'a.is_category_attribute', "'value".PC_sql_parser::SP3."'",'ia.value', "'value_id".PC_sql_parser::SP3."'",'ia.value_id', "'avc_value".PC_sql_parser::SP3."'",'avc.value'), array('separator'=>'▓', 'distinct'=> true))." attributes"
+		. $this->sql_parser->group_concat($this->sql_parser->concat_ws("░", "'id".PC_sql_parser::SP3."'", 'a.id', "'ref".PC_sql_parser::SP3."'",'a.ref',"'category_id".PC_sql_parser::SP3."'",'a.category_id', "'name".PC_sql_parser::SP3."'",'ac.name', "'flags".PC_sql_parser::SP3."'",'ia.flags', "'is_custom".PC_sql_parser::SP3."'",'a.is_custom', "'is_searchable".PC_sql_parser::SP3."'",'a.is_searchable', "'item_is_category".PC_sql_parser::SP3."'",'a.is_category_attribute', "'value".PC_sql_parser::SP3."'",'ia.value', "'value_id".PC_sql_parser::SP3."'",'ia.value_id', "'ia_id".PC_sql_parser::SP3."'",'ia.id', "'avc_value".PC_sql_parser::SP3."'",'avc.value'), array('separator'=>'▓', 'distinct'=> true))." attributes"
 		//. $this->sql_parser->group_concat($this->sql_parser->concat_ws("░", "'id".PC_sql_parser::SP3."'", 'a.id', "'ref".PC_sql_parser::SP3."'",'a.ref', "'name".PC_sql_parser::SP3."'",'ac.name', "'flags".PC_sql_parser::SP3."'",'ia.flags', "'is_custom".PC_sql_parser::SP3."'",'a.is_custom', "'is_searchable".PC_sql_parser::SP3."'",'a.is_searchable', "'item_is_category".PC_sql_parser::SP3."'",'a.is_category_attribute',"'value".PC_sql_parser::SP3."'",'ia.value',"'value_id".PC_sql_parser::SP3."'",'ia.value_id',"'avc_value".PC_sql_parser::SP3."'",'avc.value'), array('separator'=>'▓', 'distinct'=> true))." attributes"
 		//. $this->sql_parser->group_concat($this->sql_parser->concat_ws("░", 'a.id', 'a.ref', 'ac.name', 'ia.flags', 'a.is_custom', 'a.is_searchable', 'a.is_category_attribute', 'ia.value_id', 'avc.value'), array('separator'=>'▓', 'distinct'=> true))." attributes"
 		. $select_attributes_concat . $select_attributes_values_concat
@@ -1608,13 +1626,27 @@ class PC_shop_products_site extends PC_shop_products {
 								'product_id' => $d['id'],
 								't.c_id' => 0,
 								't.attribute_id' => array_values($this->_price_attribute_ids),
+								'(
+									attribute_value_id <> 0  
+									OR 
+									attribute_item_id <> 0 
+								)',
+								/*
 								array(
 									'field' => 'attribute_value_id',
 									'op' => '<>',
 									'value' => 0
 								)
+								*/
 							),
-							'join' => " LEFT JOIN {$this->db_prefix}shop_item_attributes ia ON ia.item_id = t.product_id and ia.attribute_id=t.attribute_id AND t.attribute_value_id = ia.value_id",
+							'join' => " LEFT JOIN {$this->db_prefix}shop_item_attributes ia 
+								ON ia.item_id = t.product_id and ia.attribute_id=t.attribute_id 
+									AND (
+									t.attribute_value_id = ia.value_id 
+									OR 
+									t.attribute_item_id = ia.id
+								)
+									",
 							//'join_params' => array($d['id']),
 							
 							'order' => 't.attribute_id, ia.position',
@@ -1626,8 +1658,13 @@ class PC_shop_products_site extends PC_shop_products {
 							//print_pre($price_attribute);
 							$my_key = $price_attribute_refs[$pa['attribute_id']];
 							vv($d['price_attributes'][$my_key], array());
-							$d['price_attributes'][$my_key][$pa['attribute_value_id']] = $pa;
+							$sub_key = $pa['attribute_value_id'];
+							if ($pa['attribute_item_id']) {
+								$sub_key = '#' . $pa['attribute_item_id'];
+							}
+							$d['price_attributes'][$my_key][$sub_key] = $pa;
 						}
+						//print_pre($d['price_attributes'][$my_key]);
 					}
 					
 				}

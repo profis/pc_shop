@@ -98,7 +98,8 @@ $this->site->Add_script($this->cfg['directories']['media'] . '/form_validation.j
 				$("#tprice").text(data.totalPrice);
 				$("#dprice").text(data.order_delivery_price);
 				$("#pprice").text(data.order_cod_price);
-				$("#fprice").text(data.order_full_price);	
+				$("#fprice").text(data.order_full_price);
+				$("#coupon_discount_price").text(data.coupon_discount);
 			}
 		});
 	}

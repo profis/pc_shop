@@ -139,7 +139,9 @@ class PC_shop_product_model extends PC_model {
 		
 		
 		$attributes_strings = array();
+		$attribute_values_strings = array();
 		$attributes_info = array();
+		$post_price_attributes = array();
 		//$cart_item['attributes_info'] = $this->shop->products->get_attributes_info($p, $cart_item['attributes']);
 		//print_pre($attributes);
 		//print_pre($this->price_attribute_refs);
@@ -152,19 +154,30 @@ class PC_shop_product_model extends PC_model {
 				if (v($data['price_attributes'][$ref]) and v($data['price_attributes'][$ref][$attribute_value_id])) {
 					$attribute_price_data = $data['price_attributes'][$ref][$attribute_value_id];
 					$price += $attribute_price_data['price_diff'];
+					if ($attribute_price_data['price'] > 0) {
+						$price = $attribute_price_data['price'];
+						$additional_discount = 0;
+					}
 					$full_price = $price;
 					$discount = v($attribute_price_data['discount']);
 					if ($discount and $price) {
 						//$percentage_discount = $discount * 100 / $price;
 						$price -= $discount;
 					}
-					$attributes_strings[] = $data["multiple_attributes"][$ref][$attribute_value_id]['name'] . ' - ' . $data["multiple_attributes"][$ref][$attribute_value_id]['value'];
-					//$attributes_strings[] = 
-					vv($attributes_info[$attribute_id], array());
-					$attributes_info[$attribute_id][$attribute_value_id] = array(
-						'price_data' => $attribute_price_data,
-						'data' => $data["multiple_attributes"][$ref][$attribute_value_id]
-					);
+					if (isset($data["multiple_attributes"][$ref][$attribute_value_id])) {
+						$attributes_strings[] = $data["multiple_attributes"][$ref][$attribute_value_id]['name'] . ' - ' . $data["multiple_attributes"][$ref][$attribute_value_id]['value'];
+						$attribute_values_strings[] = $data["multiple_attributes"][$ref][$attribute_value_id]['value'];
+						
+						//$attributes_strings[] = 
+						$attributes_info[$attribute_id] = array(
+							'price_data' => $attribute_price_data,
+							'data' => $data["multiple_attributes"][$ref][$attribute_value_id]
+						);
+						
+					}
+					
+					$post_price_attribute_value = $attribute_value_id;
+					$post_price_attributes[$attribute_id] = $attribute_value_id;
 				}
 
 			}
@@ -184,6 +197,9 @@ class PC_shop_product_model extends PC_model {
 		$price_data['percentage_discount'] = $discount * 100 / $price;
 		$price_data['attributes_info'] = $attributes_info;
 		$price_data['attributes_string'] = implode('; ', $attributes_strings);
+		$price_data['attribute_values'] = $attribute_values_strings;
+		$price_data['attribute_values_string'] = implode('; ', $attribute_values_strings);
+		$price_data['post_price_attributes'] = $post_price_attributes;
 		//print_pre($price_data);
 		return $price_data;
 	}
@@ -205,6 +221,49 @@ class PC_shop_product_model extends PC_model {
 		return floor(($full_price - $price) / $full_price * 100);
 	}
 	
+	
+	public function get_eligible_coupon_discount($coupon_data, $total_item_price, $data) {
+		$discount = 0;
+		
+		//print_pre($coupon_data);
+		//print_pre($data);
+				
+		if (!$coupon_data['is_for_hot']) {
+			if ($data['hot'] or $data['real_price'] < $data['price']) {
+				//echo 'hot';
+				return 0;
+			}
+			
+			
+		}
+		if ($coupon_data['category_id']) {
+			$category_model = new PC_shop_category_model();
+			if (!$category_model->is_descendant($data['category_id'], $coupon_data['category_id'])) {
+				//echo 'wrong category';
+				return 0;
+			}
+		}
+		
+		if ($coupon_data['percentage_discount'] > 0) {
+			$discount = $total_item_price * $coupon_data['percentage_discount'] / 100;
+			if ($discount > $total_item_price) {
+				$discount = $total_item_price;
+			}
+			return $discount;
+		}
+		
+		if ($coupon_data['discount'] > 0) {
+			$discount = $coupon_data['discount'];
+			if ($discount > $total_item_price) {
+				$discount = $total_item_price;
+			}
+			return $discount;
+		}
+		
+		$price_model = $this->core->Get_object('PC_shop_price_model');
+		
+		return $discount;
+	}
 	
 	public function get_related_product_ids($product_id) {
 		$query_params = array();
