@@ -292,6 +292,11 @@ class PC_shop_import_products_admin_api extends PC_shop_admin_api {
 	 */
 	public function default_action() {
 		@ini_set('max_execution_time', 300);
+		$this->debug('mbstring.func_overload:');
+		$this->debug(ini_get('mbstring.func_overload'), 1);
+		@ini_set('mbstring.func_overload', 0);
+		$this->debug('mbstring.func_overload:');
+		$this->debug(ini_get('mbstring.func_overload'), 1);
 		set_time_limit(300);
 		$this->debug('Default action');
 		$this->debug($_POST);
@@ -331,8 +336,8 @@ class PC_shop_import_products_admin_api extends PC_shop_admin_api {
 		set_time_limit(300);
 		$_POST['missing_products_strategy'] = 'delete';
 		$this->debug('Confirm  action');
-		$this->debug('$_POST', 1);
-		$this->debug($_POST, 2);
+		//$this->debug('$_POST', 1);
+		//$this->debug($_POST, 2);
 			
 		
 		//$this->debug = false;
@@ -360,9 +365,9 @@ class PC_shop_import_products_admin_api extends PC_shop_admin_api {
 		$this->missing_products_strategy = $_POST['missing_products_strategy'];
 		
 		$this->shop = $this->core->Get_object('PC_shop_manager');
-		$this->shop->products->debug = $this->shop->attributes->debug = $this->debug;
-		$this->shop->products->absorb_debug_settings($this, 5);
-		$this->shop->attributes->absorb_debug_settings($this, 10);
+		//$this->shop->products->debug = /*$this->shop->attributes->debug = */ $this->debug;
+		//$this->shop->products->absorb_debug_settings($this, 5);
+		//$this->shop->attributes->absorb_debug_settings($this, 10);
 		
 		$category_data = false;
 		
@@ -433,13 +438,14 @@ class PC_shop_import_products_admin_api extends PC_shop_admin_api {
 			if (!$category_id) {
 				$category_id = $this->category_id;
 			}
-			$this->debug('Queries for category detection: ', 7);
-			$this->debug($logs, 7);
 				
 			$this->debug('Tried to detect product id: ', 4);
 			$this->debug($product_id, 5);
 			
 			if ($product_id == -1) {
+				$this->debug('Queries for category detection: ', 7);
+				$this->debug($logs, 7);
+			
 				$this->debug('Will skip, coz no way to detect product id: ', 4);
 				$items_unidentifyable++;
 				continue;

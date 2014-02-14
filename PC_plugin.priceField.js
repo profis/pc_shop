@@ -2,7 +2,6 @@ Ext.namespace('PC.ux');
 
 PC.ux.priceField = Ext.extend(Ext.form.CompositeField, {
 	
-	
 	constructor: function(config) {
 		if (!config) {
 			config = {};
@@ -10,6 +9,11 @@ PC.ux.priceField = Ext.extend(Ext.form.CompositeField, {
 		var width = 400;
 		if (config.width) {
 			width = config.width;
+		}
+		
+		var height = 200;
+		if (config.height) {
+			height = config.height;
 		}
 		var value = '';
 		if (config.value) {
@@ -28,7 +32,7 @@ PC.ux.priceField = Ext.extend(Ext.form.CompositeField, {
 				ref: '_prices',
 				fieldLabel: PC.i18n.mod.pc_shop.product_prices.title, 
 				crud: new Plugin_pc_shop_prices_crud({
-					height: 200,
+					height: height,
 					flex: 1
 				}),
 				xtype: 'profis_crud_field'

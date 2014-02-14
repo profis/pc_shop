@@ -8,6 +8,11 @@ class PC_shop_attributes_admin_api extends PC_shop_admin_api {
 	 */
 	protected $shop;
 
+	
+	protected function _get_model() {
+		return $this->core->Get_object('PC_shop_attribute_model');
+	}
+	
 	/**
 	 * Plugin access is being checked only for some actions
 	 */
@@ -40,6 +45,7 @@ class PC_shop_attributes_admin_api extends PC_shop_admin_api {
 
 	public function getWithValues() {
 		$params = array('includeValues' => true);
+		$this->shop->attributes->absorb_debug_settings($this);
 		$this->_out = $this->shop->attributes->Get(null, $params);
 	}
 
@@ -109,6 +115,7 @@ class PC_shop_attributes_admin_api extends PC_shop_admin_api {
 	}
 
 	public function getSuggestions() {
+		$this->shop->attributes->absorb_debug_settings($this);
 		$this->_out = $this->shop->attributes->Get_suggestions(v($_POST['attributeId']), 20);
 	}
 

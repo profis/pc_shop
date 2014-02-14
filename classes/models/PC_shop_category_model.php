@@ -81,6 +81,23 @@ class PC_shop_category_model extends PC_model {
 		}
 	} 
 	
+	public function get_category_page($category_id) {
+		$top_parent_id = $this->get_top_parent_id($category_id);
+		if ($top_parent_id) {
+			$category_id = $top_parent_id;
+		}
+		$category_data = $this->get_data($category_id, 
+			array(
+				'select' => 't.pid',
+				),
+			1
+		);
+		if ($category_data['pid']) {
+			return $category_data['pid'];
+		}
+		return false;
+	}
+	
 	public function is_descendant($descendant, $ancestor) {
 		if (!is_array($descendant)) {
 			$descendant = $this->get_one($descendant);

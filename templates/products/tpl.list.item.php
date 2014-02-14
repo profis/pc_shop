@@ -5,7 +5,6 @@ if (v($item["resources"]->list)){
 }else {
 	$image = $this->core->Get_theme_path().'img/no_photo_220x180.jpg';
 }
-
 $price = number_format($shop_products_site->get_price($item, $discount, $percentage_discount), 2, ",", "");
 
 $item['price'] = number_format($item['price'], 2, ",", "");

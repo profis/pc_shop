@@ -510,6 +510,14 @@ class PC_shop_products_manager extends PC_shop_products {
 		if (isset($data['hot']) and $data['hot']) {
 			$data['hot_from'] = $current_time;
 		}
+		
+		$this->core->Init_hooks('plugin/pc_shop/product/create', array(
+			'data'=> &$data,
+			'category_id' => $categoryId,
+			'logger' => &$this,
+			'shop' => &$this->shop
+		));
+		
 		$d = array();
 		if (isset($data['contents'])) {
 			foreach ($data['contents'] as $ln=>$c) {
@@ -602,6 +610,15 @@ class PC_shop_products_manager extends PC_shop_products {
 		elseif(!isset($data['hot']) or !$data['hot']) {
 			$data['hot_from'] = NULL;
 		}
+		
+		$this->core->Init_hooks('plugin/pc_shop/product/edit', array(
+			'data'=> &$data,
+			'product_id' => $productId,
+			'category_id' => $categoryId,
+			'logger' => &$this,
+			'shop' => &$this->shop
+		));
+		
 		$d = array();
 		// print_pre($data['contents']);
 		if (isset($data['contents'])) {

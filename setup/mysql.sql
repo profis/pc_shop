@@ -73,6 +73,7 @@ CREATE TABLE IF NOT EXISTS `{prefix}shop_attribute_value_contents` (
 CREATE TABLE IF NOT EXISTS `{prefix}shop_attribute_values` (
   `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
   `attribute_id` int(10) unsigned NOT NULL,
+  `position` smallint(5) unsigned NOT NULL DEFAULT '0',
   PRIMARY KEY (`id`),
   KEY `attribute_id` (`attribute_id`)
 ) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
@@ -322,7 +323,7 @@ CREATE TABLE IF NOT EXISTS `{prefix}shop_order_items` (
   `product_id` mediumint(8) unsigned NOT NULL,
   `quantity` mediumint(8) unsigned NOT NULL,
   `attributes` tinytext COLLATE utf8_unicode_ci NOT NULL,
-  `price` decimal(10,2) unsigned NOT NULL,
+  `price` decimal(15,2) unsigned NOT NULL,
   UNIQUE KEY `order_id` (`order_id`,`product_id`,`attributes`(14))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
@@ -412,7 +413,7 @@ CREATE TABLE IF NOT EXISTS `{prefix}shop_payment_options` (
 CREATE TABLE IF NOT EXISTS `{prefix}shop_prices` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `pkey` varchar(50) CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
-  `price` decimal(10,2) unsigned NOT NULL,
+  `price` decimal(15,2) unsigned NOT NULL,
   `c_id` int(11) unsigned NOT NULL DEFAULT '0',
   PRIMARY KEY (`id`),
   UNIQUE KEY `pkey` (`pkey`,`c_id`)
@@ -480,7 +481,7 @@ CREATE TABLE IF NOT EXISTS `{prefix}shop_product_periods` (
 CREATE TABLE IF NOT EXISTS `{prefix}shop_product_prices` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `product_id` mediumint(8) unsigned NOT NULL,
-  `price` decimal(10,2) unsigned NOT NULL,
+  `price` decimal(15,2) unsigned NOT NULL,
   `price_diff` decimal(10,2) NOT NULL DEFAULT '0.00',
   `discount` decimal(10,2) unsigned DEFAULT NULL,
   `quantity` mediumint(8) unsigned NOT NULL DEFAULT '0',
@@ -529,7 +530,7 @@ CREATE TABLE IF NOT EXISTS `{prefix}shop_products` (
   `percentage_discount` decimal(5,2) unsigned DEFAULT NULL,
   `hot_from` int(10) unsigned DEFAULT NULL,
   `created_on` int(10) unsigned DEFAULT NULL,
-  `price` decimal(10,2) unsigned NOT NULL,
+  `price` decimal(15,2) unsigned NOT NULL,
   `import_method` varchar(255) COLLATE utf8_unicode_ci NOT NULL,
   `state` tinyint(3) NOT NULL DEFAULT '0',
   `info_1` varchar(10) COLLATE utf8_unicode_ci NOT NULL,
@@ -557,7 +558,15 @@ CREATE TABLE IF NOT EXISTS `{prefix}shop_resources` (
   KEY `position` (`position`)
 ) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
-
+CREATE TABLE `{prefix}shop_attributes_categories` (
+`id` INT( 10 ) NOT NULL AUTO_INCREMENT PRIMARY KEY ,
+`attribute_id` INT( 10 ) NOT NULL ,
+`category_id` SMALLINT( 5 ) NOT NULL ,
+UNIQUE (
+`attribute_id` ,
+`category_id`
+)
+) ENGINE = innodb;
 
 -- 
 -- Dumping data for table `{prefix}variables`

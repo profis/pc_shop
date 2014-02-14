@@ -857,12 +857,16 @@ class PC_shop_item_resources{
 		}
 		return $list;
 	}
-	public function Get_main_image($thumbnailType=null) {
+	public function Get_main_image($thumbnailType=null, $nr = 1) {
 		global $gallery;
 		if (!$this->list) $this->Load();
+		$counter = 0;
 		foreach ($this->list as $res) {
 			if ($res['data']['type'] == 'image') {
-				return $gallery->Get_image_thumbnail($res['data']['link'], $thumbnailType);
+				$counter++;
+				if ($counter == $nr) {
+					return $gallery->Get_image_thumbnail($res['data']['link'], $thumbnailType);
+				}
 			}
 		}
 		return false;
@@ -1058,7 +1062,7 @@ class PC_shop_attributes extends PC_shop_attribute_model {
 		$query = "SELECT ".($params->Has_paging()?'SQL_CALC_FOUND_ROWS ':'')."a.*,"
 		.$this->sql_parser->group_concat($this->sql_parser->concat_ws('░', 'c.ln', 'c.name'), array('separator'=>'▓', 'distinct'=> true))." names"
 		.($params->Get('includeValues')?
-			','.$this->sql_parser->group_concat($this->sql_parser->concat_ws('░', 'avc.value_id', 'avc.ln', 'avc.value'), array('separator'=>'▓'))." attrValues"
+			','.$this->sql_parser->group_concat($this->sql_parser->concat_ws('░', 'avc.value_id', 'avc.ln', 'avc.value'), array('separator'=>'▓', 'order' => array('by' => 'av.position, av.id')))." attrValues"
 		:"")
 		." FROM {$this->db_prefix}shop_attributes a"
 		." LEFT JOIN {$this->db_prefix}shop_attribute_contents c ON c.attribute_id=a.id"
@@ -1096,6 +1100,7 @@ class PC_shop_attributes extends PC_shop_attribute_model {
 						$d['values'][$temp[0]][$temp[1]] = $temp[2];
 					}
 				}
+				$d['values_order'] = array_keys($d['values']);
 				unset($tmp);
 			}
 			$list[] = $d;
@@ -1319,7 +1324,7 @@ class PC_shop_attributes extends PC_shop_attribute_model {
 		.$this->sql_parser->group_concat($this->sql_parser->concat_ws('░', 'ln', 'value'), array('separator'=>'▓'))." names"
 		." FROM {$this->db_prefix}shop_attribute_values v"
 		." LEFT JOIN {$this->db_prefix}shop_attribute_value_contents c ON c.value_id=v.id"
-		.(count($where)?' WHERE '.implode(' and ', $where):'')." GROUP BY v.id".$limit);
+		.(count($where)?' WHERE '.implode(' and ', $where):'')." GROUP BY v.id".$limit . " ORDER BY v.position");
 		$s = $r->execute($queryParams);
 		if (!$s) return !$params->errors->Add('database', '');
 		if ($params->Has_paging()) {
@@ -1412,7 +1417,7 @@ class PC_shop_attributes extends PC_shop_attribute_model {
 		if (true) {
 			//$select .= ', at.position';
 			$join .= " LEFT JOIN {$this->db_prefix}shop_attributes at ON at.id=a.attribute_id";
-			$order .= ' ORDER BY a.position, at.position, at.id';
+			$order .= ' ORDER BY at.position, at.id';
 		}
 		
 		if ($itemType == self::ITEM_IS_PRODUCT) {
@@ -1455,7 +1460,7 @@ class PC_shop_attributes extends PC_shop_attribute_model {
 		return $r->fetch();
 	}
 	
-	public function Get_aggregate_data_for_category_products($id, $category_id = 0, $select = "count(*)", $where_s = '') {
+	public function Get_aggregate_data_for_category_products($id, $category_id = 0, $select = "count(*)", $where_s = '', $group_by = '', $fetch_all = false) {
 		$this->debug("Get_aggregate_data_for_category_products(id:$id, category_id: $category_id, select:$select, where_s:$where_s)");
 		if (empty($select)) {
 			$select = "count(*)";
@@ -1470,23 +1475,41 @@ class PC_shop_attributes extends PC_shop_attribute_model {
 		$join_s = ' LEFT JOIN pc_shop_products p ON p.id = a.item_id';
 		
 		if ($category_id) {
-			$where_s .= ' AND p.category_id = ?';
-			$query_params[] = $category_id;
+			if (is_array($category_id)) {
+				if (!empty($category_id)) {
+					$where_s .= ' AND p.category_id '.$this->sql_parser->in($category_id);
+					$query_params = array_merge($query_params, $category_id);
+				}
+			}
+			else {
+				$where_s .= ' AND p.category_id = ?';
+				$query_params[] = $category_id;
+			}
+			
+		}
+		
+		$group_by_s = '';
+		if (!empty($group_by)) {
+			$group_by_s = ' GROUP BY ' . $group_by;
 		}
 		
 		$query = "SELECT $select
 			FROM pc_shop_item_attributes a
 			LEFT JOIN pc_shop_attributes at ON at.id=a.attribute_id
 			$join_s
-			WHERE $published_flag_cond AND $product_flag_conf AND at.id = ?" . $where_s;
+			WHERE $published_flag_cond AND $product_flag_conf AND at.id = ?" . $where_s . $group_by_s;
 		
 		$this->debug_query($query, $query_params);
 		
 		$r = $this->prepare($query);
 		$s = $r->execute($query_params);
 		if (!$s) return false;
+		$fetchType = (strpos($select, ",") !== FALSE) ? PDO::FETCH_ASSOC : PDO::FETCH_COLUMN;
+		if ($fetch_all) {
+			return $r->fetchAll($fetchType);
+		}
 		
-		return $r->fetchColumn();
+		return $r->fetch($fetchType);
 	}
 	
 	public function Get_aggregate_data_for_page_categories($attribute_id, $page_id = 0, $select = "count(*)", $where_s = '', $fetch_all = false) {
@@ -1720,19 +1743,34 @@ class PC_shop_attributes extends PC_shop_attribute_model {
 		return true;
 	}
 	public function Get_suggestions($id, $limit = 0) {
+		$this->debug("Get_suggestions($id, $limit)", 1);
 		$limit_s = '';
 		if ($limit > 0) {
 			$limit_s = ' LIMIT ' . $limit;
 		}
-		$r = $this->prepare("SELECT value FROM {$this->db_prefix}shop_item_attributes WHERE attribute_id=?" . $limit_s);
-		$s = $r->execute(array($id));
-		if (!$s) return false;
+		$query = "SELECT value FROM {$this->db_prefix}shop_item_attributes WHERE attribute_id=?" . $limit_s;
+		$r = $this->prepare($query);
+		$query_params = array($id);
+		$this->debug_query($query, $query_params, 2);
+		$s = $r->execute($query_params);
+		if (!$s) {
+			$this->debug(':( could not execute query', 3);
+			return false;
+		}
 		$list = array();
-		while ($d = $r->fetchColumn()) {
+		$limit_left = $limit;
+		while ($d = $r->fetchColumn() or $d === null) {
+			$limit_left--;
+			if ($limit > 0 and $limit_left == -1) {
+				break;
+			}
+			$this->debug(' - ', 5);
+			$this->debug($d, 5);
 			if (is_null($d)) continue;
 			if (in_array($d, $list)) continue;
 			$list[] = $d;
 		}
+		$this->debug(' finishing ', 3);
 		return $list;
 	}
 	public function Find($name, $isCategoryAttribute=false) {
@@ -2174,17 +2212,52 @@ class PC_shop_cart extends PC_base {
 	 * @param type $data array with key 'totalPrice' (total price of items)
 	 */
 	public function Calculate_prices(&$data, $default_order_data = array(), $coupon_data = array()) {
-		$delivery_price = v($this->cfg['pc_shop']['delivery_price'], 0);
-		if (empty($delivery_price)) {
-			$delivery_price = 0;
-		}
-		$items_price = $data['totalPrice'];
-		if (v($this->cfg['pc_shop']['amount_for_free_delivery'], 0) > 0 and $items_price >= $this->cfg['pc_shop']['amount_for_free_delivery']) {
-			$delivery_price = 0;
-		}
-		$data['delivery_price'] = $delivery_price;
+		$order_data = $this->shop->orders->Get_preserved_order_data();
 		
+		if (!$order_data) {
+			$order_data = $default_order_data;
+		}
+		//$delivery_price = v($this->cfg['pc_shop']['delivery_price'], 0);
+		$delivery_price = 0;
 		$cod_price = 0;
+		$delivery_option_data = false;
+		
+		$price_model = $this->core->Get_object('PC_shop_price_model');
+		
+		if (isset($order_data['delivery_option'])) {
+			$delivery_option_model = new PC_shop_delivery_option_model();
+			$delivery_option_data = $delivery_option_model->get_one(array(
+				'where' => array(
+					'code' => $order_data['delivery_option'],
+					'enabled' => 1
+				)
+			));
+		};
+		
+		$items_price = $data['totalPrice'];
+		
+		
+		if ($delivery_option_data) {
+			$delivery_price = $price_model->get_price('delivery_' . $order_data['delivery_option']);
+			if (empty($delivery_price)) {
+				$delivery_price = 0;
+			}
+			$amount_for_free_delivery = $price_model->get_price('free_delivery_from_' . $order_data['delivery_option']);
+			if ($amount_for_free_delivery > 0 and $items_price >= $amount_for_free_delivery) {
+				$delivery_price = 0;
+			}
+			
+			
+			if (v($order_data['payment_option']) == PC_shop_payment_option_model::CASH) {
+				$cod_price = $price_model->get_price('cod_' . $order_data['delivery_option']);
+				$no_cod_price_from = $price_model->get_price('free_cod_from_' . $order_data['delivery_option']);
+				if ($no_cod_price_from > 0 and $items_price >= $no_cod_price_from) {
+					$cod_price = 0;
+				}
+			}
+		}
+		
+		$data['delivery_price'] = $delivery_price;
 		
 		$data['cod_price'] = $cod_price;
 		
@@ -2192,14 +2265,7 @@ class PC_shop_cart extends PC_base {
 		$data['full_price'] = $total_price;
 		
 		
-		$order_data = $this->shop->orders->Get_preserved_order_data();
-		
-		if (!$order_data) {
-			$order_data = $default_order_data;
-		}
-		
-		$delivery_option_data = false;
-		if (isset($order_data['delivery_option'])) {
+		if (false and isset($order_data['delivery_option'])) {
 			$delivery_option_model = new PC_shop_delivery_option_model();
 			$delivery_option_data = $delivery_option_model->get_one(array(
 				'where' => array(
@@ -2221,30 +2287,6 @@ class PC_shop_cart extends PC_base {
 			}
 			
 		}
-		
-		if (!$delivery_option_data) {
-			if ($order_data) {
-				if (v($order_data['delivery_option']) == PC_shop_delivery_option_model::FROM_COURIER) {
-					//$delivery_price is already set to cfg['pc_shop']['delivery_price'] if needed;
-
-					if (v($order_data['payment_option']) == PC_shop_payment_option_model::CASH) {
-						$cod_price = v($this->cfg['pc_shop']['cod_price'], 0.00);
-					}
-					else {
-						$cod_price = 0;
-					}
-				}
-				else {
-					$delivery_price = 0;
-					$cod_price = 0;
-				}
-			}
-			else {
-				$delivery_price = 0;
-				$cod_price = 0;
-			}
-		}
-		
 		
 		$data['order_delivery_price'] = $delivery_price;
 		$data['order_cod_price'] = $cod_price;

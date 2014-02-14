@@ -832,12 +832,35 @@ Plugin.attributes.Store = new Ext.data.JsonStore({
 	url: Plugin.api.Admin +'attributes/getWithValues',
 	baseParams: {api: true},
 	fields: [
-		'id', 'is_category_attribute', 'is_custom', 'is_searchable', 'names', 'values',
+		'id', 'is_category_attribute', 'is_custom', 'is_searchable', 'names', 'values', 'values_order',
 		{name: 'name', mapping: 'names', convert: function(names, n){return PC.utils.extractName(names);}},
-		{name: 'nameClean', mapping: 'names', convert: function(names, n){return PC.utils.extractName(names, null, {greyOut:false});}}
+		{name: 'nameClean', mapping: 'names', convert: function(names, n){return Ext.util.Format.stripTags(PC.utils.extractName(names, null, {greyOut:false}));}}
 	],
 	idProperty: 'id'
 });
+
+Plugin.attributes.Category_store = new Ext.data.JsonStore({
+	url: Plugin.api.Admin +'attribute_categories/get_for_combo?empty&attributes&ln=' + PC.global.admin_ln,
+	fields: [
+		'id', 
+		'names', 
+		'attributes',
+		{name: 'name', mapping: 'names', convert: function(names, n){return PC.utils.extractName(names, false, {greyOut: false});}}
+	],
+	idProperty: 'id',
+	autoLoad: true,
+	get_value_by_id: function (id){
+		if (id) {
+			var data = this.getById(id);
+			if (data) {
+				return data.data.name;
+			}
+		}
+		return '...';
+		//(values.category_id && PC.plugin.pc_shop.dialog.attr_category_store.getById(values.gvalue))?
+	}
+});
+
 Plugin.attributes.ParseAttributeName = function(id, n) {
 	var attributeNode = Plugin.attributes.Store.getById(id);
 	if (!attributeNode) return;
@@ -919,22 +942,33 @@ Plugin.attributes.ItemStore = new Ext.data.JsonStore({
 		return Plugin.attributes.Store.getById(id);
 	}
 });
-Plugin.attributes.Grid = {
-	ref: '../attributesGrid',
-	border: false,
-	store: Plugin.attributes.ItemStore,
-	//plugins: dialog.expander, //expander could be used here to identify what effects on price attributes does
-	columns: [
-		//dialog.expander,
-		{header: 'Attribute', dataIndex: 'attributeName', width: 200},
-		{header: 'Value', dataIndex: 'displayValue', id: 'pc_shop_item_attribute_value_col'},
+
+var attr_columns = [
+	//dialog.expander,
+	{header: 'Attribute', dataIndex: 'attributeName', width: 200},
+	{header: 'Value', dataIndex: 'displayValue', id: 'pc_shop_item_attribute_value_col'}
+
+];
+
+var hook_params = {};
+PC.hooks.Init('plugin/pc_shop/page/product/attribute_price', hook_params);
+if (!hook_params.disabled) {
+	attr_columns.push(
 		{header: 'Price', dataIndex: 'price'},
 		{header: 'Price difference', dataIndex: 'price_diff'},
 		{header: 'Discount', dataIndex: 'discount'},
 		{header: Plugin.ln.attributes_labels.info_1, dataIndex: 'info_1'},
 		{header: Plugin.ln.attributes_labels.info_2, dataIndex: 'info_2'},
 		{header: Plugin.ln.attributes_labels.info_3, dataIndex: 'info_3'}
-	],
+	);
+}
+
+Plugin.attributes.Grid = {
+	ref: '../attributesGrid',
+	border: false,
+	store: Plugin.attributes.ItemStore,
+	//plugins: dialog.expander, //expander could be used here to identify what effects on price attributes does
+	columns: attr_columns,
 	autoExpandColumn: 'pc_shop_item_attribute_value_col',
 	_insertRecord: function(rec, cfg) {
 		if (typeof cfg != 'object') var cfg = {};
@@ -982,9 +1016,15 @@ Plugin.attributes.Grid = {
 		}
 		else {
 			var storeData = [];
-			Ext.iterate(attrRec.data.values, function(id, value){
-				storeData.push([id, PC.utils.extractName(value)]);
+			Ext.iterate(attrRec.data.values_order, function(value_order, index){
+				var value = attrRec.data.values[value_order];
+				storeData.push([value_order, Ext.util.Format.stripTags(PC.utils.extractName(value))]);
 			});
+			/*
+			Ext.iterate(attrRec.data.values, function(id, value){
+				storeData.push([id, Ext.util.Format.stripTags(PC.utils.extractName(value))]);
+			});
+			*/
 			items.push(
 				{	fieldLabel: 'Choose value',
 					xtype: 'combo',
@@ -1022,37 +1062,45 @@ Plugin.attributes.Grid = {
 				}
 			);
 		}
-		items.push(
-			{	xtype: 'numberfield',
-				fieldLabel: 'Price',
-				ref: '_price',
-				value: rec.data.price
-			},{	xtype: 'numberfield',
-				fieldLabel: 'Price difference',
-				ref: '_price_diff',
-				value: rec.data.price_diff
-			},
-			{	xtype: 'numberfield',
-				fieldLabel: 'Discount',
-				ref: '_discount',
-				value: rec.data.discount
-			},
-			{	xtype: 'textfield',
-				fieldLabel: Plugin.ln.attributes_labels.info_1,
-				ref: '_info_1',
-				value: rec.data.info_1
-			},
-			{	xtype: 'textfield',
-				fieldLabel: Plugin.ln.attributes_labels.info_2,
-				ref: '_info_2',
-				value: rec.data.info_2
-			},
-			{	xtype: 'textfield',
-				fieldLabel: Plugin.ln.attributes_labels.info_3,
-				ref: '_info_3',
-				value: rec.data.info_3
-			}	
-		);
+		
+		var hook_params = {};
+		PC.hooks.Init('plugin/pc_shop/page/product/attribute_price', hook_params);
+
+		if (!hook_params.disabled) {
+			items.push(
+				{	xtype: 'numberfield',
+					fieldLabel: 'Price',
+					ref: '_price',
+					value: rec.data.price
+				},{	xtype: 'numberfield',
+					fieldLabel: 'Price difference',
+					ref: '_price_diff',
+					value: rec.data.price_diff
+				},
+				{	xtype: 'numberfield',
+					fieldLabel: 'Discount',
+					ref: '_discount',
+					value: rec.data.discount
+				},
+				{	xtype: 'textfield',
+					fieldLabel: Plugin.ln.attributes_labels.info_1,
+					ref: '_info_1',
+					value: rec.data.info_1
+				},
+				{	xtype: 'textfield',
+					fieldLabel: Plugin.ln.attributes_labels.info_2,
+					ref: '_info_2',
+					value: rec.data.info_2
+				},
+				{	xtype: 'textfield',
+					fieldLabel: Plugin.ln.attributes_labels.info_3,
+					ref: '_info_3',
+					value: rec.data.info_3
+				}	
+			);
+		}
+		
+		
 		var windowCfg = {
 			title: (isCustom?'Editing':'Choose') +' value for "'+ attrRec.data.nameClean +'"',
 			layout: 'form',
@@ -1069,20 +1117,24 @@ Plugin.attributes.Grid = {
 			pageY: ev.getPageY(),
 			Save: function(){
 				if (isCustom) {
+					rec.set('value_id', null);
 					rec.set('value', w._value.getValue());
 					rec.set('displayValue', Plugin.attributes.ParseAttributeValue(null, rec));
 				}
 				else {
 					var newId = w._value_id.getValue();
 					rec.set('value_id', newId);
+					rec.set('value', '');
 					rec.set('displayValue', Plugin.attributes.ParseAttributeValue(newId, rec.data.attribute_id));
 				}
-				rec.set('price', w._price.getValue());
-				rec.set('price_diff', w._price_diff.getValue());
-				rec.set('discount', w._discount.getValue());
-				rec.set('info_1', w._info_1.getValue());
-				rec.set('info_2', w._info_2.getValue());
-				rec.set('info_3', w._info_3.getValue());
+				if (w._price) {
+					rec.set('price', w._price.getValue());
+					rec.set('price_diff', w._price_diff.getValue());
+					rec.set('discount', w._discount.getValue());
+					rec.set('info_1', w._info_1.getValue());
+					rec.set('info_2', w._info_2.getValue());
+					rec.set('info_3', w._info_3.getValue());
+				}
 				w.close();
 			},
 			buttons: [
@@ -1090,8 +1142,8 @@ Plugin.attributes.Grid = {
 					text: Ext.Msg.buttonText.ok,
 					handler: function() {
 						w.Save();
-					},
-					disabled: !initialValueIsSelected
+					}//,
+					//disabled: !initialValueIsSelected
 				},
 				{	ref: '../_cancelBtn',
 					text: Ext.Msg.buttonText.cancel,
@@ -1157,6 +1209,86 @@ Plugin.attributes.Grid = {
 	tbar: [
 		{xtype: 'button', text: PC.i18n.save, icon: 'images/disk.png', handler: PC.editors.Save},
 		'-',
+		{	
+			xtype:'tbtext',
+			text: 'Category',
+			style:'margin:0 2px;'
+		},
+		{	xtype: 'combo', mode: 'local',
+			ref: '../_attribute_category_id',
+			store: Plugin.attributes.Category_store,
+			valueField: 'id',
+			displayField: 'name',
+			triggerAction: 'all',
+			//tpl: '<tpl for="."><div class="x-combo-list-item">{'+ this.displayField +'}</div></tpl>',
+			tpl: '<tpl for="."><div class="x-combo-list-item">{[PC.utils.extractName(values.names)]}</div></tpl>',
+			editable: false,
+			listeners_: {
+				change: function(field, value, ovalue) {},
+				select: function(cb, rec, idx) {
+					cb.fireEvent('change', cb, cb.value, cb.originalValue);
+				},
+				expand: function(field){
+					Plugin.attributes.Store.filter('is_category_attribute', (PC.editors.Current[1]=='category'?'1':'0'));
+				}
+			}
+		},
+		{	icon: 'images/add.png', text: PC.i18n.add,// text: Plugin.ln.addAttribute,
+			handler: function(){
+				var id = PC.editors.Get().attributesGrid._attribute_category_id.getValue();
+				var rec = Plugin.attributes.Category_store.getById(id);
+				
+				if (!rec) return;
+				
+				var attributes = rec.data.attributes;
+				
+				Ext.iterate(attributes, function(attribute, index){
+					var rec = new Plugin.attributes.ItemStore.recordType({
+						id: 0,
+						//item_id: rec.data.,
+						attribute_id: attribute,
+						value_id: null,
+						value: null
+					});
+					
+					rec.set('attributeName', Plugin.attributes.ParseAttributeName(attribute, rec));
+					rec.markDirty();
+					Plugin.attributes.ItemStore.add(rec);
+				
+					var grid = PC.editors.Get().attributesGrid;
+					
+					var attrRec = grid.store._getAttributeData(rec);
+					var isCustom = parseInt(attrRec.data.is_custom);
+					
+					if (isCustom) {
+						//rec.set('value_id', 0);
+						rec.set('value', '');
+						rec.set('displayValue', Plugin.attributes.ParseAttributeValue(null, rec));
+					}
+					else {
+						this._first_object_key = false;
+						Ext.iterate(attrRec.data.values, function(id, value){
+							this._first_object_key = id;
+							return false;
+						}, this);
+						
+						//rec.set('value_id', this._first_object_key);
+						//rec.set('displayValue', Plugin.attributes.ParseAttributeValue(this._first_object_key, attribute));
+						
+						rec.set('value_id', null);
+						rec.set('displayValue', '');
+					
+					}
+					
+				}, this);
+			}
+		},
+		'-',
+		{	
+			xtype:'tbtext',
+			text: 'Attribute',
+			style:'margin:0 2px;'
+		},
 		{	xtype: 'combo', mode: 'local',
 			ref: '../_attribute_id',
 			store: Plugin.attributes.Store,
@@ -1218,7 +1350,7 @@ Plugin.attributes.Grid = {
 					}
 				});
 			}
-		},
+		}/*,
 		{	icon: 'images/arrow-up.gif',
 			text: PC.i18n.move_up,
 			handler: function () {
@@ -1230,7 +1362,9 @@ Plugin.attributes.Grid = {
 			handler: function () {
 				Plugin.attributes.move_selected(PC.editors.Get().attributesGrid, 'down')
 			}
-		}/*,
+		}
+		*/
+		/*,
 		{	icon: 'images/money_euro.png',
 			text: 'Kainos skirtumas',
 			handler: function () {

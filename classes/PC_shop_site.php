@@ -145,6 +145,9 @@ class PC_shop_categories_site extends PC_shop_categories {
 		return $page_link  . '/' . $category_data['link'];
 	}
 	
+	public function set_order_by_attribute(&$params, $attr_id, $direction = '', $decimal = true) {
+		$this->shop->products->set_order_by_attribute($params, $attr_id, $direction, $decimal);
+	}
 	
 	public function Get($id=null, $parentId=null, $pid=null, &$params=array()) {
 		//$cache_key = "11111111category_get_{$id}_{$parentId}_{$pid}_" . md5(serialize($params));
@@ -189,7 +192,7 @@ class PC_shop_categories_site extends PC_shop_categories {
 	 *	<li>'product_count' - if true, 'products' will contain product quantity for each category (false by default)</li>
 	 *	<li>'load_path' - if true, path for the first fetched category will be loaded: $this->Load_path()</li>
 	 *	<li>'link_for_the_first_only' - if true, link will be load for the first fetched category only</li>
-	 *	<li>'parse' - array with keys [description attributes recources] if not set, everything will be parsed for fetched categories (very expensive!)</li>
+	 *	<li>'parse' - array with keys [description attributes resources] if not set, everything will be parsed for fetched categories (very expensive!)</li>
 	 * </ul>
 	 * @return boolean|string
 	 */
@@ -198,25 +201,49 @@ class PC_shop_categories_site extends PC_shop_categories {
 		$this->debug("Get($id, $parentId, $pid)");
 		$this->debug($params);
 		
-		vv($params['flags'], array());
-		if (!in_array(PC_shop_categories::CF_PUBLISHED, $params['flags'])) {
-			$params['flags'][] = PC_shop_categories::CF_PUBLISHED;
+		if (is_array($params)) {
+			vv($params['flags'], array());
+			if (!in_array(PC_shop_categories::CF_PUBLISHED, $params['flags'])) {
+				$params['flags'][] = PC_shop_categories::CF_PUBLISHED;
+			}
 		}
 		
 		$this->parse_params = false;
 		$this->categories_with_resources = false;
-		if (isset($params_array['parse'])) {
-			$this->parse_params = $params_array['parse'];
+		
+		$this->click('Starting Get_c categories');
+		if (is_array($params)) {
+			$this->core->Init_params($params);
+			$params->_params_array = $params_array;
 		}
+		elseif (isset($params->_params_array)) {
+			$params_array = $params->_params_array;
+		}
+		
+		if (is_array($params_array)) {
+			if (isset($params_array['parse'])) {
+				$this->parse_params = $params_array['parse'];
+				if ($this->parse_params != false and !is_array($this->parse_params)) {
+					throw new Exception('$params[parse] must be an array or false');
+				}
+			}
+		}
+		
 		
 		$this->debug('Parse params:');
 		$this->debug($this->parse_params);
 		
-		$this->click('Starting Get_c categories');
-		$this->core->Init_params($params);
 		$returnOne = !is_null($id);
 		//format query params and parse filters
-		$queryParams = array($this->site->ln, PC_shop_attributes::ITEM_IS_CATEGORY, PC_shop_attributes::ITEM_IS_CATEGORY, $this->site->ln, $this->site->ln);
+		$queryParams = array($this->site->ln, PC_shop_attributes::ITEM_IS_CATEGORY, PC_shop_attributes::ITEM_IS_CATEGORY);
+		
+		$queryParams_after_join_item_attributes = $queryParams;
+		
+		$this->debug('$queryParams_after_join_item_attributes', 3);
+		$this->debug($queryParams_after_join_item_attributes, 3);
+		
+		$queryParams = array($this->site->ln, $this->site->ln);
+		
 		$where = array();
 		$limit = '';
 		if (!is_null($id)) {
@@ -397,6 +424,20 @@ class PC_shop_categories_site extends PC_shop_categories {
 			'<>'
 		);
 		
+		
+		$filter_data = array(
+			'having_groups' => array(),
+			'havings' => array(),
+			'having_query_params' => array(),
+
+			'use_attribute_concat' => false,
+			'use_attribute_values_concat' => false,
+			'item_attributes_join_where' => array(),
+			'item_attributes_join_params' => array(),
+		);
+		
+		$this->shop->products->set_custom_attribute_filters($params, $filter_data);
+		
 		if (isset($params->filter)) if (is_array($params->filter)) if (count($params->filter)) {
 			foreach ($params->filter as $field=>$value) {
 				if (!is_array($value)) {
@@ -419,6 +460,54 @@ class PC_shop_categories_site extends PC_shop_categories {
 		}
 		
 		$where[] = $this->get_flag_query_condition(self::CF_PUBLISHED, $queryParams, 'c');
+		
+		
+		$this->shop->products->set_attribute_filters($params, $filter_data);
+		
+		$this->debug('filter_data:', 3);
+		$this->debug($filter_data, 4);
+		
+		$select_attributes_concat = '';
+		$select_attributes_values_concat = '';
+		if ($filter_data['use_attribute_concat']) {
+			$select_attributes_concat = ",group_concat(distinct concat_ws(':', ia.attribute_id, ia.value_id) separator ',') attributes_keys";
+		}
+		if ($filter_data['use_attribute_values_concat']) {
+			$select_attributes_values_concat = ",group_concat(distinct concat_ws(':', ia.attribute_id, ia.value) separator ',') attribute_values";
+		}
+		
+		if (isset($params->having_group)) if (is_array($params->having_group)) if (count($params->having_group)) {
+			$having_group = array();
+			
+			$having_selects = array(
+				'attributes_names' => ",group_concat(ac.name separator ';') attributes_names",
+				'attributes_values' => ",group_concat(ia.value separator ';') attributes_values",
+				'attributes_value_names' => ",group_concat(avc.value separator ';') attributes_value_names"
+			);
+			
+			foreach ($params->having_group as $a_id => $v_id) {
+				$single_having = '';
+				$field = '';
+				if (!is_array($v_id)) {
+					$field = $a_id;
+					$single_having = "$a_id = ?";
+					$filter_data['having_query_params'][] = $v_id;
+				}
+				else {
+					$field = $v_id['field'];
+					$single_having = "{$v_id['field']} {$v_id['op']} ?";
+					$filter_data['having_query_params'][] = $v_id['query_param'];
+				}
+				if (isset($having_selects[$field])) {
+					$select_attributes_concat .= $having_selects[$field];
+					unset($having_selects[$field]);
+				}
+				$single_having = str_replace(';',' ', $single_having);
+				$having_group[] = $single_having;
+			}
+			$filter_data['havings'][] = '(' . implode(' OR ', $having_group) . ')';
+		}
+		
 		
 		if (isset($not_hidden_conds) and !empty($not_hidden_conds)) {
 			$where[] = implode(' AND ',  $not_hidden_conds);
@@ -449,24 +538,58 @@ class PC_shop_categories_site extends PC_shop_categories {
 			}
 		}
 		
+		$item_attributes_join_clause = '';
+		if (!empty($filter_data['item_attributes_join_where'])) {
+			$item_attributes_join_clause = ' AND ' . implode(' AND ', $filter_data['item_attributes_join_where']);
+		}
+		
+		$this->debug('$filter_data[item_attributes_join_params]:' ,3);
+		$this->debug($filter_data['item_attributes_join_params'] ,3);
+		if (!empty($filter_data['item_attributes_join_params'])) {
+			$queryParams_after_join_item_attributes = array_merge($queryParams_after_join_item_attributes, $filter_data['item_attributes_join_params']);
+		}
+		
+		
+		$having_s = '';
+		if (!empty($filter_data['having_groups'])) {
+			$group_params = array();
+			foreach ($filter_data['having_groups'] as $having_group_key => $having_group) {
+				$group_clauses = array();
+				foreach ($having_group as $group_scope) {
+					$group_clauses[] = $group_scope['where'];
+					$filter_data['having_query_params'] = array_merge($filter_data['having_query_params'], $group_scope['query_params']);
+				}
+				$filter_data['havings'][] = '(' . implode(' OR ', $group_clauses) . ')';
+			}
+		}
+		if (!empty($filter_data['havings'])) {
+			$having_s = ' AND ' . implode(' AND ', $filter_data['havings']);
+		}
+		
+		
 		//query!
 		$query = "SELECT ".($params->Has_paging()?'SQL_CALC_FOUND_ROWS ':'')."c.*,cc.*"
 		. $select_product_count
 		//.",".$this->sql_parser->group_concat($this->sql_parser->concat_ws("░", "'id".PC_sql_parser::SP3."'", 'a.id',"'ref".PC_sql_parser::SP3."'",'a.ref',"'name".PC_sql_parser::SP3."'",'ac.name',"'flags".PC_sql_parser::SP3."'",'ia.flags',"'is_custom".PC_sql_parser::SP3."'",'a.is_custom',"'is_searchable".PC_sql_parser::SP3."'",'a.is_searchable',"'item_is_category".PC_sql_parser::SP3."'",'a.is_category_attribute',"'value".PC_sql_parser::SP3."'",'ia.value',"'value_id".PC_sql_parser::SP3."'",'ia.value_id',"'avc_value".PC_sql_parser::SP3."'",'avc.value'), array('separator'=>'▓', 'distinct'=> true))." attributes"
 		.",".$this->sql_parser->group_concat($this->sql_parser->concat_ws("░", "'id".PC_sql_parser::SP3."'", 'a.id',"'ref".PC_sql_parser::SP3."'",'a.ref',"'name".PC_sql_parser::SP3."'",'ac.name',"'is_custom".PC_sql_parser::SP3."'",'a.is_custom',"'value".PC_sql_parser::SP3."'",'ia.value',"'value_id".PC_sql_parser::SP3."'",'ia.value_id',"'avc_value".PC_sql_parser::SP3."'",'avc.value'), array('separator'=>'▓', 'distinct'=> true))." attributes"
+		.$select_attributes_concat
+		.$select_attributes_values_concat	
 		." FROM {$this->db_prefix}shop_categories c"
 		." LEFT JOIN {$this->db_prefix}shop_category_contents cc ON cc.category_id=c.id and cc.ln=?"
 		//count products in this category
 		.$join_on_products
 		//attributes
-		." LEFT JOIN {$this->db_prefix}shop_item_attributes ia ON ia.item_id=c.id and (ia.flags & ?)=?"
+		." LEFT JOIN {$this->db_prefix}shop_item_attributes ia ON ia.item_id=c.id and (ia.flags & ?)=? " . $item_attributes_join_clause
 		." LEFT JOIN {$this->db_prefix}shop_attributes a ON a.id=ia.attribute_id"
 		." LEFT JOIN {$this->db_prefix}shop_attribute_contents ac ON ac.attribute_id=a.id and ac.ln=?"
 		." LEFT JOIN {$this->db_prefix}shop_attribute_values av ON av.attribute_id=a.id and av.id=ia.value_id"
 		." LEFT JOIN {$this->db_prefix}shop_attribute_value_contents avc ON avc.value_id=av.id and avc.ln=?"
 		//filters
 		.(count($where)?' WHERE '.implode(' and ', $where):'')
-		.(!$returnOne?" GROUP BY c.id":""). ' HAVING  NOT (attributes IS NULL) ' .  $order . $limit;
+		.(!$returnOne?" GROUP BY c.id":""). ' HAVING  NOT (attributes IS NULL) ' . $having_s . ' ' . $order . $limit;
+		
+		$queryParams = array_merge($queryParams_after_join_item_attributes, $queryParams, $filter_data['having_query_params']);
+		
 		
 		$this->click('Query was built');
 				
@@ -480,7 +603,12 @@ class PC_shop_categories_site extends PC_shop_categories {
 		
 		$s = $r->execute($queryParams);
 		
-		$this->click('Query was executed: ' . $this->get_debug_query_string($query, $queryParams));
+		$executed_query = $this->get_debug_query_string($query, $queryParams);
+		$this->click('Query was executed: ' . $executed_query);
+		
+		if (v($params->echo_query)) {
+			echo $executed_query;
+		}
 		
 		if (!$s) return false;
 		
@@ -504,6 +632,7 @@ class PC_shop_categories_site extends PC_shop_categories {
 					$d['link'] = $this->Get_full_link_by_id($d['id']);
 				}
 				else {
+					$page_id = false;
 					$d['link'] = $this->Get_link_by_id($d['id'], '', $page_id, $real_link);
 				}
 				
@@ -553,7 +682,11 @@ class PC_shop_categories_site extends PC_shop_categories {
 		$this->parse_logger = new PC_debug();
 		$this->parse_logger->debug = true;
 		
-		$parse_resources = $this->parse_params === false || v($this->parse_params['recources']);
+		if ($this->parse_params and is_array($this->parse_params) and isset($this->parse_params['recources'])) {
+			$this->parse_params['resources'] = $this->parse_params['recources'];
+		}
+		
+		$parse_resources = $this->parse_params === false || v($this->parse_params['resources']);
 		if (!empty($this->categories_with_resources) and $parse_resources) {
 			$file_ids = array();
 			$category_ids = $this->categories_with_resources;
@@ -779,7 +912,10 @@ class PC_shop_categories_site extends PC_shop_categories {
 			$this->click('path', 'parse_path');
 		}
 		
-		$parse_resources = $this->parse_params === false || v($this->parse_params['recources']);
+		if ($this->parse_params and is_array($this->parse_params) and isset($this->parse_params['recources'])) {
+			$this->parse_params['resources'] = $this->parse_params['recources'];
+		}
+		$parse_resources = $this->parse_params === false || v($this->parse_params['resources']);
 		if (is_array($this->categories_with_resources) && !in_array($d['id'], $this->categories_with_resources)) {
 			$parse_resources = false;
 		}
@@ -1123,68 +1259,21 @@ class PC_shop_products_site extends PC_shop_products {
 		
 		$groups = array();
 		
-		$having_groups = array();
-		$havings = array();
-		$having_query_params = array();
+		$filter_data = array(
+			'having_groups' => array(),
+			'havings' => array(),
+			'having_query_params' => array(),
+
+			'use_attribute_concat' => false,
+			'use_attribute_values_concat' => false,
+			'item_attributes_join_where' => array(),
+			'item_attributes_join_params' => array(),
+		);
 		
 		
-		$use_attribute_concat = false;
-		$use_attribute_values_concat = false;
-		$item_attributes_join_where = array();
-		$item_attributes_join_params = array();
+		$this->set_custom_attribute_filters($params, $filter_data);
 		
-		if (isset($params->custom_attribute_filter)) if (is_array($params->custom_attribute_filter)) if (count($params->custom_attribute_filter)) {
-			$use_attribute_concat = true;
-			foreach ($params->custom_attribute_filter as $a_id => $v_id) {
-				$this_having = '';
-				$this_having_query_params = array();
-				$having_group = false;
-				$v_op = '=';
-				$clause = '';
-				$this_query_params = array();
-				if (is_array($v_id)) {
-					//print_pre($v_id);
-					if (isset($v_id['having_group'])) {
-						$having_group = $v_id['having_group'];
-					}
-					$a_id = v($v_id['attr_id'], $a_id);
-					$clause = v($v_id['clause'], '');
-					$v_op = v($v_id['op'], '=');
-					$this_query_params = v($v_id['query_params'], $this_query_params);
-					$v_id = v($v_id['value'], '');
-				}
-				if (!empty($v_id) or !empty($clause)) {
-					$this_having = "FIND_IN_SET(?, attributes_keys)";
-					$this_having_query_params[] = "$a_id";
-					$expression = '?';
-					if ($v_op != '=') {
-						$expression = "convert(?, decimal(10,4))";
-					}
-					$item_attributes_join_params[] = $a_id;
-					$item_attributes_join_params[] = $a_id;
-					if (empty($clause)) {
-						$item_attributes_join_params[] = $v_id;
-						$clause = "ia.value $v_op $expression";
-					}
-					if (!empty($this_query_params)) {
-						$item_attributes_join_params = array_merge($item_attributes_join_params, $this_query_params);
-					}
-					$item_attributes_join_where[] = "(ia.attribute_id <> ? OR ia.attribute_id = ? AND $clause)";
-					
-				}
-				if (!$having_group) {
-					$havings[] = $this_having;
-					$having_query_params = array_merge($having_query_params, $this_having_query_params);
-				}
-				else {
-					$having_groups[$having_group][] = array(
-						'where' => $this_having,
-						'query_params' => $this_having_query_params
-					);
-				}
-									
-			}
-		}
+		
 		
 		if (isset($params->filter)) if (is_array($params->filter)) if (count($params->filter)) {
 			foreach ($params->filter as $field=>$value) {
@@ -1201,8 +1290,8 @@ class PC_shop_products_site extends PC_shop_products {
 				}
 				if (!is_array($value)) {
 					if ($field == 'real_price') {
-						$havings[] = $field.'=?';
-						$having_query_params[] = $value;
+						$filter_data['havings'][] = $field.'=?';
+						$filter_data['having_query_params'][] = $value;
 					}
 					else {
 						$where[] = $field.'=?';
@@ -1238,14 +1327,14 @@ class PC_shop_products_site extends PC_shop_products {
 					}
 					if ($field == 'real_price' or $this_having) {
 						if (!isset($value['having_group'])) {
-							$havings[] = $this_where;
-							$having_query_params = array_merge($having_query_params, $this_query_params);
+							$filter_data['havings'][] = $this_where;
+							$filter_data['having_query_params'] = array_merge($filter_data['having_query_params'], $this_query_params);
 						}
 						else {
-							if (!isset($having_groups[$value['having_group']])) {
-								$having_groups[$value['having_group']] = array();
+							if (!isset($filter_data['having_groups'][$value['having_group']])) {
+								$filter_data['having_groups'][$value['having_group']] = array();
 							}
-							$having_groups[$value['having_group']][] = array(
+							$filter_data['having_groups'][$value['having_group']][] = array(
 								'where' => $this_where,
 								'query_params' => $this_query_params
 							);
@@ -1272,74 +1361,18 @@ class PC_shop_products_site extends PC_shop_products {
 				}
 			}
 		}
+	
+		$this->set_attribute_filters($params, $filter_data);
 		
-		if (isset($params->attribute_filter)) if (is_array($params->attribute_filter)) if (count($params->attribute_filter)) {
-			
-			foreach ($params->attribute_filter as $a_id => $v_id) {
-				$this_having = '';
-				$this_having_query_params = array();
-				$having_group = false;
-				if (is_array($v_id) and isset($v_id['having_group'])) {
-					$having_group = $v_id['having_group'];
-					$a_id = v($v_id['attr_id'], $a_id);
-					$v_id = v($v_id['value'], '');
-				}
-				if (!is_array($v_id)) {
-					if (!empty($v_id)) {
-						$not = '';
-						$concat_key = 'attributes_keys';
-						if (strpos($v_id, '!') === 0) {
-							$v_id = substr($v_id, 1);
-							$not = 'NOT ';
-						}
-						if (strpos($v_id, '=') === 0) {
-							$v_id = substr($v_id, 1);
-							$concat_key = 'attribute_values';
-							$use_attribute_values_concat = true;
-						}
-						else {
-							$use_attribute_concat = true;
-						}
-						$this_having = $not . "FIND_IN_SET(?, $concat_key)";
-						$this_having_query_params[] = "$a_id:$v_id";
-					}
-					else {
-						$use_attribute_concat = true;
-						$this_having = "(attributes_keys like ? OR attributes_keys like ?)";
-						$this_having_query_params[] = "$a_id:%";
-						$this_having_query_params[] = "%,$a_id:%";
-					}
-				}
-				elseif (!empty($v_id)) {
-					$having_ors = array();
-					foreach ($v_id as $vv_id) {
-						$use_attribute_concat = true;
-						$having_ors[] = "FIND_IN_SET(?, attributes_keys)";
-						$this_having_query_params[] = "$a_id:$vv_id";
-					}
-					$this_having = '(' . implode(' OR ', $having_ors) . ')';
-					
-				}
-				if (!$having_group) {
-					$havings[] = $this_having;
-					$having_query_params = array_merge($having_query_params, $this_having_query_params);
-				}
-				else {
-					$having_groups[$having_group][] = array(
-						'where' => $this_having,
-						'query_params' => $this_having_query_params
-					);
-				}
-									
-			}
-		}
+		$this->debug('filter_data:', 3);
+		$this->debug($filter_data, 4);
 		
 		$select_attributes_concat = '';
 		$select_attributes_values_concat = '';
-		if ($use_attribute_concat) {
+		if ($filter_data['use_attribute_concat']) {
 			$select_attributes_concat = ",group_concat(distinct concat_ws(':', ia.attribute_id, ia.value_id) separator ',') attributes_keys";
 		}
-		if ($use_attribute_values_concat) {
+		if ($filter_data['use_attribute_values_concat']) {
 			$select_attributes_values_concat = ",group_concat(distinct concat_ws(':', ia.attribute_id, ia.value) separator ',') attribute_values";
 		}
 		
@@ -1358,12 +1391,12 @@ class PC_shop_products_site extends PC_shop_products {
 				if (!is_array($v_id)) {
 					$field = $a_id;
 					$single_having = "$a_id = ?";
-					$having_query_params[] = $v_id;
+					$filter_data['having_query_params'][] = $v_id;
 				}
 				else {
 					$field = $v_id['field'];
 					$single_having = "{$v_id['field']} {$v_id['op']} ?";
-					$having_query_params[] = $v_id['query_param'];
+					$filter_data['having_query_params'][] = $v_id['query_param'];
 				}
 				if (isset($having_selects[$field])) {
 					$select_attributes_concat .= $having_selects[$field];
@@ -1372,7 +1405,7 @@ class PC_shop_products_site extends PC_shop_products {
 				$single_having = str_replace(';',' ', $single_having);
 				$having_group[] = $single_having;
 			}
-			$havings[] = '(' . implode(' OR ', $having_group) . ')';
+			$filter_data['havings'][] = '(' . implode(' OR ', $having_group) . ')';
 		}
 		
 		if (!isset($params->flags)) {
@@ -1395,10 +1428,10 @@ class PC_shop_products_site extends PC_shop_products {
 			$where[] = PC_database_tree::get_between_condition($params->categories, $queryParams, 'c');
 		}
 		
-		$this->debug('$item_attributes_join_params:' ,3);
-		$this->debug($item_attributes_join_params ,3);
-		if (!empty($item_attributes_join_params)) {
-			$queryParams_after_join_item_attributes = array_merge($queryParams_after_join_item_attributes, $item_attributes_join_params);
+		$this->debug('$filter_data[item_attributes_join_params]:' ,3);
+		$this->debug($filter_data['item_attributes_join_params'] ,3);
+		if (!empty($filter_data['item_attributes_join_params'])) {
+			$queryParams_after_join_item_attributes = array_merge($queryParams_after_join_item_attributes, $filter_data['item_attributes_join_params']);
 		}
 		
 		//query!
@@ -1426,19 +1459,19 @@ class PC_shop_products_site extends PC_shop_products {
 		}
 		
 		$having_s = '';
-		if (!empty($having_groups)) {
+		if (!empty($filter_data['having_groups'])) {
 			$group_params = array();
-			foreach ($having_groups as $having_group_key => $having_group) {
+			foreach ($filter_data['having_groups'] as $having_group_key => $having_group) {
 				$group_clauses = array();
 				foreach ($having_group as $group_scope) {
 					$group_clauses[] = $group_scope['where'];
-					$having_query_params = array_merge($having_query_params, $group_scope['query_params']);
+					$filter_data['having_query_params'] = array_merge($filter_data['having_query_params'], $group_scope['query_params']);
 				}
-				$havings[] = '(' . implode(' OR ', $group_clauses) . ')';
+				$filter_data['havings'][] = '(' . implode(' OR ', $group_clauses) . ')';
 			}
 		}
-		if (!empty($havings)) {
-			$having_s = ' HAVING ' . implode(' AND ', $havings);
+		if (!empty($filter_data['havings'])) {
+			$having_s = ' HAVING ' . implode(' AND ', $filter_data['havings']);
 		}
 		
 		$cat_content_select = '';
@@ -1458,8 +1491,8 @@ class PC_shop_products_site extends PC_shop_products {
 		}
 		
 		$item_attributes_join_clause = '';
-		if (!empty($item_attributes_join_where)) {
-			$item_attributes_join_clause = ' AND ' . implode(' AND ', $item_attributes_join_where);
+		if (!empty($filter_data['item_attributes_join_where'])) {
+			$item_attributes_join_clause = ' AND ' . implode(' AND ', $filter_data['item_attributes_join_where']);
 		}
 		
 		$item_attributes_ids_clause = '';
@@ -1484,7 +1517,7 @@ class PC_shop_products_site extends PC_shop_products {
 		
 		$select_s = ' ' . $select_s . ' ';
 		$query = $qry = "SELECT " . (v($params->sql_no_cache)?' SQL_NO_CACHE ':'') .($params->Has_paging()?'SQL_CALC_FOUND_ROWS ':'').$select_s."p.*,".$real_price_select.v($params->content_select, "pc.*").","
-		. $this->sql_parser->group_concat($this->sql_parser->concat_ws("░", "'id".PC_sql_parser::SP3."'", 'a.id', "'ref".PC_sql_parser::SP3."'",'a.ref',"'category_id".PC_sql_parser::SP3."'",'a.category_id', "'name".PC_sql_parser::SP3."'",'ac.name', "'flags".PC_sql_parser::SP3."'",'ia.flags', "'is_custom".PC_sql_parser::SP3."'",'a.is_custom', "'is_searchable".PC_sql_parser::SP3."'",'a.is_searchable', "'item_is_category".PC_sql_parser::SP3."'",'a.is_category_attribute', "'value".PC_sql_parser::SP3."'",'ia.value', "'value_id".PC_sql_parser::SP3."'",'ia.value_id', "'ia_id".PC_sql_parser::SP3."'",'ia.id', "'avc_value".PC_sql_parser::SP3."'",'avc.value'), array('separator'=>'▓', 'distinct'=> true))." attributes"
+		. $this->sql_parser->group_concat($this->sql_parser->concat_ws("░", "'id".PC_sql_parser::SP3."'", 'a.id', "'ref".PC_sql_parser::SP3."'",'a.ref',"'category_id".PC_sql_parser::SP3."'",'a.category_id', "'name".PC_sql_parser::SP3."'",'ac.name', "'flags".PC_sql_parser::SP3."'",'ia.flags', "'is_custom".PC_sql_parser::SP3."'",'a.is_custom', "'is_searchable".PC_sql_parser::SP3."'",'a.is_searchable', "'item_is_category".PC_sql_parser::SP3."'",'a.is_category_attribute', "'value".PC_sql_parser::SP3."'",'ia.value', "'value_id".PC_sql_parser::SP3."'",'ia.value_id', "'ia_id".PC_sql_parser::SP3."'",'ia.id', "'avc_value".PC_sql_parser::SP3."'",'avc.value'), array('separator'=>'▓', 'distinct'=> true, 'order' => array('by' => 'a.position')))." attributes"
 		//. $this->sql_parser->group_concat($this->sql_parser->concat_ws("░", "'id".PC_sql_parser::SP3."'", 'a.id', "'ref".PC_sql_parser::SP3."'",'a.ref', "'name".PC_sql_parser::SP3."'",'ac.name', "'flags".PC_sql_parser::SP3."'",'ia.flags', "'is_custom".PC_sql_parser::SP3."'",'a.is_custom', "'is_searchable".PC_sql_parser::SP3."'",'a.is_searchable', "'item_is_category".PC_sql_parser::SP3."'",'a.is_category_attribute',"'value".PC_sql_parser::SP3."'",'ia.value',"'value_id".PC_sql_parser::SP3."'",'ia.value_id',"'avc_value".PC_sql_parser::SP3."'",'avc.value'), array('separator'=>'▓', 'distinct'=> true))." attributes"
 		//. $this->sql_parser->group_concat($this->sql_parser->concat_ws("░", 'a.id', 'a.ref', 'ac.name', 'ia.flags', 'a.is_custom', 'a.is_searchable', 'a.is_category_attribute', 'ia.value_id', 'avc.value'), array('separator'=>'▓', 'distinct'=> true))." attributes"
 		. $select_attributes_concat . $select_attributes_values_concat
@@ -1503,7 +1536,7 @@ class PC_shop_products_site extends PC_shop_products {
 		.(count($where)?' WHERE '.implode(' and ', $where):'')
 		." GROUP BY p.id". ' ' . $group_s . $having_s . ' ' . $order . ' ' . $limit ;
 		
-		$queryParams = array_merge($queryParams_after_join_item_attributes, $queryParams, $having_query_params);
+		$queryParams = array_merge($queryParams_after_join_item_attributes, $queryParams, $filter_data['having_query_params']);
 		
 		$ckey = "pcs.get." . md5($query . serialize($queryParams));
 		$total = null;
@@ -1594,6 +1627,141 @@ class PC_shop_products_site extends PC_shop_products {
 		}
 		else return $list;
 	}
+	
+	public function set_custom_attribute_filters($params, &$filter_data = array()) {
+		if (isset($params->custom_attribute_filter)) if (is_array($params->custom_attribute_filter)) if (count($params->custom_attribute_filter)) {
+			$filter_data['use_attribute_concat'] = true;
+			foreach ($params->custom_attribute_filter as $a_id => $v_id) {
+				$this_having = '';
+				$this_having_query_params = array();
+				$having_group = false;
+				$v_op = '=';
+				$clause = '';
+				$this_query_params = array();
+				if (is_array($v_id)) {
+					//print_pre($v_id);
+					if (isset($v_id['having_group'])) {
+						$having_group = $v_id['having_group'];
+					}
+					$a_id = v($v_id['attr_id'], $a_id);
+					$clause = v($v_id['clause'], '');
+					$v_op = v($v_id['op'], '=');
+					$this_query_params = v($v_id['query_params'], $this_query_params);
+					$v_id = v($v_id['value'], '');
+				}
+				if (!empty($v_id) or !empty($clause)) {
+					$this_having = "FIND_IN_SET(?, attributes_keys)";
+					$this_having_query_params[] = "$a_id";
+					$expression = '?';
+					if ($v_op != '=') {
+						$expression = "convert(?, decimal(10,4))";
+					}
+					$filter_data['item_attributes_join_params'][] = $a_id;
+					$filter_data['item_attributes_join_params'][] = $a_id;
+					if (empty($clause)) {
+						$filter_data['item_attributes_join_params'][] = $v_id;
+						$clause = "ia.value $v_op $expression";
+					}
+					if (!empty($this_query_params)) {
+						$filter_data['item_attributes_join_params'] = array_merge($filter_data['item_attributes_join_params'], $this_query_params);
+					}
+					$filter_data['item_attributes_join_where'][] = "(ia.attribute_id <> ? OR ia.attribute_id = ? AND $clause)";
+					
+				}
+				if (!$having_group) {
+					$filter_data['havings'][] = $this_having;
+					$filter_data['having_query_params'] = array_merge($filter_data['having_query_params'], $this_having_query_params);
+				}
+				else {
+					$filter_data['having_groups'][$having_group][] = array(
+						'where' => $this_having,
+						'query_params' => $this_having_query_params
+					);
+				}
+									
+			}
+		}
+		
+	}
+	
+	public function set_attribute_filters($params, &$filter_data = array()) {
+		
+		/*
+		 $filter_data = array(
+			'having_groups' => array(),
+			'havings' => array(),
+			'having_query_params' => array(),
+
+			'use_attribute_concat' => false,
+			'use_attribute_values_concat' => false,
+			'item_attributes_join_where' => array(),
+			'item_attributes_join_params' => array(),
+		);
+		 */
+		
+		
+		if (isset($params->attribute_filter)) if (is_array($params->attribute_filter)) if (count($params->attribute_filter)) {
+			
+			foreach ($params->attribute_filter as $a_id => $v_id) {
+				$this_having = '';
+				$this_having_query_params = array();
+				$having_group = false;
+				if (is_array($v_id) and isset($v_id['having_group'])) {
+					$having_group = $v_id['having_group'];
+					$a_id = v($v_id['attr_id'], $a_id);
+					$v_id = v($v_id['value'], '');
+				}
+				if (!is_array($v_id)) {
+					if (!empty($v_id)) {
+						$not = '';
+						$concat_key = 'attributes_keys';
+						if (strpos($v_id, '!') === 0) {
+							$v_id = substr($v_id, 1);
+							$not = 'NOT ';
+						}
+						if (strpos($v_id, '=') === 0) {
+							$v_id = substr($v_id, 1);
+							$concat_key = 'attribute_values';
+							$filter_data['use_attribute_values_concat'] = true;
+						}
+						else {
+							$filter_data['use_attribute_concat'] = true;
+						}
+						$this_having = $not . "FIND_IN_SET(?, $concat_key)";
+						$this_having_query_params[] = "$a_id:$v_id";
+					}
+					else {
+						$filter_data['use_attribute_concat'] = true;
+						$this_having = "(attributes_keys like ? OR attributes_keys like ?)";
+						$this_having_query_params[] = "$a_id:%";
+						$this_having_query_params[] = "%,$a_id:%";
+					}
+				}
+				elseif (!empty($v_id)) {
+					$having_ors = array();
+					foreach ($v_id as $vv_id) {
+						$filter_data['use_attribute_concat'] = true;
+						$having_ors[] = "FIND_IN_SET(?, attributes_keys)";
+						$this_having_query_params[] = "$a_id:$vv_id";
+					}
+					$this_having = '(' . implode(' OR ', $having_ors) . ')';
+					
+				}
+				if (!$having_group) {
+					$filter_data['havings'][] = $this_having;
+					$filter_data['having_query_params'] = array_merge($filter_data['having_query_params'], $this_having_query_params);
+				}
+				else {
+					$filter_data['having_groups'][$having_group][] = array(
+						'where' => $this_having,
+						'query_params' => $this_having_query_params
+					);
+				}
+									
+			}
+		}
+	}
+	
 	public function Parse(&$d) {
 		$this->Decode_flags($d);
 		$this->click('Decode_flags', 'Decode_flags');
@@ -1679,8 +1847,10 @@ class PC_shop_products_site extends PC_shop_products {
 			$this->click('description', 'parse_description');
 		}
 		
-		
-		$parse_resources = $this->parse_params === false || v($this->parse_params['recources']);
+		if ($this->parse_params and is_array($this->parse_params) and isset($this->parse_params['recources'])) {
+			$this->parse_params['resources'] = $this->parse_params['recources'];
+		}
+		$parse_resources = $this->parse_params === false || v($this->parse_params['resources']);
 		if ($parse_resources) {
 			$d['resources'] = new PC_shop_item_resources($d['id']);
 			$this->click('resources', 'parse_resources');

@@ -126,7 +126,7 @@ Plugin_pc_shop_prices_crud = Ext.extend(PC.ux.LocalCrud, {
 			
 	get_tbar_buttons: function() {
 		var buttons =  [
-			this.get_button_for_edit()
+			//this.get_button_for_edit()
 		];
 		return buttons;
 	}

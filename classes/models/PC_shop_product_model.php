@@ -95,7 +95,7 @@ class PC_shop_product_model extends PC_model {
 				$price -= $data['discount'];
 			}
 			if (v($data['percentage_discount']) and $data['percentage_discount'] > 0 and $data['percentage_discount'] < 100) {
-				$discount_percent_price = ceil($full_price * (100 - $data['percentage_discount'])) / 100;
+				$discount_percent_price = floor($full_price * (100 - $data['percentage_discount'])) / 100;
 				if ($discount_percent_price < $price) {
 					$price = $discount_percent_price;
 				}

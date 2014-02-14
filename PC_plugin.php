@@ -14,6 +14,7 @@ Register_class_autoloader('PC_shop_attribute_model', $clsPath.'models/PC_shop_at
 Register_class_autoloader('PC_shop_attribute_content_model', $clsPath.'models/PC_shop_attribute_content_model.php');
 Register_class_autoloader('PC_shop_attribute_value_model', $clsPath.'models/PC_shop_attribute_value_model.php');
 Register_class_autoloader('PC_shop_attribute_category_model', $clsPath.'models/PC_shop_attribute_category_model.php');
+Register_class_autoloader('PC_shop_attributes_category_model', $clsPath.'models/PC_shop_attributes_category_model.php');
 Register_class_autoloader('PC_shop_attribute_item_model', $clsPath.'models/PC_shop_attribute_item_model.php');
 Register_class_autoloader('PC_shop_order_model', $clsPath.'models/PC_shop_order_model.php');
 Register_class_autoloader('PC_shop_order_item_model', $clsPath.'models/PC_shop_order_item_model.php');

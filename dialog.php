@@ -41,6 +41,7 @@ $mod['priority'] = 100;
 		'dialog.tab.coupons.js',
 		'dialog.tab.settings.js',
 		'ln_currencies_crud.js',
+		'attribute_categories_crud.js',
 		'dialog.tab.currencies.rates.js',
 		'dialog.tab.shop_currencies.js'
 	);
@@ -678,6 +679,71 @@ function mod_pc_shop_click() {
 		}
 	});
 	
+	dialog.attributes.move_selected = function(direction){
+		var grid = dialog.attributes.grid;
+		direction = direction || 'up';
+		var records = grid.selModel.getSelections();
+		if (!records.length) return;
+
+		var first_index = -1;
+		var last_index = -1;
+
+		Ext.iterate(records, function(record, index) {
+			var my_index = grid.getStore().indexOf(record);
+			if (first_index == -1) {
+				first_index = my_index;
+			}
+			else if (my_index < first_index) {
+				first_index = my_index;
+			}
+			if (last_index == -1) {
+				last_index = my_index;
+			}
+			else if (my_index > last_index){
+				last_index = my_index;
+			}
+		});
+
+		var row_to_move = false;
+		var new_position = -1;
+		if (direction == 'up') {
+			row_to_move = grid.store.getAt(first_index - 1);
+			new_position = last_index;
+		} 
+		else {
+			row_to_move = grid.store.getAt(last_index + 1);
+			new_position = first_index;
+		}
+
+		if (row_to_move) {
+			
+			if (records[0].data.is_category_attribute != row_to_move.data.is_category_attribute) {
+				if (direction == 'up' && row_to_move.data.is_category_attribute) {
+					return;
+				}
+				if (direction == 'down' && row_to_move.data.is_category_attribute != 1) {
+					return;
+				}
+			}
+			
+			grid.getStore().remove(row_to_move);
+			grid.getStore().insert(new_position, row_to_move);
+			
+			var positions = [];
+			Ext.iterate(grid.getStore().getRange(), function(record, index) {
+				positions.push(record.data.id);
+			}, this);
+			Ext.Ajax.request({
+				url: 'api/plugin/pc_shop/attributes/set_positions',
+				params: {
+					positions: Ext.util.JSON.encode(positions)
+				},
+				method: 'POST'
+			});
+		}
+
+	};
+	
 	dialog.attributes.grid = new Ext.grid.GridPanel({
 		view: new Ext.grid.GroupingView({
 			forceFit: true,
@@ -838,6 +904,18 @@ function mod_pc_shop_click() {
 						}
 					});
 				}
+			},
+			{	icon: 'images/arrow-up.gif',
+				text: PC.i18n.move_up,
+				handler: function () {
+					dialog.attributes.move_selected('up');
+				}
+			},
+			{	icon: 'images/arrow-down.gif',
+				text: PC.i18n.move_down,
+				handler: function () {
+					dialog.attributes.move_selected('down')
+				}
 			}
 		],
 		/*
@@ -932,6 +1010,41 @@ function mod_pc_shop_click() {
 						//forceSelection: true,
 						triggerAction: 'all',
 						value: n.data.category_id
+					},
+					{	
+						xtype: 'button',
+						text: 'Categories',
+						_do_not_save: true,
+						handler: function() {
+							if (parseInt(n.data.is_category_attribute)) {
+								return;
+							}
+							if (true || !this._cats_window) {
+								var cats_crud = new PC.plugin.pc_shop.attribute_categories_crud({
+								});
+								this._cats_window = new PC.ux.Window({
+									modal: true,
+									title: 'Categories',
+									closeAction: 'hide',
+									width: 220,
+									height: 400,
+									layout: 'hbox',
+									layoutConfig: {
+										align: 'stretch'
+									},
+									items: cats_crud
+								});
+								cats_crud._window = this._cats_window;
+							}
+
+							//this._cats_window.setTitle(this.selected_record.data.email + ' ' + this.ln.stats_window_title);
+
+							cats_crud.store.setBaseParam('attribute_id', n.data.id);
+							cats_crud.store.setBaseParam('ln', PC.global.ln);
+							
+							this._cats_window.show();
+							cats_crud.store.reload();
+						}
 					},
 					{	_fld: 'ref',
 						fieldLabel: 'Reference',
@@ -1182,6 +1295,63 @@ function mod_pc_shop_click() {
 		}
 	});
 	
+	
+	dialog.attributes.values.move_selected = function(direction){
+		var grid = dialog.attributes.values.grid;
+		direction = direction || 'up';
+		var records = grid.selModel.getSelections();
+		if (!records.length) return;
+
+		var first_index = -1;
+		var last_index = -1;
+
+		Ext.iterate(records, function(record, index) {
+			var my_index = grid.getStore().indexOf(record);
+			if (first_index == -1) {
+				first_index = my_index;
+			}
+			else if (my_index < first_index) {
+				first_index = my_index;
+			}
+			if (last_index == -1) {
+				last_index = my_index;
+			}
+			else if (my_index > last_index){
+				last_index = my_index;
+			}
+		});
+
+		var row_to_move = false;
+		var new_position = -1;
+		if (direction == 'up') {
+			row_to_move = grid.store.getAt(first_index - 1);
+			new_position = last_index;
+		} 
+		else {
+			row_to_move = grid.store.getAt(last_index + 1);
+			new_position = first_index;
+		}
+
+		if (row_to_move) {
+			grid.getStore().remove(row_to_move);
+			grid.getStore().insert(new_position, row_to_move);
+			
+			var positions = [];
+			Ext.iterate(grid.getStore().getRange(), function(record, index) {
+				positions.push(record.data.id);
+			}, this);
+			Ext.Ajax.request({
+				url: 'api/plugin/pc_shop/attribute_values/set_positions',
+				params: {
+					positions: Ext.util.JSON.encode(positions),
+					attribute_id: records[0].data.attribute_id
+				},
+				method: 'POST'
+			});
+		}
+
+	};
+	
 	dialog.attributes.values.grid = new Ext.grid.EditorGridPanel({
 		disabled: true,
 		store: dialog.attributes.values.store,
@@ -1267,6 +1437,18 @@ function mod_pc_shop_click() {
 							}
 						}
 					});
+				}
+			},
+			{	icon: 'images/arrow-up.gif',
+				text: PC.i18n.move_up,
+				handler: function () {
+					dialog.attributes.values.move_selected('up');
+				}
+			},
+			{	icon: 'images/arrow-down.gif',
+				text: PC.i18n.move_down,
+				handler: function () {
+					dialog.attributes.values.move_selected('down')
 				}
 			}
 		],

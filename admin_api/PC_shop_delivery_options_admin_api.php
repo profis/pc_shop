@@ -23,7 +23,11 @@ class PC_shop_delivery_options_admin_api extends PC_shop_admin_api {
 		return array();
 	}
 	
-	protected function _after_get() {
+	protected function _adjust_search(&$params) {
+		$params['formatter'] = '_format';
+	}
+	
+	protected function _after_get_() {
 		require_once PLUGINS_ROOT . DS .  'pc_shop/admin_api/PC_shop_prices_admin_api.php';
 		$prices_api = new PC_shop_prices_admin_api();
 		$prices_api->absorb_debug_settings($this);

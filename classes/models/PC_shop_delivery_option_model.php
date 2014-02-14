@@ -36,4 +36,11 @@ class PC_shop_delivery_option_model extends PC_model {
 		return $name;
 	}
 	
+	protected function _format(&$data) {
+		$data['delivery_price'] = 'delivery_' . $data['code'];
+		$data['no_delivery_price_from'] = 'free_delivery_from_' . $data['code'];
+		$data['cod_price'] = 'cod_' . $data['code'];
+		$data['no_cod_price_from'] = 'free_cod_from_' . $data['code'];
+	}
+	
 }

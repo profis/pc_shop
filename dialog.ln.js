@@ -292,7 +292,7 @@ var ln =  {
 			sales: 'Продажи',
 			coupons: 'Купоны',
 			attributes: 'Атрибуты',
-			attribute_categories: 'Категорий атрибутов',
+			attribute_categories: 'Категории атрибутов',
 			currencies: 'Валюты',
 			currency_rates: 'Курсы валют',
 			manufacturers: 'Производители',

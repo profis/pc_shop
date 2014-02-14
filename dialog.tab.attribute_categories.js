@@ -20,6 +20,10 @@ PC_shop_attribute_categories_crud.prototype.init = function() {
 PC.plugin.pc_shop.crud_attribute_categories = Ext.extend(PC.ux.crud, {
 	api_url: 'api/plugin/pc_shop/attribute_categories/',
 	
+	adjust_multiln_params: function(multiln_params) {
+		multiln_params.labelAlign = 'top';
+	},
+	
 	get_store_fields: function() {
 		return [
 				'id', 'ref', 'names',

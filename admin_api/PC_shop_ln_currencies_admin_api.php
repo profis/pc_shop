@@ -25,12 +25,12 @@ class PC_shop_ln_currencies_admin_api extends PC_shop_admin_api {
 	
 	protected function _before_insert(&$data, &$content) {
 		$data['ln'] = $this->_ln;
-		$data['position'] = 1 + $this->_model->get_all(array(
+		$data['position'] = 1 + intval($this->_model->get_all(array(
 			'select' => 'max(t.position) as max_position',
 			//'query_only' => true,
 			'value' => 'max_position',
 			'limit' => 1
-		));
+		)));
 	}
 	
 	protected function _after_insert() {

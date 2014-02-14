@@ -165,25 +165,29 @@ PC_shop_product_tab_related.view_factory = {
 	}
 };
 
+var hook_params = {};
+PC.hooks.Init('plugin/pc_shop/page/product/tabs', hook_params);
 
-
-PC.hooks.Register('plugin/pc_shop/add_tab_for_product', function(params) {
-	//debugger;
-	params.tabs.push(PC_shop_product_tab_related.view_factory.get_tab_for_related_products());
-});
-
-PC.hooks.Register('plugin/pc_shop/load_tab_panel_for_product', function(params) {
-	var grid = Ext.getCmp('pc_shop_product_page_tab_related_grid');
-	if (grid) {
-		grid.store.setBaseParam('product_id', params.itemId);
-		grid.store.setBaseParam('ln', PC.global.ln);
-		grid.store.setBaseParam('start', 0);
-	
-		grid.store.url = Plugin.api.Admin +'product_products/get/' + params.itemId + '/' + PC.global.ln;
-		grid.store.proxy.setUrl(grid.store.url);
-		grid.store.proxy.url = grid.store.url;
-		//grid.store.load();
+if (!hook_params.disallowed_tabs || hook_params.disallowed_tabs.indexOf('related') == -1) {
+	PC.hooks.Register('plugin/pc_shop/add_tab_for_product', function(params) {
 		//debugger;
-		grid.store.reload();
-	}
-});
+		params.tabs.push(PC_shop_product_tab_related.view_factory.get_tab_for_related_products());
+	});
+
+	PC.hooks.Register('plugin/pc_shop/load_tab_panel_for_product', function(params) {
+		var grid = Ext.getCmp('pc_shop_product_page_tab_related_grid');
+		if (grid) {
+			grid.store.setBaseParam('product_id', params.itemId);
+			grid.store.setBaseParam('ln', PC.global.ln);
+			grid.store.setBaseParam('start', 0);
+
+			grid.store.url = Plugin.api.Admin +'product_products/get/' + params.itemId + '/' + PC.global.ln;
+			grid.store.proxy.setUrl(grid.store.url);
+			grid.store.proxy.url = grid.store.url;
+			//grid.store.load();
+			//debugger;
+			grid.store.reload();
+		}
+	});
+}
+

@@ -19,6 +19,23 @@ class PC_shop_attribute_categories_admin_api extends PC_shop_admin_api {
 				'name' => ''
 			));	
 		}
+		
+		if (isset($_GET['attributes']) and is_array($this->_out)) {
+			$attributes_category_model = $this->core->Get_object('PC_shop_attributes_category_model');
+			$attributes_category_model->absorb_debug_settings($this);
+		
+			foreach ($this->_out as $key => $value) {
+				$this->_out[$key]['attributes'] = $attributes_category_model->get_all(array(
+					'where' => array(
+						't.category_id' => $value['id'],
+					),
+					'join' => "LEFT JOIN {$this->db_prefix}shop_attributes a ON a.id = t.attribute_id",
+					'value' => 'attribute_id',
+					'order' => 'a.position'
+				));
+			}
+		}
+		
 	}
 	
 	public function get() {
