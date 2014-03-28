@@ -1417,7 +1417,7 @@ class PC_shop_attributes extends PC_shop_attribute_model {
 		if (true) {
 			//$select .= ', at.position';
 			$join .= " LEFT JOIN {$this->db_prefix}shop_attributes at ON at.id=a.attribute_id";
-			$order .= ' ORDER BY at.position, at.id';
+			$order .= ' ORDER BY at.position, at.id, CAST(value as UNSIGNED INTEGER), value';
 		}
 		
 		if ($itemType == self::ITEM_IS_PRODUCT) {

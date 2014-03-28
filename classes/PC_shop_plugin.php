@@ -417,7 +417,16 @@ final class PC_shop_plugin extends PC_base {
 			}
 			elseif ($type == 'product') {
 				$shop = $this->core->Get_object('PC_shop_site');
+				if (isset($params['instant_debug_to_file'])) {
+					$shop->categories->debug = true;
+					$shop->categories->set_instant_debug_to_file($params['instant_debug_to_file'], false, 5);
+				}
 				$params['url'] = $url = $shop->products->Get_full_link_by_id($id, $ln);
+				if ($url) {
+					if (v($params['get_page_id'])) {
+						$params['page_id'] = $shop->categories->last_page_id;
+					}
+				}
 				return;
 			}
 		}

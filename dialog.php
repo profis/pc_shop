@@ -933,6 +933,7 @@ function mod_pc_shop_click() {
 				title: PC.i18n.menu.rename,
 				values: n.data.names,
 				pageX: xy[0], pageY: xy[1],
+				pc_xy: xy,
 				fields: [
 					{	_fld: 'is_category_attribute',
 						fieldLabel: 'Attribute for',

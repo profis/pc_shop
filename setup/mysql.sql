@@ -12,6 +12,20 @@
 
 -- --------------------------------------------------------
 
+-- phpMyAdmin SQL Dump
+-- version 2.9.1.1
+-- http://www.phpmyadmin.net
+-- 
+-- Host: localhost
+-- Generation Time: Feb 21, 2014 at 01:24 PM
+-- Server version: 5.5.35
+-- PHP Version: 5.3.10-1ubuntu3.9
+-- 
+-- Database: `cms4`
+-- 
+
+-- --------------------------------------------------------
+
 -- 
 -- Table structure for table `{prefix}shop_attribute_categories`
 -- 
@@ -73,7 +87,7 @@ CREATE TABLE IF NOT EXISTS `{prefix}shop_attribute_value_contents` (
 CREATE TABLE IF NOT EXISTS `{prefix}shop_attribute_values` (
   `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
   `attribute_id` int(10) unsigned NOT NULL,
-  `position` smallint(5) unsigned NOT NULL DEFAULT '0',
+  `position` smallint(5) NOT NULL DEFAULT '0',
   PRIMARY KEY (`id`),
   KEY `attribute_id` (`attribute_id`)
 ) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
@@ -94,6 +108,20 @@ CREATE TABLE IF NOT EXISTS `{prefix}shop_attributes` (
   `category_id` smallint(5) unsigned NOT NULL DEFAULT '0',
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+
+-- --------------------------------------------------------
+
+-- 
+-- Table structure for table `{prefix}shop_attributes_categories`
+-- 
+
+CREATE TABLE IF NOT EXISTS `{prefix}shop_attributes_categories` (
+  `id` int(10) NOT NULL AUTO_INCREMENT,
+  `attribute_id` int(10) NOT NULL,
+  `category_id` smallint(5) NOT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `attribute_id` (`attribute_id`,`category_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 
 -- --------------------------------------------------------
 
@@ -171,6 +199,22 @@ CREATE TABLE IF NOT EXISTS `{prefix}shop_category_product_filters` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `category_id` (`category_id`,`attribute`,`filter_type`)
 ) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+
+-- --------------------------------------------------------
+
+-- 
+-- Table structure for table `{prefix}shop_category_products`
+-- 
+
+CREATE TABLE IF NOT EXISTS `{prefix}shop_category_products` (
+  `id` int(10) NOT NULL AUTO_INCREMENT,
+  `category_id` int(10) NOT NULL,
+  `product_id` int(10) NOT NULL,
+  `flags` smallint(5) NOT NULL,
+  `price` decimal(15,2) unsigned NOT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `category_id` (`category_id`,`product_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 
 -- --------------------------------------------------------
 
@@ -323,7 +367,7 @@ CREATE TABLE IF NOT EXISTS `{prefix}shop_order_items` (
   `product_id` mediumint(8) unsigned NOT NULL,
   `quantity` mediumint(8) unsigned NOT NULL,
   `attributes` tinytext COLLATE utf8_unicode_ci NOT NULL,
-  `price` decimal(15,2) unsigned NOT NULL,
+  `price` decimal(10,2) unsigned NOT NULL,
   UNIQUE KEY `order_id` (`order_id`,`product_id`,`attributes`(14))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
@@ -413,7 +457,7 @@ CREATE TABLE IF NOT EXISTS `{prefix}shop_payment_options` (
 CREATE TABLE IF NOT EXISTS `{prefix}shop_prices` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `pkey` varchar(50) CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
-  `price` decimal(15,2) unsigned NOT NULL,
+  `price` decimal(10,2) unsigned NOT NULL,
   `c_id` int(11) unsigned NOT NULL DEFAULT '0',
   PRIMARY KEY (`id`),
   UNIQUE KEY `pkey` (`pkey`,`c_id`)
@@ -558,15 +602,6 @@ CREATE TABLE IF NOT EXISTS `{prefix}shop_resources` (
   KEY `position` (`position`)
 ) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
-CREATE TABLE `{prefix}shop_attributes_categories` (
-`id` INT( 10 ) NOT NULL AUTO_INCREMENT PRIMARY KEY ,
-`attribute_id` INT( 10 ) NOT NULL ,
-`category_id` SMALLINT( 5 ) NOT NULL ,
-UNIQUE (
-`attribute_id` ,
-`category_id`
-)
-) ENGINE = innodb;
 
 -- 
 -- Dumping data for table `{prefix}variables`

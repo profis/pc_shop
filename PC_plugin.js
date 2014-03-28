@@ -471,6 +471,7 @@ Plugin.tree = {
 				return;
 			}
 		}),
+		PreviewProduct: PC.tree.actions.Preview,
 		CreateProduct: new Ext.Action({
 			text: Plugin.ln.new_product,
 			icon: PC.plugins.GetUrl('pc_shop') +'images/product.png',
@@ -602,6 +603,7 @@ Plugin.tree.menus = {
 	product: new Ext.menu.Menu({
 		id: 'pc_tree_menu_'+ Plugin.Name +'_product',
 		items: [
+			Plugin.tree.actions.PreviewProduct,
 			Plugin.tree.actions.CreateProduct,
 			'-',
 			PC.tree.actions.Rename,
@@ -945,8 +947,8 @@ Plugin.attributes.ItemStore = new Ext.data.JsonStore({
 
 var attr_columns = [
 	//dialog.expander,
-	{header: 'Attribute', dataIndex: 'attributeName', width: 200},
-	{header: 'Value', dataIndex: 'displayValue', id: 'pc_shop_item_attribute_value_col'}
+	{header: 'Attribute', dataIndex: 'attributeName', width: 150},
+	{header: 'Value', dataIndex: 'displayValue', id: 'pc_shop_item_attribute_value_col', width: 200}
 
 ];
 
@@ -1517,7 +1519,8 @@ Plugin.view_factory = {
 				{ref: '_percentage_discount', fieldLabel: Plugin.ln.discount +', %', xtype: 'numberfield'},
 				{ref: '_hot', fieldLabel: PC.i18n.page.hot, xtype: 'checkbox'},
 				{ref: '_nomenu', fieldLabel: PC.i18n.page.nomenu, xtype: 'checkbox'},
-				{ref: '_published', fieldLabel: PC.i18n.page.published, xtype: 'checkbox'}
+				{ref: '_published', fieldLabel: PC.i18n.page.published, xtype: 'checkbox'},
+				{ref: '_auth_user_name', fieldLabel: PC.i18n.user, xtype: 'textfield', disabled: true}
 			]
 		};
 		PC.hooks.Init('plugin/pc_shop/product_tab_for_properties', tab);
@@ -2868,7 +2871,8 @@ PC.editors.Register(Plugin.Name, 'product', function(){
 				editor._properties._quantity,
 				editor._properties._hot,
 				editor._properties._nomenu,
-				editor._properties._published
+				editor._properties._published,
+				editor._properties._auth_user_name
 			];
 			for (var a=0; fields[a] != undefined; a++) {
 				fields[a].setValue('');
@@ -2951,7 +2955,9 @@ PC.editors.Register(Plugin.Name, 'product', function(){
 				editor._properties._hot.setValue(data.hot);
 				editor._properties._nomenu.setValue(data.nomenu);
 				editor._properties._published.setValue(data.published);
+				editor._properties._auth_user_name.setValue(data.auth_user_name);
 				editor._information._route_lock.setValue(data.route_lock);
+				
 			}
 			if (typeof callback == 'function') callback();
 		},

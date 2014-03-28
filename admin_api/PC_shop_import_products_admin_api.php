@@ -82,6 +82,9 @@ class PC_shop_import_products_admin_api extends PC_shop_admin_api {
 		$this->debug('_read_products_from_excel_file');
 		require_once $this->cfg['path']['libs'] . 'xls_reader/PC_shop_excel_reader.php';
 		$excel_reader = new PC_shop_excel_reader();
+		if (isset($this->cfg['pc_shop']['import_min_columns'])) {
+			$excel_reader->min_columns = $this->cfg['pc_shop']['import_min_columns'];
+		}
 		$excel_reader->absorb_debug_settings($this);
 		
 		$data = array();

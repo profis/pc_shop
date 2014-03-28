@@ -191,4 +191,13 @@ class PC_shop_category_model extends PC_model {
 		$this->_query_params[] = $parent_id;
 	}
 	
+	public function get_id_by_ref($ref) {
+		return $this->get_one(array(
+			'where' => array(
+				'external_id' => $ref
+			), 
+			'value' => 'id'
+		));
+	}
+	
 }

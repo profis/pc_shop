@@ -565,11 +565,15 @@ class PC_shop_products_manager extends PC_shop_products {
 			$d['product']['position'] = $position;
 		}
 		$d['product']['created_on'] = $current_time;
-		$query = "INSERT INTO {$this->db_prefix}shop_products (category_id,".implode(',', array_keys($d['product'])).") VALUES(?,".implode(',', array_fill(0, count($d['product']), '?')).")";
+		$auth_user_id = $this->auth->Get_current_user_id();
+		if (!$auth_user_id) {
+			$auth_user_id = 0;
+		}
+		$query = "INSERT INTO {$this->db_prefix}shop_products (auth_user_id,category_id,".implode(',', array_keys($d['product'])).") VALUES(?,?,".implode(',', array_fill(0, count($d['product']), '?')).")";
 		$this->debug($query);
-		$this->debug(array_merge(array($categoryId), array_values($d['product'])));
+		$this->debug(array_merge(array($auth_user_id, $categoryId), array_values($d['product'])));
 		$r = $this->prepare($query);
-		$s = $r->execute(array_merge(array($categoryId), array_values($d['product'])));
+		$s = $r->execute(array_merge(array($auth_user_id, $categoryId), array_values($d['product'])));
 		if (!$s) {
 			$params->errors->Add('create', 'Error while trying to insert product into database.');
 			return false;
@@ -767,6 +771,16 @@ class PC_shop_products_manager extends PC_shop_products {
 			while ($c = $r_contents->fetch()) {
 				$d['contents'][$c['ln']] = $c;
 			}
+			if (!is_null($id)) {
+				$d['auth_user_name'] = '';
+				if (!is_null($id) and $d['auth_user_id']) {
+					$auth_user_data = $this->auth->users->Get($d['auth_user_id']);
+					if ($auth_user_data) {
+						$d['auth_user_name'] = $auth_user_data['username'];
+					}
+				}
+			}
+			
 			$list[] = $d;
 		}
 		return (!is_null($id) && !is_array($id) && count($list)?$list[0]:$list);

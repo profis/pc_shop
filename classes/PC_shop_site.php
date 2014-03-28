@@ -146,7 +146,21 @@ class PC_shop_categories_site extends PC_shop_categories {
 	}
 	
 	public function set_order_by_attribute(&$params, $attr_id, $direction = '', $decimal = true) {
-		$this->shop->products->set_order_by_attribute($params, $attr_id, $direction, $decimal);
+		vv($params['joins'], array());
+		vv($params['joins_params'], array());
+		
+		$params['joins'][] = "LEFT JOIN {$this->db_prefix}shop_item_attributes ia_order ON ia_order.item_id=c.id and (ia_order.flags & 1)=1 and ia_order.attribute_id = ?";
+		$params['joins_params'][] = $attr_id;
+		
+		if (!$decimal) {
+			$params['order_by'] = 'ia_order.value';
+		}
+		else {
+			$params['order_by'] = 'convert(ia_order.value, decimal(15,4))';
+		}
+		if (!empty($direction)) {
+			$params['order_direction'] = $direction;
+		}
 	}
 	
 	public function Get($id=null, $parentId=null, $pid=null, &$params=array()) {
@@ -200,7 +214,7 @@ class PC_shop_categories_site extends PC_shop_categories {
 		$params_array = $params;
 		$this->debug("Get($id, $parentId, $pid)");
 		$this->debug($params);
-		
+		vv($params, array());
 		if (is_array($params)) {
 			vv($params['flags'], array());
 			if (!in_array(PC_shop_categories::CF_PUBLISHED, $params['flags'])) {
@@ -235,7 +249,23 @@ class PC_shop_categories_site extends PC_shop_categories {
 		
 		$returnOne = !is_null($id);
 		//format query params and parse filters
-		$queryParams = array($this->site->ln, PC_shop_attributes::ITEM_IS_CATEGORY, PC_shop_attributes::ITEM_IS_CATEGORY);
+		
+		$joins_params = array();
+		
+		$joins_s = '';
+		if (isset($params->joins)) if (is_array($params->joins)) {
+			$joins_s = ' ' . implode(' ', $params->joins) . ' ';
+			if (isset($params->joins_params)) if (is_array($params->joins_params)) {
+				$joins_params = $params->joins_params;
+			}
+		}	
+		
+		
+		$queryParams = array($this->site->ln);
+		if (!empty($joins_params)) {
+			$queryParams = array_merge($queryParams, $joins_params);
+		}
+		$queryParams = array_merge($queryParams, array(PC_shop_attributes::ITEM_IS_CATEGORY, PC_shop_attributes::ITEM_IS_CATEGORY));
 		
 		$queryParams_after_join_item_attributes = $queryParams;
 		
@@ -577,6 +607,7 @@ class PC_shop_categories_site extends PC_shop_categories {
 		." FROM {$this->db_prefix}shop_categories c"
 		." LEFT JOIN {$this->db_prefix}shop_category_contents cc ON cc.category_id=c.id and cc.ln=?"
 		//count products in this category
+		. $joins_s
 		.$join_on_products
 		//attributes
 		." LEFT JOIN {$this->db_prefix}shop_item_attributes ia ON ia.item_id=c.id and (ia.flags & ?)=? " . $item_attributes_join_clause
@@ -1101,7 +1132,7 @@ class PC_shop_products_site extends PC_shop_products {
 		vv($params['joins'], array());
 		vv($params['joins_params'], array());
 		
-		$params['joins'][] = "LEFT JOIN pc_shop_item_attributes ia_order ON ia_order.item_id=p.id and (ia_order.flags & 2)=2 and ia_order.attribute_id = ?";
+		$params['joins'][] = "LEFT JOIN {$this->db_prefix}shop_item_attributes ia_order ON ia_order.item_id=p.id and (ia_order.flags & 2)=2 and ia_order.attribute_id = ?";
 		$params['joins_params'][] = $attr_id;
 		
 		if (!$decimal) {
