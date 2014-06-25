@@ -80,6 +80,7 @@ class PC_plugin_pc_shop_product_widget extends PC_plugin_pc_shop_widget {
 					else {
 						$price_attributes[$price_attribute["attribute_id"]] = $price_attribute["attribute_value_id"];
 					}
+					//print_pre($price_attributes);
 					$price_data = $this->shop->products->adjust_price($this->product['real_price'], $this->product, $price_attributes);
 					$product_name =  $this->product['name'] . ' (' . $price_data['attributes_string'] . ')';
 			
@@ -116,7 +117,7 @@ class PC_plugin_pc_shop_product_widget extends PC_plugin_pc_shop_widget {
 			);
 			
 		}
-		
+		//print_pre($variants);
 		return $variants;
 	}
 	

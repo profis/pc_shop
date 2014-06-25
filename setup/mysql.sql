@@ -574,6 +574,7 @@ CREATE TABLE IF NOT EXISTS `{prefix}shop_products` (
   `percentage_discount` decimal(5,2) unsigned DEFAULT NULL,
   `hot_from` int(10) unsigned DEFAULT NULL,
   `created_on` int(10) unsigned DEFAULT NULL,
+  `auth_user_id` INT( 10 ) UNSIGNED NOT NULL,
   `price` decimal(15,2) unsigned NOT NULL,
   `import_method` varchar(255) COLLATE utf8_unicode_ci NOT NULL,
   `state` tinyint(3) NOT NULL DEFAULT '0',
@@ -688,6 +689,10 @@ INSERT IGNORE INTO `{prefix}variables` (`vkey`, `controller`, `site`, `ln`, `val
 ('go_to_order', 'pc_shop', 0, 'en', 'Order'),
 ('go_to_order', 'pc_shop', 0, 'ru', 'Заказать'),
 ('go_to_order', 'pc_shop', 0, 'lt', 'Užsakyti'),
+
+('go_to_order_anon', 'pc_shop', 0, 'en', 'Order without registration'),
+('go_to_order_anon', 'pc_shop', 0, 'ru', 'Заказать без регистрации'),
+('go_to_order_anon', 'pc_shop', 0, 'lt', 'Užsakyti be registracijos'),
 
 ('order_finish', 'pc_shop', 0, 'en', 'Finish order'),
 ('order_finish', 'pc_shop', 0, 'ru', 'Оформить заказ'),
@@ -862,9 +867,9 @@ INSERT IGNORE INTO `{prefix}variables` (`vkey`, `controller`, `site`, `ln`, `val
 ('filter_cancel', 'pc_shop', 0, 'en', 'Cancel'),
 ('filter_cancel', 'pc_shop', 0, 'ru', 'Отменить'),
 
-('coupon_discount', 'pc_shop', 0, 'lt', 'Pritaikyta nuolaida'),
-('coupon_discount', 'pc_shop', 0, 'en', 'Voucher discount'),
-('coupon_discount', 'pc_shop', 0, 'ru', 'Ваучер скидка'),
+('discount', 'pc_shop', 0, 'lt', 'Pritaikyta nuolaida'),
+('discount', 'pc_shop', 0, 'en', 'Applied discount'),
+('discount', 'pc_shop', 0, 'ru', 'Скидка'),
 
 ('manufacturer', 'pc_shop', 0, 'lt', 'Gamintojas'),
 ('manufacturer', 'pc_shop', 0, 'en', 'Manufacturer'),

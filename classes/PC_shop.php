@@ -51,7 +51,7 @@ abstract class PC_shop extends PC_base {
 		$fields = array();
 		$fields['categories'] = array('flags', 'discount', 'percentage_discount', 'external_id', 'redirect');
 		$fields['category_contents'] = array('name', 'custom_name', 'description', 'seo_title', 'seo_description', 'seo_keywords', 'route', 'permalink');
-		$fields['products'] = array('manufacturer_id', 'mpn', 'quantity', 'flags', 'warranty', 'discount', 'percentage_discount', 'hot_from', 'price', 'external_id', 'import_method', 'state', 'info_1', 'info_2', 'info_3');
+		$fields['products'] = array('manufacturer_id', 'mpn', 'is_not_quantitive', 'quantity', 'flags', 'warranty', 'discount', 'percentage_discount', 'hot_from', 'price', 'external_id', 'import_method', 'state', 'info_1', 'info_2', 'info_3');
 		$fields['product_contents'] = array('name', 'custom_name', 'short_description', 'description', 'seo_title', 'seo_description', 'seo_keywords', 'route', 'permalink');
 		foreach ($fields as $table=>&$cols) {
 			foreach ($cols as $col) {
@@ -87,6 +87,7 @@ abstract class PC_shop extends PC_base {
 			case 'seo_keywords': return true;
 			case 'manufacturer_id': return true;
 			case 'mpn': return true;
+			case 'is_not_quantitive': return true;
 			case 'quantity': return true;
 			case 'warranty': return true;
 			case 'price': return true;
@@ -1796,7 +1797,7 @@ class PC_shop_orders extends PC_shop_order_model {
 		$this->shop = $id;
 		$this->user = $this->core->Get_object('PC_user');
 	}
-	public function Get($id=null, $params=array()) {
+	public function Get($id=null, &$params=array()) {
 		$this->debug('Get()');
 		$this->debug($params);
 		$this->core->Init_params($params);
@@ -1900,7 +1901,9 @@ class PC_shop_orders extends PC_shop_order_model {
 	}
 	public function Get_items($orderId) {
 		$this->debug("Get_items($orderId)");
-		$r = $this->prepare("SELECT * FROM {$this->db_prefix}shop_order_items WHERE order_id=?");
+		$r = $this->prepare("SELECT oi.*, p.external_id FROM {$this->db_prefix}shop_order_items oi
+			LEFT JOIN {$this->db_prefix}shop_products p ON p.id = oi.product_id
+			WHERE order_id=?");
 		$s = $r->execute(array($orderId));
 		if (!$s) return false;
 		if (!$r->rowCount()) return array();
@@ -1910,6 +1913,7 @@ class PC_shop_orders extends PC_shop_order_model {
 			$product_ids[] = $product['product_id'];
 			$list[] = array(
 				'id'=> $product['product_id'],
+				'external_id'=> $product['external_id'],
 				'quantity'=> $product['quantity'],
 				'price'=> $product['price'],
 				'attributes' => PC_utils::string_to_array($product['attributes'])
@@ -2071,6 +2075,7 @@ class PC_shop_orders extends PC_shop_order_model {
 			return false;
 		}
 		$data = pc_sanitize_value($data, 'strip_tags');
+		$this->data = $data;
 		$data = serialize($data);
 		$insert_query = "INSERT INTO {$this->db_prefix}shop_orders (date,user_id,name,email,address,phone,comment,payment_option,delivery_option,currency,is_paid,data) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)";
 		$r = $this->prepare($insert_query);
@@ -2137,6 +2142,9 @@ class PC_shop_orders extends PC_shop_order_model {
 			}
 			return false;
 		}
+		
+		$cart_data['discounts'] = array();
+		
 		$cart_data['totalPrice'] = $totalPrice;
 		$cart_data['eligible_discount'] = number_format($eligible_discount, 2, ".", "");
 		
@@ -2150,7 +2158,7 @@ class PC_shop_orders extends PC_shop_order_model {
 		$this->debug("Prices were calculated:, ", 3);
 		$this->debug($cart_data, 4);
 		$rPrice = $this->prepare("UPDATE {$this->db_prefix}shop_orders SET delivery_price = ?, cod_price = ? , total_price = ?, coupon_id = ?, discount = ? WHERE id=?");
-		$s = $rPrice->execute(array(v($cart_data['order_delivery_price'], 0), v($cart_data['order_cod_price'], 0), v($cart_data['order_full_price'], $totalPrice), $coupon_id, v($cart_data['coupon_discount'], 0), $orderId));
+		$s = $rPrice->execute(array(v($cart_data['order_delivery_price'], 0), v($cart_data['order_cod_price'], 0), v($cart_data['order_full_price'], $totalPrice), $coupon_id, v($cart_data['total_discount'], 0), $orderId));
 		if ($clearCart) {
 			$this->shop->cart->Clear();
 			$this->Clear_preserved_order_data();
@@ -2212,6 +2220,7 @@ class PC_shop_cart extends PC_base {
 	 * @param type $data array with key 'totalPrice' (total price of items)
 	 */
 	public function Calculate_prices(&$data, $default_order_data = array(), $coupon_data = array()) {
+		$this->debug('Calculate_prices()');
 		$order_data = $this->shop->orders->Get_preserved_order_data();
 		
 		if (!$order_data) {
@@ -2293,14 +2302,15 @@ class PC_shop_cart extends PC_base {
 		$total_price = $items_price + $delivery_price + $cod_price;
 		$data['order_full_price'] = $total_price;
 		
+		$data['discounts'] = array();
 		
 		$this->core->Init_hooks('pc_shop/cart/calculate_prices', array(
 			'data'=> &$data,
 			'order_data' => $order_data,
-			'coupon_data' => $coupon_data
+			'coupon_data' => $coupon_data,
+			'logger' => $this,
 		));
-		
-		$data['coupon_discount'] = 0;
+		$data['total_discount'] = 0;
 		
 		if (v($data['eligible_discount'])) {
 			$coupon_discount = $data['eligible_discount'];
@@ -2309,15 +2319,33 @@ class PC_shop_cart extends PC_base {
 			if ($coupon_discount > $max_coupon_discount) {
 				$coupon_discount = $max_coupon_discount;
 			}
-			$data['coupon_discount'] = $coupon_discount;
+			
+			$data['discounts']['coupon'] = $coupon_discount;
 		}
 		
-		$total_price = $items_price + $data['order_delivery_price'] + $data['order_cod_price'] - $data['coupon_discount'];
+		foreach ($data['discounts'] as $discount) {
+			if (!is_array($discount)) {
+				$data['total_discount'] += $discount;
+			}
+			else {
+				if (isset($discount['percent'])) {
+					if ($discount['percent'] < 0) {
+						$discount['percent'] = 0;
+					}
+					if ($discount['percent'] > 100) {
+						$discount['percent'] = 100;
+					}
+					$data['total_discount'] += floor(($items_price - $data['total_discount']) * $discount['percent']) / 100;
+				}
+			}
+		}
+		
+		$total_price = $items_price + $data['order_delivery_price'] + $data['order_cod_price'] - $data['total_discount'];
 		$data['order_full_price'] = $total_price;
 		
 		$data['order_delivery_prices'] = $data['order_cod_price'] + $data['order_delivery_price'];
 		
-		$data['coupon_discount'] = number_format($data['coupon_discount'], 2, ".", "");
+		$data['total_discount'] = number_format($data['total_discount'], 2, ".", "");
 		
 		$data['cod_price'] = number_format($data['cod_price'], 2, ".", "");
 		$data['delivery_price'] = number_format($data['delivery_price'], 2, ".", "");

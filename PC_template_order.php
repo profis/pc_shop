@@ -4,8 +4,13 @@ $orderResult = $this->site->Get_data('createOrderResult');
 $orderParams = $this->site->Get_data('createOrderParams');
 $isFastOrder = $this->site->Get_data('isFastOrder');
 
+if ($isFastOrder) {
+	echo $this->site->Get_widget_text('PC_plugin_pc_shop_order_widget');
+}
+else {
+	echo $this->site->Get_widget_text('PC_plugin_pc_shop_checkout_user_widget');
+}
 
-echo $this->site->Get_widget_text('PC_plugin_pc_shop_order_widget');
 return;
 
 if ($orderSubmitted) {

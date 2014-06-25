@@ -148,6 +148,9 @@ class PC_shop_categories_site extends PC_shop_categories {
 		if (empty($category_data['link'])) {
 			$category_data['link'] = $this->Get_link_by_id($category_data['id']);
 		}
+		if (!empty($page_link) and strpos($category_data['link'], $page_link) === 0) {
+			$page_link = '';
+		}
 		pc_remove_trailing_slash($page_link);
 		return $page_link  . '/' . $category_data['link'];
 	}
@@ -453,13 +456,16 @@ class PC_shop_categories_site extends PC_shop_categories {
 			}
 		} 
 		
-		$where[] = $this->db->get_flag_query_condition(
-			PC_shop_categories::CF_NOMENU, 
-			$queryParams, 
-			'flags', 
-			'c',
-			'<>'
-		);
+		if (is_null($id) and !v($params->no_menu)) {
+			$where[] = $this->db->get_flag_query_condition(
+				PC_shop_categories::CF_NOMENU, 
+				$queryParams, 
+				'flags', 
+				'c',
+				'<>'
+			);
+		}
+		
 		
 		
 		$filter_data = array(
@@ -933,6 +939,9 @@ class PC_shop_categories_site extends PC_shop_categories {
 		$this->click('Decode_flags', 'Decode_flags');
 		$parse_description = $this->parse_params === false  || v($this->parse_params['description']);
 		if (isset($d['description']) and $parse_description) {
+			if (is_array($this->parse_params) and isset($this->parse_params['description_params'])) {
+				$this->page->_parse_html_output_params = $this->parse_params['description_params'];
+			}
 			$this->page->Parse_html_output($d['description']);
 			$this->click('description', 'parse_description');
 		}
@@ -1048,7 +1057,9 @@ class PC_shop_categories_site extends PC_shop_categories {
 		$this->click('Load_attr starts', 'load_attr_start');
 		
 		$query = "SELECT c.id,c.pid,c.flags,c.external_id"
-		.",".$this->sql_parser->group_concat($this->sql_parser->concat_ws("░", 'a.id', 'ac.name', 'ia.flags', 'a.is_custom', 'a.is_searchable', 'a.is_category_attribute', 'ia.value', 'ia.value_id', 'avc.value'), array('separator'=>'▓', 'distinct'=> true))." attributes"
+		//.",".$this->sql_parser->group_concat($this->sql_parser->concat_ws("░", 'a.id', 'ac.name', 'ia.flags', 'a.is_custom', 'a.is_searchable', 'a.is_category_attribute', 'ia.value', 'ia.value_id', 'avc.value'), array('separator'=>'▓', 'distinct'=> true))." attributes"
+		.",".$this->sql_parser->group_concat($this->sql_parser->concat_ws("░", "'id".PC_sql_parser::SP3."'", 'a.id',"'ref".PC_sql_parser::SP3."'",'a.ref',"'name".PC_sql_parser::SP3."'",'ac.name',"'is_custom".PC_sql_parser::SP3."'",'a.is_custom',"'value".PC_sql_parser::SP3."'",'ia.value',"'value_id".PC_sql_parser::SP3."'",'ia.value_id',"'avc_value".PC_sql_parser::SP3."'",'avc.value'), array('separator'=>'▓', 'distinct'=> true))." attributes"
+		
 		." FROM {$this->db_prefix}shop_categories c"
 		//attributes
 		." LEFT JOIN {$this->db_prefix}shop_item_attributes ia ON ia.item_id=c.id and (ia.flags & ?)=?"
@@ -1129,7 +1140,7 @@ class PC_shop_products_site extends PC_shop_products {
 		}
 		pc_remove_trailing_slash($page_link);
 		$link = $product_data['link'];
-		if (!empty($page_link)) {
+		if (!empty($page_link) and strpos($product_data['link'], $page_link) !== 0) {
 			$link = $page_link  . '/' . $product_data['link'];
 		}
 		return $link;

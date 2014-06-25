@@ -404,12 +404,19 @@ class PC_controller_pc_shop extends PC_controller {
 		$this->debug('Additional data:', 1);
 		$this->debug($data, 1);
 		$clear_cart = true;
-		//$clear_cart = false;
-		$r = $this->shop->orders->Create(null, $name, $address, $phone, $email, $comment, $params, $clear_cart, $payment_option, $delivery_option, 0, $data);
+		$clear_cart = false; //For testing
+		$user_id = null;
+		global $site_users;
+		if ($site_users) {
+			$user_id = $site_users->GetID();
+		}
+		$r = $this->shop->orders->Create($user_id, $name, $address, $phone, $email, $comment, $params, $clear_cart, $payment_option, $delivery_option, 0, $data);
 		$this->order_id = $this->shop->orders->last_order_id;
+		$this->other_data = $this->shop->orders->data;
 		$this->payment_option = $payment_option;
 		$this->site->Register_data('createOrderResult', $r);
 		$this->site->Register_data('createOrderParams', $params);
+		return $r;
 	}
 
 	protected function _set_coupon() {
@@ -444,18 +451,28 @@ class PC_controller_pc_shop extends PC_controller {
 				
 		$this->debug('order_action()');
 		
-		if ($this->routes->Get(3) == 'fast') {
+		//if ($this->routes->Get(3) == 'fast') {
 			$this->site->Set_url_suffix_callback(
 				$this, 
 				'get_link_to_order_fast', 
 				array()
 			);
-			$this->site->Register_data('isFastOrder', true);
+			if ($this->routes->Get(3) == 'fast') {
+				$this->site->Register_data('isFastOrder', true);
+			}
 			//print_r($_POST);
 			if (isset($_POST['order']) and $this->_validate_fast_order()) {
 				//$this->payment_method = new $();
-				$this->_insert_order();
+				$r = $this->_insert_order();
 				$this->order_data = $this->shop->orders->get($this->order_id);
+				if ($r and $this->order_id and $this->order_data) {
+					$this->core->Init_hooks('plugin/pc_shop/after-order-create', array(
+						'order_id'=> $this->order_id,
+						'order_data' => &$this->order_data,
+						'other_data' => &$this->other_data,
+						'logger' => &$this
+					));
+				}
 				$this->_make_payment();
 			}
 			if (!v($this->action_rendered)) {
@@ -464,7 +481,7 @@ class PC_controller_pc_shop extends PC_controller {
 				$this->_before_action_finish();
 			}
 			return true;
-		}
+		//}
 		$this->site->Set_url_suffix_callback(
 			$this, 
 			'get_link_to_order', 

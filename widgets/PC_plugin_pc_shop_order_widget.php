@@ -9,8 +9,17 @@ class PC_plugin_pc_shop_order_widget extends PC_plugin_pc_shop_widget {
 	}
 	
 	protected function _get_default_config() {
+		global $site_users;
+		$default_order_data = array();
+		if ($site_users and $site_users->Is_logged_in()) {
+			$user_data = $site_users->Get_data(0, true);
+			if ($user_data) {
+				$default_order_data['name'] = $user_data['name'];
+				$default_order_data['email'] = $user_data['email'];
+			}
+		}
 		return array(
-			'default_order_data' => array()
+			'default_order_data' => $default_order_data
 		);
 	}
 
