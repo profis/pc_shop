@@ -27,7 +27,10 @@ class PC_shop_price extends PC_base {
 	 * @param boolean $all_ln Load currency rates for all languages
 	 */
 	public function Init($all_ln = false) {
-		$this->base_currency = $this->cfg['pc_shop']['currency'];
+		if (!isset($this->cfg['pc_shop'])) {
+			$this->cfg['pc_shop'] = array();
+		}
+		$this->base_currency = v($this->cfg['pc_shop']['currency']);
 		$this->load_currencies();
 		$this->load_prices();
 	}
@@ -75,6 +78,24 @@ class PC_shop_price extends PC_base {
 		return $converted_price;
 	}
 		
+	public function get_converted_price_in_base_currency($price, $currency_code, $do_not_round = false) {
+		if (!$currency_code) {
+			return false;
+		}
+		$converted_price = 0;
+		if ($currency_code == $this->base_currency) {
+			return $price;
+		}
+		$round_to = 2;
+		if ($do_not_round) {
+			$round_to = 4;
+		}
+		if (isset($this->currency_rates[$currency_code]) and $this->currency_rates[$currency_code] > 0) {
+			return round($price / $this->currency_rates[$currency_code], $round_to);
+		}
+		return $converted_price;
+	}
+	
 	public function get_converted_price_in_currency_id($price, $currency_id, $do_not_round = false) {
 		if (isset($this->currency_codes[$currency_id])) {
 			return $this->get_converted_price_in_currency($price,$this->currency_codes[$currency_id], $do_not_round);

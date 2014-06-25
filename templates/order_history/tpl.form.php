@@ -99,7 +99,7 @@ $this->site->Add_script($this->cfg['directories']['media'] . '/form_validation.j
 				$("#dprice").text(data.order_delivery_price);
 				$("#pprice").text(data.order_cod_price);
 				$("#fprice").text(data.order_full_price);
-				$("#discount_price").text(data.discount);
+				$("#coupon_discount_price").text(data.coupon_discount);
 			}
 		});
 	}

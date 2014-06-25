@@ -23,7 +23,7 @@ $currency = $this->price->get_user_currency();
 	<div class="col-xs-12">
 		<div class="btn-group pull-right">
 			<!-- <button type="button" class="btn btn-primary">Continue shopping</button> -->
-			<a href="<?php echo  $order_fast_url  ?>" class="btn btn-success"><?php echo $this->core->Get_plugin_variable('go_to_order', $this->plugin_name) ?></a>
+			<a href="<?php echo  $order_url  ?>" class="btn btn-success"><?php echo $this->core->Get_plugin_variable('go_to_order', $this->plugin_name) ?></a>
 		</div>
 	</div>
 </div>

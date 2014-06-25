@@ -554,7 +554,7 @@ class PC_shop_products_manager extends PC_shop_products {
 			else if ($position > 1 or $position == 0) $position = 1;
 		}
 		$query = "UPDATE {$this->db_prefix}shop_products SET position=position+1 WHERE category_id=? and position>=?";
-		$this->debug($query);
+		$this->debug_query($query, array($categoryId, $position));
 		$r = $this->prepare($query);
 		$s = $r->execute(array($categoryId, $position));
 		if (!$s) {
@@ -569,11 +569,12 @@ class PC_shop_products_manager extends PC_shop_products {
 		if (!$auth_user_id) {
 			$auth_user_id = 0;
 		}
+		$query_params = array_merge(array($auth_user_id, $categoryId), array_values($d['product']));
 		$query = "INSERT INTO {$this->db_prefix}shop_products (auth_user_id,category_id,".implode(',', array_keys($d['product'])).") VALUES(?,?,".implode(',', array_fill(0, count($d['product']), '?')).")";
-		$this->debug($query);
+		$this->debug_query($query, $query_params);
 		$this->debug(array_merge(array($auth_user_id, $categoryId), array_values($d['product'])));
 		$r = $this->prepare($query);
-		$s = $r->execute(array_merge(array($auth_user_id, $categoryId), array_values($d['product'])));
+		$s = $r->execute($query_params);
 		if (!$s) {
 			$params->errors->Add('create', 'Error while trying to insert product into database.');
 			return false;

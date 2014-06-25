@@ -3,6 +3,11 @@
 function PC_shop_allow_pages_for_childs_for_tree($params) {
 	$params['result'] = true;
 }
+
+function PC_shop_allow_controller_redirect($params) {
+	$params['result'] = true;
+}
+
 $thisPath =  dirname(__FILE__) . '/';
 $clsPath = $thisPath . 'classes/';
 Register_class_autoloader('PC_shop', $clsPath.'PC_shop.php');
@@ -53,11 +58,18 @@ Register_class_autoloader('PC_plugin_pc_shop_product_widget', $thisPath . 'widge
 Register_class_autoloader('PC_plugin_pc_shop_mini_basket_widget', $thisPath . 'widgets/PC_plugin_pc_shop_mini_basket_widget.php');
 Register_class_autoloader('PC_plugin_pc_shop_cart_widget', $thisPath . 'widgets/PC_plugin_pc_shop_cart_widget.php');
 Register_class_autoloader('PC_plugin_pc_shop_order_widget', $thisPath . 'widgets/PC_plugin_pc_shop_order_widget.php');
+Register_class_autoloader('PC_plugin_pc_shop_checkout_user_widget', $thisPath . 'widgets/PC_plugin_pc_shop_checkout_user_widget.php');
+Register_class_autoloader('PC_plugin_pc_shop_checkout_login_widget', $thisPath . 'widgets/PC_plugin_pc_shop_checkout_login_widget.php');
+Register_class_autoloader('PC_plugin_pc_shop_checkout_register_widget', $thisPath . 'widgets/PC_plugin_pc_shop_checkout_register_widget.php');
+
+
 Register_class_autoloader('PC_plugin_pc_shop_sort_products_widget', $thisPath . 'widgets/PC_plugin_pc_shop_sort_products_widget.php');
 Register_class_autoloader('PC_plugin_pc_shop_search_form_widget', $thisPath . 'widgets/PC_plugin_pc_shop_search_form_widget.php');
 Register_class_autoloader('PC_plugin_pc_shop_search_products_widget', $thisPath . 'widgets/PC_plugin_pc_shop_search_products_widget.php');
 Register_class_autoloader('PC_plugin_pc_shop_category_products_filter_widget', $thisPath . 'widgets/PC_plugin_pc_shop_category_products_filter_widget.php');
 Register_class_autoloader('PC_plugin_pc_shop_currency_selector_widget', $thisPath . 'widgets/PC_plugin_pc_shop_currency_selector_widget.php');
+
+Register_class_autoloader('PC_plugin_pc_shop_order_history_widget', $thisPath . 'widgets/PC_plugin_pc_shop_order_history_widget.php');
 
 $pluginCls = $this->core->Get_object('PC_shop_plugin', $plugin_name);
 
@@ -67,6 +79,8 @@ $core->Register_hook('core/tree/get-childs/'.$plugin_name, array($pluginCls, 'Ge
 $core->Register_hook('core/tree/get-childs/allow_pages/'.$plugin_name, 'PC_shop_allow_pages_for_childs_for_tree');
 $core->Register_hook('core/tree/get-parent-id/'.$plugin_name, array($pluginCls, 'Get_parent_id_for_tree'));
 $core->Register_hook('core/tree/search', array($pluginCls, 'Search_tree'));
+
+$core->Register_hook('core/allow-controller-redirect/'.$plugin_name, 'PC_shop_allow_controller_redirect');
 
 //Hook for getting permalink for 301 redirection
 $core->Register_hook('core/page/parse-page-url/'.$plugin_name, array($pluginCls, 'Get_page_url'));

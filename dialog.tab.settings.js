@@ -18,6 +18,25 @@ PC.plugin.pc_shop.settings = Ext.extend(PC.ux.configPanel, {
 				forceSelection: true,
 				value: '',
 				allowBlank: true
+			},
+			
+			{
+				_fld: 'checkout_offer_to_register',
+				name: 'checkout_offer_to_register',
+				fieldLabel: this.ln.checkout_offer_to_register,
+				xtype: 'combo',
+				mode: 'local',
+				store: {
+					xtype: 'arraystore',
+					fields: ['value', 'title'],
+					idIndex: 0,
+					data: [[0, PC.i18n.no], [1, PC.i18n.yes]]
+				},
+				displayField: 'title',
+				valueField: 'value',
+				editable: false,
+				forceSelection: true,
+				triggerAction: 'all'
 			}
 		];
 	}

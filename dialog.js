@@ -102,6 +102,7 @@ PC_plugin_dialog_pc_shop.js_factory = {
 		});
 		
 		this.reconfigure(store, new Ext.grid.ColumnModel(columns));
+		debugger;
 		store.loadData(d);
 	},
 	
