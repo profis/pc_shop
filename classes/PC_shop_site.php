@@ -1,4 +1,11 @@
 <?php
+
+/**
+ * Class PC_shop_site
+ * @property PC_shop_categories_site $categories
+ * @property PC_shop_products_site $products
+ * @property PC_shop_resources $resources
+ */
 class PC_shop_site extends PC_shop {
 	public function Get_attributes($id, $itemType=self::ITEM_IS_PRODUCT) {
 		
