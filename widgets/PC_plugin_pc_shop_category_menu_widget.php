@@ -9,10 +9,10 @@ class PC_plugin_pc_shop_category_menu_widget extends PC_vmenu_widget {
 		 return parent::get_template_group() . ':_plugin/' . $this->plugin_name . '/category_menu';
 	}
 	
-	public function get_data() {
+	public function get_data($args = null) {
 		$data = array();
-		
-		$params_array = $params = array(
+
+		$params = array(
 			'parse' => array(
 				//'description' => true,
 				//'attributes' => true,
@@ -20,10 +20,11 @@ class PC_plugin_pc_shop_category_menu_widget extends PC_vmenu_widget {
 			),
 			'full_links' => true
 		);
-		
+		if( v($this->_config['fetchResources']) )
+			$params['parse']['resources'] = true;
+		$params_array = $params;
 		$this->shop = $this->core->Get_object("PC_shop_site");
-		$data['menu']  = $this->shop->categories->Get(null, 0, $this->page->Get_id(), $params);
-		
+		$data['menu']  = $this->shop->categories->Get(null, 0, isset($this->_config['pageId']) ? $this->_config['pageId'] : $this->page->Get_id(), $params);
 		$this->_build_menu($data['menu'], $params_array);
 		return $data;
 	}
