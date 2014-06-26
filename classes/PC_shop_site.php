@@ -1587,7 +1587,7 @@ class PC_shop_products_site extends PC_shop_products {
 		
 		$queryParams = array_merge($queryParams_after_join_item_attributes, $queryParams, $filter_data['having_query_params']);
 		
-		$ckey = "pcs.get." . md5($query . serialize($queryParams));
+		$ckey = "pcs.get." . md5($query . serialize($queryParams) . serialize($params_array));
 		$total = null;
 		$qdata = $this->cache->get($ckey);
 		if( $qdata !== null ) {
