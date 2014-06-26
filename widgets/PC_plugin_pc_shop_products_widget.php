@@ -74,6 +74,8 @@ class PC_plugin_pc_shop_products_widget extends PC_plugin_pc_shop_widget {
 			//'recources' => true,
 			'recources' => 'first_img_only'
 		);
+		if( v($this->_config['fetchAttributes']) )
+			$params['parse']['attributes'] = true;
 		if (!isset($params['full_links'])) {
 			$params['full_links'] = true;
 		}
@@ -81,6 +83,7 @@ class PC_plugin_pc_shop_products_widget extends PC_plugin_pc_shop_widget {
 	}
 	
 	public function get_data() {
+		/** @var PC_shop_products_site $shop_products_site */
 		$shop_products_site = $this->core->Get_object('PC_shop_products_site');
 		$shop_products_site->debug = true;
 		$shop_products_site->set_instant_debug_to_file($this->cfg['path']['logs'] . 'pc_shop/widget_products.html');
