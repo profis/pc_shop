@@ -1477,6 +1477,13 @@ class PC_shop_products_site extends PC_shop_products {
 			$where[] = PC_database_tree::get_between_condition($params->categories, $queryParams, 'c');
 		}
 		
+		$manufacturer_select = '';
+		$manufacturer_join = '';
+		if (isset($params->manufacturer) and $params->manufacturer or $returnOne) {
+			$manufacturer_select = ', mnf.name as manufacturer_name, mnf.code as manufacturer_code';
+			$manufacturer_join = " LEFT JOIN {$this->db_prefix}shop_manufacturers mnf ON mnf.id=p.manufacturer_id";
+		}
+		
 		$this->debug('$filter_data[item_attributes_join_params]:' ,3);
 		$this->debug($filter_data['item_attributes_join_params'] ,3);
 		if (!empty($filter_data['item_attributes_join_params'])) {
@@ -1570,10 +1577,12 @@ class PC_shop_products_site extends PC_shop_products {
 		//. $this->sql_parser->group_concat($this->sql_parser->concat_ws("░", "'id".PC_sql_parser::SP3."'", 'a.id', "'ref".PC_sql_parser::SP3."'",'a.ref', "'name".PC_sql_parser::SP3."'",'ac.name', "'flags".PC_sql_parser::SP3."'",'ia.flags', "'is_custom".PC_sql_parser::SP3."'",'a.is_custom', "'is_searchable".PC_sql_parser::SP3."'",'a.is_searchable', "'item_is_category".PC_sql_parser::SP3."'",'a.is_category_attribute',"'value".PC_sql_parser::SP3."'",'ia.value',"'value_id".PC_sql_parser::SP3."'",'ia.value_id',"'avc_value".PC_sql_parser::SP3."'",'avc.value'), array('separator'=>'▓', 'distinct'=> true))." attributes"
 		//. $this->sql_parser->group_concat($this->sql_parser->concat_ws("░", 'a.id', 'a.ref', 'ac.name', 'ia.flags', 'a.is_custom', 'a.is_searchable', 'a.is_category_attribute', 'ia.value_id', 'avc.value'), array('separator'=>'▓', 'distinct'=> true))." attributes"
 		. $select_attributes_concat . $select_attributes_values_concat
+		. $manufacturer_select
 		. " FROM {$this->db_prefix}shop_products p"
 		. " LEFT JOIN {$this->db_prefix}shop_product_contents pc ON pc.product_id=p.id and pc.ln=?"
 		. $joins_s
 		. $category_join
+		. $manufacturer_join
 		//attributes
 		." LEFT JOIN {$this->db_prefix}shop_item_attributes ia ON ia.item_id=p.id and (ia.flags & ?)=?" .  $item_attributes_join_clause . $item_attributes_ids_clause
 		." LEFT JOIN {$this->db_prefix}shop_attributes a ON a.id=ia.attribute_id"

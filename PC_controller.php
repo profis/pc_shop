@@ -74,6 +74,7 @@ class PC_controller_pc_shop extends PC_controller {
 			$this->debug('path:');
 			$this->debug($route_path);
 			$params = array('filter'=> array('pc.route'=> $last_route));
+			$params['manufacturer'] = true;
 			$products = $this->shop->products->Get(null, null, $params);
 			$product_action = false;
 			$this->click('Tried to fetch products');
