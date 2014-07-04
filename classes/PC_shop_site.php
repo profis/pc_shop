@@ -1347,27 +1347,35 @@ class PC_shop_products_site extends PC_shop_products {
 						$queryParams[] = $value;
 					}
 				}
-				elseif (isset($value['field'])) {
-					$field = $value['field'];
-					$op = v($value['op'], '=');
-					$this_where = $field . ' ' . $op . ' ?';
-					if (in_array($value['op'], array('full_text', 'full_text_all'))) {
-						$this_where = self::get_full_text_clause($value['field'], $value['op']);
-						$value['value'] = PC_model::boolean_full_text_filter($value['value']);
-						if ($value['op'] == 'full_text_all') {
-							$value['value'] = PC_model::add_all_words_fulltext_operators($value['value']);
-						}
-					}
+				elseif (isset($value['field']) or isset($value['clause'])) {
 					$this_query_params = array();
-					if (isset($value['value'])) {
-						if (!is_array($value['value'])) {
-							$this_query_params[] = $value['value'];
-						}
-						else {
-							$this_query_params = array_merge($this_query_params, $value['value']);
-						}
-						
+					$field = v($value['field']);
+					if (isset($value['clause'])) {
+						$this_where = $value['clause'];
 					}
+					else {
+						
+						$op = v($value['op'], '=');
+						$this_where = $field . ' ' . $op . ' ?';
+						if (in_array($value['op'], array('full_text', 'full_text_all'))) {
+							$this_where = self::get_full_text_clause($value['field'], $value['op']);
+							$value['value'] = PC_model::boolean_full_text_filter($value['value']);
+							if ($value['op'] == 'full_text_all') {
+								$value['value'] = PC_model::add_all_words_fulltext_operators($value['value']);
+							}
+						}
+						if (isset($value['value'])) {
+							if (!is_array($value['value'])) {
+								$this_query_params[] = $value['value'];
+							}
+							else {
+								$this_query_params = array_merge($this_query_params, $value['value']);
+							}
+
+						}
+					}
+					
+					
 					if (isset($value['query_param'])) {
 						$this_query_params[] = $value['query_param'];
 					}
