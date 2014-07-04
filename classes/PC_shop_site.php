@@ -470,6 +470,7 @@ class PC_shop_categories_site extends PC_shop_categories {
 		
 		$filter_data = array(
 			'having_groups' => array(),
+			'inverse_having_groups' => array(),
 			'havings' => array(),
 			'having_query_params' => array(),
 
@@ -604,6 +605,20 @@ class PC_shop_categories_site extends PC_shop_categories {
 				}
 				$filter_data['havings'][] = '(' . implode(' OR ', $group_clauses) . ')';
 			}
+		}
+		if (!empty($filter_data['inverse_having_groups'])) {
+			$group_params = array();
+			$inv_havings = array();
+			foreach ($filter_data['inverse_having_groups'] as $having_group_key => $having_group) {
+				$group_clauses = array();
+				foreach ($having_group as $group_scope) {
+					$group_clauses[] = $group_scope['where'];
+					$filter_data['having_query_params'] = array_merge($filter_data['having_query_params'], $group_scope['query_params']);
+				}
+				$inv_havings[] = '(' . implode(' AND ', $group_clauses) . ')';
+			}
+			$filter_data['havings'][] = '(' . implode(' OR ', $inv_havings) . ')';
+			unset($inv_havings);
 		}
 		if (!empty($filter_data['havings'])) {
 			$having_s = ' AND ' . implode(' AND ', $filter_data['havings']);
@@ -1310,6 +1325,7 @@ class PC_shop_products_site extends PC_shop_products {
 		
 		$filter_data = array(
 			'having_groups' => array(),
+			'inverse_having_groups' => array(),
 			'havings' => array(),
 			'having_query_params' => array(),
 
@@ -1534,6 +1550,20 @@ class PC_shop_products_site extends PC_shop_products {
 				$filter_data['havings'][] = '(' . implode(' OR ', $group_clauses) . ')';
 			}
 		}
+		if (!empty($filter_data['inverse_having_groups'])) {
+			$group_params = array();
+			$inv_havings = array();
+			foreach ($filter_data['inverse_having_groups'] as $having_group_key => $having_group) {
+				$group_clauses = array();
+				foreach ($having_group as $group_scope) {
+					$group_clauses[] = $group_scope['where'];
+					$filter_data['having_query_params'] = array_merge($filter_data['having_query_params'], $group_scope['query_params']);
+				}
+				$inv_havings[] = '(' . implode(' AND ', $group_clauses) . ')';
+			}
+			$filter_data['havings'][] = '(' . implode(' OR ', $inv_havings) . ')';
+			unset($inv_havings);
+		}
 		if (!empty($filter_data['havings'])) {
 			$having_s = ' HAVING ' . implode(' AND ', $filter_data['havings']);
 		}
@@ -1700,7 +1730,7 @@ class PC_shop_products_site extends PC_shop_products {
 			foreach ($params->custom_attribute_filter as $a_id => $v_id) {
 				$this_having = '';
 				$this_having_query_params = array();
-				$having_group = false;
+				$having_group = $inverse_having_group = false;
 				$v_op = '=';
 				$clause = '';
 				$this_query_params = array();
@@ -1708,6 +1738,9 @@ class PC_shop_products_site extends PC_shop_products {
 					//print_pre($v_id);
 					if (isset($v_id['having_group'])) {
 						$having_group = $v_id['having_group'];
+					}
+					if (isset($v_id['inverse_having_group'])) {
+						$inverse_having_group = $v_id['inverse_having_group'];
 					}
 					$a_id = v($v_id['attr_id'], $a_id);
 					$clause = v($v_id['clause'], '');
@@ -1734,15 +1767,21 @@ class PC_shop_products_site extends PC_shop_products {
 					$filter_data['item_attributes_join_where'][] = "(ia.attribute_id <> ? OR ia.attribute_id = ? AND $clause)";
 					
 				}
-				if (!$having_group) {
-					$filter_data['havings'][] = $this_having;
-					$filter_data['having_query_params'] = array_merge($filter_data['having_query_params'], $this_having_query_params);
-				}
-				else {
+				if ($having_group) {
 					$filter_data['having_groups'][$having_group][] = array(
 						'where' => $this_having,
 						'query_params' => $this_having_query_params
 					);
+				}
+				else if($inverse_having_group) {
+					$filter_data['inverse_having_groups'][$inverse_having_group][] = array(
+						'where' => $this_having,
+						'query_params' => $this_having_query_params
+					);
+				}
+				else {
+					$filter_data['havings'][] = $this_having;
+					$filter_data['having_query_params'] = array_merge($filter_data['having_query_params'], $this_having_query_params);
 				}
 									
 			}
@@ -1755,6 +1794,7 @@ class PC_shop_products_site extends PC_shop_products {
 		/*
 		 $filter_data = array(
 			'having_groups' => array(),
+			'inverse_having_groups' => array(),
 			'havings' => array(),
 			'having_query_params' => array(),
 
@@ -1771,9 +1811,14 @@ class PC_shop_products_site extends PC_shop_products {
 			foreach ($params->attribute_filter as $a_id => $v_id) {
 				$this_having = '';
 				$this_having_query_params = array();
-				$having_group = false;
+				$having_group = $inverse_having_group = false;
 				if (is_array($v_id) and isset($v_id['having_group'])) {
 					$having_group = $v_id['having_group'];
+					$a_id = v($v_id['attr_id'], $a_id);
+					$v_id = v($v_id['value'], '');
+				}
+				else if (is_array($v_id) and isset($v_id['inverse_having_group'])) {
+					$inverse_having_group = $v_id['inverse_having_group'];
 					$a_id = v($v_id['attr_id'], $a_id);
 					$v_id = v($v_id['value'], '');
 				}
@@ -1813,15 +1858,21 @@ class PC_shop_products_site extends PC_shop_products {
 					$this_having = '(' . implode(' OR ', $having_ors) . ')';
 					
 				}
-				if (!$having_group) {
-					$filter_data['havings'][] = $this_having;
-					$filter_data['having_query_params'] = array_merge($filter_data['having_query_params'], $this_having_query_params);
-				}
-				else {
+				if ($having_group) {
 					$filter_data['having_groups'][$having_group][] = array(
 						'where' => $this_having,
 						'query_params' => $this_having_query_params
 					);
+				}
+				else if ($inverse_having_group) {
+					$filter_data['inverse_having_groups'][$inverse_having_group][] = array(
+						'where' => $this_having,
+						'query_params' => $this_having_query_params
+					);
+				}
+				else {
+					$filter_data['havings'][] = $this_having;
+					$filter_data['having_query_params'] = array_merge($filter_data['having_query_params'], $this_having_query_params);
 				}
 									
 			}
