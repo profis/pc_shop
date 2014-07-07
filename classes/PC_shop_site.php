@@ -470,6 +470,7 @@ class PC_shop_categories_site extends PC_shop_categories {
 		
 		$filter_data = array(
 			'having_groups' => array(),
+			'inverse_having_groups' => array(),
 			'havings' => array(),
 			'having_query_params' => array(),
 
@@ -604,6 +605,20 @@ class PC_shop_categories_site extends PC_shop_categories {
 				}
 				$filter_data['havings'][] = '(' . implode(' OR ', $group_clauses) . ')';
 			}
+		}
+		if (!empty($filter_data['inverse_having_groups'])) {
+			$group_params = array();
+			$inv_havings = array();
+			foreach ($filter_data['inverse_having_groups'] as $having_group_key => $having_group) {
+				$group_clauses = array();
+				foreach ($having_group as $group_scope) {
+					$group_clauses[] = $group_scope['where'];
+					$filter_data['having_query_params'] = array_merge($filter_data['having_query_params'], $group_scope['query_params']);
+				}
+				$inv_havings[] = '(' . implode(' AND ', $group_clauses) . ')';
+			}
+			$filter_data['havings'][] = '(' . implode(' OR ', $inv_havings) . ')';
+			unset($inv_havings);
 		}
 		if (!empty($filter_data['havings'])) {
 			$having_s = ' AND ' . implode(' AND ', $filter_data['havings']);
@@ -1310,6 +1325,7 @@ class PC_shop_products_site extends PC_shop_products {
 		
 		$filter_data = array(
 			'having_groups' => array(),
+			'inverse_having_groups' => array(),
 			'havings' => array(),
 			'having_query_params' => array(),
 
@@ -1347,27 +1363,34 @@ class PC_shop_products_site extends PC_shop_products {
 						$queryParams[] = $value;
 					}
 				}
-				elseif (isset($value['field'])) {
-					$field = $value['field'];
-					$op = v($value['op'], '=');
-					$this_where = $field . ' ' . $op . ' ?';
-					if (in_array($value['op'], array('full_text', 'full_text_all'))) {
-						$this_where = self::get_full_text_clause($value['field'], $value['op']);
-						$value['value'] = PC_model::boolean_full_text_filter($value['value']);
-						if ($value['op'] == 'full_text_all') {
-							$value['value'] = PC_model::add_all_words_fulltext_operators($value['value']);
-						}
-					}
+				elseif (isset($value['field']) or isset($value['clause'])) {
 					$this_query_params = array();
-					if (isset($value['value'])) {
-						if (!is_array($value['value'])) {
-							$this_query_params[] = $value['value'];
-						}
-						else {
-							$this_query_params = array_merge($this_query_params, $value['value']);
-						}
-						
+					$field = v($value['field']);
+					if (isset($value['clause'])) {
+						$this_where = $value['clause'];
 					}
+					else {
+
+						$op = v($value['op'], '=');
+						$this_where = $field . ' ' . $op . ' ?';
+						if (in_array($value['op'], array('full_text', 'full_text_all'))) {
+							$this_where = self::get_full_text_clause($value['field'], $value['op']);
+							$value['value'] = PC_model::boolean_full_text_filter($value['value']);
+							if ($value['op'] == 'full_text_all') {
+								$value['value'] = PC_model::add_all_words_fulltext_operators($value['value']);
+							}
+						}
+						if (isset($value['value'])) {
+							if (!is_array($value['value'])) {
+								$this_query_params[] = $value['value'];
+							}
+							else {
+								$this_query_params = array_merge($this_query_params, $value['value']);
+							}
+
+						}
+					}
+
 					if (isset($value['query_param'])) {
 						$this_query_params[] = $value['query_param'];
 					}
@@ -1525,6 +1548,20 @@ class PC_shop_products_site extends PC_shop_products {
 				}
 				$filter_data['havings'][] = '(' . implode(' OR ', $group_clauses) . ')';
 			}
+		}
+		if (!empty($filter_data['inverse_having_groups'])) {
+			$group_params = array();
+			$inv_havings = array();
+			foreach ($filter_data['inverse_having_groups'] as $having_group_key => $having_group) {
+				$group_clauses = array();
+				foreach ($having_group as $group_scope) {
+					$group_clauses[] = $group_scope['where'];
+					$filter_data['having_query_params'] = array_merge($filter_data['having_query_params'], $group_scope['query_params']);
+				}
+				$inv_havings[] = '(' . implode(' AND ', $group_clauses) . ')';
+			}
+			$filter_data['havings'][] = '(' . implode(' OR ', $inv_havings) . ')';
+			unset($inv_havings);
 		}
 		if (!empty($filter_data['havings'])) {
 			$having_s = ' HAVING ' . implode(' AND ', $filter_data['havings']);
@@ -1692,7 +1729,7 @@ class PC_shop_products_site extends PC_shop_products {
 			foreach ($params->custom_attribute_filter as $a_id => $v_id) {
 				$this_having = '';
 				$this_having_query_params = array();
-				$having_group = false;
+				$having_group = $inverse_having_group = false;
 				$v_op = '=';
 				$clause = '';
 				$this_query_params = array();
@@ -1700,6 +1737,9 @@ class PC_shop_products_site extends PC_shop_products {
 					//print_pre($v_id);
 					if (isset($v_id['having_group'])) {
 						$having_group = $v_id['having_group'];
+					}
+					if (isset($v_id['inverse_having_group'])) {
+						$inverse_having_group = $v_id['inverse_having_group'];
 					}
 					$a_id = v($v_id['attr_id'], $a_id);
 					$clause = v($v_id['clause'], '');
@@ -1726,15 +1766,21 @@ class PC_shop_products_site extends PC_shop_products {
 					$filter_data['item_attributes_join_where'][] = "(ia.attribute_id <> ? OR ia.attribute_id = ? AND $clause)";
 					
 				}
-				if (!$having_group) {
-					$filter_data['havings'][] = $this_having;
-					$filter_data['having_query_params'] = array_merge($filter_data['having_query_params'], $this_having_query_params);
-				}
-				else {
+				if ($having_group) {
 					$filter_data['having_groups'][$having_group][] = array(
 						'where' => $this_having,
 						'query_params' => $this_having_query_params
 					);
+				}
+				else if($inverse_having_group) {
+					$filter_data['inverse_having_groups'][$inverse_having_group][] = array(
+						'where' => $this_having,
+						'query_params' => $this_having_query_params
+					);
+				}
+				else {
+					$filter_data['havings'][] = $this_having;
+					$filter_data['having_query_params'] = array_merge($filter_data['having_query_params'], $this_having_query_params);
 				}
 									
 			}
@@ -1747,6 +1793,7 @@ class PC_shop_products_site extends PC_shop_products {
 		/*
 		 $filter_data = array(
 			'having_groups' => array(),
+			'inverse_having_groups' => array(),
 			'havings' => array(),
 			'having_query_params' => array(),
 
@@ -1763,9 +1810,14 @@ class PC_shop_products_site extends PC_shop_products {
 			foreach ($params->attribute_filter as $a_id => $v_id) {
 				$this_having = '';
 				$this_having_query_params = array();
-				$having_group = false;
+				$having_group = $inverse_having_group = false;
 				if (is_array($v_id) and isset($v_id['having_group'])) {
 					$having_group = $v_id['having_group'];
+					$a_id = v($v_id['attr_id'], $a_id);
+					$v_id = v($v_id['value'], '');
+				}
+				else if (is_array($v_id) and isset($v_id['inverse_having_group'])) {
+					$inverse_having_group = $v_id['inverse_having_group'];
 					$a_id = v($v_id['attr_id'], $a_id);
 					$v_id = v($v_id['value'], '');
 				}
@@ -1805,17 +1857,23 @@ class PC_shop_products_site extends PC_shop_products {
 					$this_having = '(' . implode(' OR ', $having_ors) . ')';
 					
 				}
-				if (!$having_group) {
-					$filter_data['havings'][] = $this_having;
-					$filter_data['having_query_params'] = array_merge($filter_data['having_query_params'], $this_having_query_params);
-				}
-				else {
+				if ($having_group) {
 					$filter_data['having_groups'][$having_group][] = array(
 						'where' => $this_having,
 						'query_params' => $this_having_query_params
 					);
 				}
-									
+				else if ($inverse_having_group) {
+					$filter_data['inverse_having_groups'][$inverse_having_group][] = array(
+						'where' => $this_having,
+						'query_params' => $this_having_query_params
+					);
+				}
+				else {
+					$filter_data['havings'][] = $this_having;
+					$filter_data['having_query_params'] = array_merge($filter_data['having_query_params'], $this_having_query_params);
+				}
+
 			}
 		}
 	}
@@ -1823,9 +1881,111 @@ class PC_shop_products_site extends PC_shop_products {
 	public function Parse(&$d) {
 		$this->Decode_flags($d);
 		$this->click('Decode_flags', 'Decode_flags');
-		
-		$parse_attributes = $this->parse_params === false || v($this->parse_params['attributes']);
+
+        $parse_attributes = $this->parse_params === false || v($this->parse_params['attributes']);
 		if ($parse_attributes) {
+			$d['attributes'] = array();
+			$d['attribute_index'] = array();
+			$d['combinations'] = array();
+			$d['combination_groups'] = array();
+			/** @var PC_shop_attribute_item_model $model */
+			$model = $this->core->Get_object('PC_shop_attribute_item_model');
+			$combinations = $model->get_all(array(
+				'select' => '
+					t.attribute_id, ia2.attribute_id AS attribute2_id, ia3.attribute_id AS attribute3_id,
+					a.ref, a2.ref AS ref2, a3.ref AS ref3,
+					ac.name, ac2.name AS name2, ac3.name AS name3,
+					t.id AS ia_id, ia2.id AS ia2_id, ia3.id AS ia3_id,
+					t.value_id, ia2.value_id AS value2_id, ia3.value_id AS value3_id,
+					IF(t.value_id IS NULL, t.id, t.value_id) AS combined_value_id, IF(ia2.value_id IS NULL, ia2.id, ia2.value_id) AS combined_value2_id, IF(ia3.value_id IS NULL, ia3.id, ia3.value_id) AS combined_value3_id,
+					IF(avc.value IS NULL, t.value, avc.value) AS value, IF(avc2.value IS NULL, ia2.value, avc2.value) AS value2, IF(avc3.value IS NULL, ia3.value, avc3.value) AS value3,
+					p.price, p.price_diff, p.discount, p.quantity, p.info_1, p.info_2, p.info_3
+				',
+				'where' => 't.item_id = ? AND t.level=1',
+				'query_params' => array(
+					$this->site->ln,
+					$this->site->ln,
+					$this->site->ln,
+					$this->site->ln,
+					$this->site->ln,
+					$this->site->ln,
+					$d['id'],
+				),
+				'order' => 'a.position, av.position, a2.position, av2.position, a3.position, av3.position',
+				'join' => "
+					LEFT JOIN {$this->db_prefix}shop_item_attributes ia2 ON ia2.id = t.next_attribute_id
+					LEFT JOIN {$this->db_prefix}shop_item_attributes ia3 ON ia3.id = ia2.next_attribute_id
+					LEFT JOIN {$this->db_prefix}shop_attributes a ON a.id = t.attribute_id
+					LEFT JOIN {$this->db_prefix}shop_attributes a2 ON a2.id = ia2.attribute_id
+					LEFT JOIN {$this->db_prefix}shop_attributes a3 ON a3.id = ia3.attribute_id
+					LEFT JOIN {$this->db_prefix}shop_attribute_contents ac ON ac.attribute_id = t.attribute_id AND ac.ln=?
+					LEFT JOIN {$this->db_prefix}shop_attribute_contents ac2 ON ac2.attribute_id = ia2.attribute_id AND ac2.ln=?
+					LEFT JOIN {$this->db_prefix}shop_attribute_contents ac3 ON ac3.attribute_id = ia3.attribute_id AND ac3.ln=?
+					LEFT JOIN {$this->db_prefix}shop_attribute_values av ON av.id=t.value_id
+					LEFT JOIN {$this->db_prefix}shop_attribute_values av2 ON av2.id=ia2.value_id
+					LEFT JOIN {$this->db_prefix}shop_attribute_values av3 ON av3.id=ia3.value_id
+					LEFT JOIN {$this->db_prefix}shop_attribute_value_contents avc ON avc.value_id=t.value_id AND avc.ln=?
+					LEFT JOIN {$this->db_prefix}shop_attribute_value_contents avc2 ON avc2.value_id=ia2.value_id AND avc2.ln=?
+					LEFT JOIN {$this->db_prefix}shop_attribute_value_contents avc3 ON avc3.value_id=ia3.value_id AND avc3.ln=?
+					LEFT JOIN {$this->db_prefix}shop_product_prices p ON p.product_id = t.item_id AND p.attribute_id = t.attribute_id AND (p.attribute_value_id <> 0 AND p.attribute_value_id = t.value_id OR p.attribute_item_id <> 0 AND p.attribute_item_id = t.id)
+				",
+			));
+			foreach( $combinations as $item ) {
+				$grouping = array();
+				$val = array();
+				$grouping[] = $item['attribute_id'];
+				$val[] = $item['combined_value_id'];
+
+				if( !isset($d['attributes'][$item['attribute_id']]) ) {
+					$d['attributes'][$item['attribute_id']] = array(
+						'id' => $item['attribute_id'],
+						'ref' => $item['ref'],
+						'name' => $item['name'],
+						'values' => array()
+					);
+					$d['attribute_index'][$item['ref']] = &$d['attributes'][$item['attribute_id']];
+				}
+				$d['attributes'][$item['attribute_id']]['values'][$item['combined_value_id']] = array('id' => $item['value_id'], 'value' => $item['value']);
+
+				if( $item['attribute2_id'] ) {
+					$grouping[] = $item['attribute2_id'];
+					$val[] = $item['combined_value2_id'];
+					if( !isset($d['attributes'][$item['attribute2_id']]) ) {
+						$d['attributes'][$item['attribute2_id']] = array(
+							'id' => $item['attribute2_id'],
+							'ref' => $item['ref2'],
+							'name' => $item['name2'],
+							'values' => array()
+						);
+						$d['attribute_index'][$item['ref2']] = &$d['attributes'][$item['attribute2_id']];
+					}
+					$d['attributes'][$item['attribute2_id']]['values'][$item['combined_value2_id']] = array('id' => $item['value2_id'], 'value' => $item['value2']);
+				}
+
+				if( $item['attribute3_id'] ) {
+					$grouping[] = $item['attribute3_id'];
+					$val[] = $item['combined_value3_id'];
+					if( !isset($d['attributes'][$item['attribute3_id']]) ) {
+						$d['attributes'][$item['attribute3_id']] = array(
+							'id' => $item['attribute3_id'],
+							'ref' => $item['ref3'],
+							'name' => $item['name3'],
+							'values' => array()
+						);
+						$d['attribute_index'][$item['ref3']] = &$d['attributes'][$item['attribute3_id']];
+					}
+					$d['attributes'][$item['attribute3_id']]['values'][$item['combined_value3_id']] = array('id' => $item['value3_id'], 'value' => $item['value3']);
+				}
+				$group = implode(',', $grouping);
+				$val = implode(',', $val);
+				if( !isset($d['combinations'][$group]) ) {
+					$d['combination_groups'][] = $grouping;
+					$d['combinations'][$group] = array();
+				}
+				$d['combinations'][$group][$val] = $item;
+			}
+			/*
+
 			$d['multiple_attributes'] = $this->shop->attributes->ParseSQLResult($d['attributes']);
 			$this->click('ParseSQLResult', 'parse_ParseSQLResult');
 			if (!empty($d['multiple_attributes'])) {
@@ -1857,13 +2017,13 @@ class PC_shop_products_site extends PC_shop_products {
 									OR 
 									attribute_item_id <> 0 
 								)',
-								/*
-								array(
-									'field' => 'attribute_value_id',
-									'op' => '<>',
-									'value' => 0
-								)
-								*/
+
+								//array(
+								//	'field' => 'attribute_value_id',
+								//	'op' => '<>',
+								//	'value' => 0
+								//)
+
 							),
 							'join' => " LEFT JOIN {$this->db_prefix}shop_item_attributes ia 
 								ON ia.item_id = t.product_id and ia.attribute_id=t.attribute_id 
@@ -1877,7 +2037,7 @@ class PC_shop_products_site extends PC_shop_products {
 							
 							'order' => 't.attribute_id, ia.position',
 							//'query_only' => true
-						)); 
+						));
 						//print_pre($product_attribute_prices);
 						$this->price_attribute_refs = $price_attribute_refs = array_flip($this->_price_attribute_ids);
 						foreach ($product_attribute_prices as $key => $pa) {
@@ -1896,6 +2056,7 @@ class PC_shop_products_site extends PC_shop_products {
 				}
 				
 			}
+			*/
 		}
 		
 		
@@ -1926,7 +2087,7 @@ class PC_shop_products_site extends PC_shop_products {
 			}
 			$d['prices'] = $decoded_prices;
 		}
-		
-		
+
+
 	}
 }

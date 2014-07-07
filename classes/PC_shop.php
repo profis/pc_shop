@@ -1408,7 +1408,7 @@ class PC_shop_attributes extends PC_shop_attribute_model {
 		$select = 'a.*';
 		$join = '';
 		$order = '';
-		
+
 		if ($params->Get('includeName')) {
 			$select .= ', c.*';
 			$join .= " LEFT JOIN {$this->db_prefix}shop_attribute_contents c ON c.attribute_id=a.attribute_id and c.ln=?";
@@ -1418,23 +1418,25 @@ class PC_shop_attributes extends PC_shop_attribute_model {
 		if (true) {
 			//$select .= ', at.position';
 			$join .= " LEFT JOIN {$this->db_prefix}shop_attributes at ON at.id=a.attribute_id";
-			$order .= ' ORDER BY at.position, at.id, CAST(value as UNSIGNED INTEGER), value';
+			$order .= ' ORDER BY at.position, at.id, CAST(a.value as UNSIGNED INTEGER), a.value';
 		}
 		
 		if ($itemType == self::ITEM_IS_PRODUCT) {
-			$select .= ', pp.price, pp.price_diff, pp.discount, pp.info_1, pp.info_2, pp.info_3';
+			$select .= ', pp.price, pp.price_diff, pp.discount, pp.info_1, pp.info_2, pp.info_3, a2.id AS id2, a2.attribute_id AS attribute2_id, a2.value_id AS value2_id, a2.value AS value2, a3.id AS id3, a3.attribute_id AS attribute3_id, a3.value_id AS value3_id, a3.value AS value3';
 			$join .= " LEFT JOIN {$this->db_prefix}shop_product_prices pp 
 						ON pp.product_id=a.item_id AND pp.attribute_id=a.attribute_id
 						AND (
 							pp.attribute_value_id <> 0 AND pp.attribute_value_id = a.value_id 
 							OR 
 							pp.attribute_item_id <> 0 AND pp.attribute_item_id = a.id 
-						)";
+						)
+						LEFT JOIN {$this->db_prefix}shop_item_attributes a2 ON a.next_attribute_id=a2.id
+						LEFT JOIN {$this->db_prefix}shop_item_attributes a3 ON a2.next_attribute_id=a3.id";
 		}
 		
 		$query = "SELECT $select FROM {$this->db_prefix}shop_item_attributes a"
 		. $join
-		." WHERE a.item_id=? AND (a.flags&?)=?" . $order;
+		." WHERE a.item_id=? AND a.level=1 AND (a.flags&?)=?" . $order;
 		$r = $this->prepare($query);
 		$this->debug_query($query, $queryParams);
 		$s = $r->execute($queryParams);
@@ -1600,10 +1602,10 @@ class PC_shop_attributes extends PC_shop_attribute_model {
 		}
 	}
 	
-	public function Assign_to_item($itemId, $itemType=self::ITEM_IS_PRODUCT, $attributeId, $valueId=null, $value=null) {
-		$query = "INSERT INTO {$this->db_prefix}shop_item_attributes (item_id,attribute_id,flags,value_id,value) VALUES(?,?,?,?,?)";
+	public function Assign_to_item($itemId, $itemType=self::ITEM_IS_PRODUCT, $attributeId, $valueId=null, $value=null, $nextAttributeId = null, $level = 1) {
+		$query = "INSERT INTO {$this->db_prefix}shop_item_attributes (item_id,attribute_id,flags,value_id,value,next_attribute_id, level) VALUES(?,?,?,?,?,?,?)";
 		$r = $this->prepare($query);
-		$params = array($itemId, $attributeId, $itemType, $valueId, $value);
+		$params = array($itemId, $attributeId, $itemType, $valueId, $value, $nextAttributeId, $level);
 		$s = $r->execute($params);
 		$this->debug_query($query, $params);
 		if (!$s) return false;
@@ -1649,41 +1651,81 @@ class PC_shop_attributes extends PC_shop_attribute_model {
 			$where[] = 'item_id=? and flags&?=?';
 			array_push($queryParams, $itemId, $itemType, $itemType);
 		}
-		if (!count($where)) return false;
-		$r = $this->prepare("DELETE FROM {$this->db_prefix}shop_item_attributes WHERE ".implode(' and ', $where));
-		$s = $r->execute($queryParams);
-		return $s;
+        if (!count($where)) return false;
+        // DELETE third attribute.
+        $r = $this->prepare("SELECT a2.next_attribute_id FROM {$this->db_prefix}shop_item_attributes a LEFT JOIN {$this->db_prefix}shop_item_attributes a2 ON a.next_attribute_id=a2.id WHERE " . implode(' and ', $where));
+        $s = $r->execute($queryParams);
+        $id3 = $r->fetchColumn();
+        if ($id3) {
+            $r = $this->prepare("DELETE FROM {$this->db_prefix}shop_item_attributes WHERE id=?");
+            $s = $r->execute(array($id3));
+        }
+        // DELETE second attribute.
+        $r = $this->prepare("SELECT next_attribute_id FROM {$this->db_prefix}shop_item_attributes WHERE " . implode(' and ', $where));
+        $s = $r->execute($queryParams);
+        $id2 = $r->fetchColumn();
+        if ($id2) {
+            $r = $this->prepare("DELETE FROM {$this->db_prefix}shop_item_attributes WHERE id=?");
+            $s = $r->execute(array($id2));
+        }
+        // DELETE price.
+        $r = $this->prepare("SELECT p.id FROM {$this->db_prefix}shop_item_attributes t LEFT JOIN {$this->db_prefix}shop_product_prices p ON p.product_id = t.item_id AND p.attribute_id = t.attribute_id AND (p.attribute_value_id <> 0 AND p.attribute_value_id = t.value_id OR p.attribute_item_id <> 0 AND p.attribute_item_id = t.id) WHERE t.id = ?");
+        $s = $r->execute(array($id));
+        $idp = $r->fetchColumn();
+        if ($idp) {
+            $r = $this->prepare("DELETE FROM {$this->db_prefix}shop_product_prices WHERE id=?");
+            $s = $r->execute(array($idp));
+        }
+        // DELETE first attribute.
+        $r = $this->prepare("DELETE FROM {$this->db_prefix}shop_item_attributes WHERE " . implode(' and ', $where));
+        $s = $r->execute($queryParams);
+        return $s;
 	}
 	public function Save_for_item($itemId, $itemType=self::ITEM_IS_PRODUCT, $data, $insert = false) {
 		$this->debug("Save_for_item($itemId, $itemType)");
 		$this->debug($data);
 		if (!is_array($data)) return false;
 		if (count(v($data['save'], array()))) foreach ($data['save'] as $i) {
-			if ($insert or $i['id'] == 0) {
-				$attribute_item_id = $this->Assign_to_item($itemId, $itemType, $i['attribute_id'], $i['value_id'], $i['value']);
-			}
-			else {
-				$attribute_item_id = $i['id'];
-				$this->Edit_for_item($i['id'], $i['value_id'], $i['value']);
-			}
-			if ($itemType == self::ITEM_IS_PRODUCT and (isset($i['price']) or isset($i['price_diff']))) {
+            // Save third attribute.
+            if ($i['id3'] == 0) {
+                $attribute_item_id3 = $this->Assign_to_item($itemId, $itemType, $i['attribute3_id'], $i['value3_id'], $i['value3'], null, 3);
+            } else {
+                $attribute_item_id3 = $i['id3'];
+                $this->Edit_for_item($i['id3'], $i['value3_id'], $i['value3']);
+            }
+            // Save second attribute.
+            if ($i['id2'] == 0) {
+                $attribute_item_id2 = $this->Assign_to_item($itemId, $itemType, $i['attribute2_id'], $i['value2_id'], $i['value2'], $attribute_item_id3, 2);
+            } else {
+                $attribute_item_id2 = $i['id2'];
+                $this->Edit_for_item($i['id2'], $i['value2_id'], $i['value2']);
+            }
+            // Save first attribute.
+            if ($insert or $i['id'] == 0) {
+                $attribute_item_id = $this->Assign_to_item($itemId, $itemType, $i['attribute_id'], $i['value_id'], $i['value'], $attribute_item_id2);
+            } else {
+                $attribute_item_id = $i['id'];
+                $this->Edit_for_item($i['id'], $i['value_id'], $i['value']);
+            }
+			if ($itemType == self::ITEM_IS_PRODUCT && (isset($i['price']) || isset($i['price_diff']))) {
 				$product_price_model = $this->core->Get_object('PC_shop_product_price_model');
 				$product_price_model->absorb_debug_settings($this);
-				if ($i['value_id']) {
-					$key_fields = array(
-						'product_id' => $itemId,
-						'attribute_id' => $i['attribute_id'],
-						'attribute_value_id' => $i['value_id'],
-					);
-				}
-				else {
+//				if ($i['value_id']) {
+                // Bug. Updates multiple items
+//					$key_fields = array(
+//						'product_id' => $itemId,
+//						'attribute_id' => $i['attribute_id'],
+//						'attribute_value_id' => $i['value_id'],
+//					);
+//				}
+//				else {
 					$key_fields = array(
 						'product_id' => $itemId,
 						'attribute_id' => $i['attribute_id'],
 						'attribute_item_id' => $attribute_item_id,
 					);
-				}
-				
+//				}
+
 				if (v($i['price'], 0) == 0 and v($i['price_diff'], 0) == 0) {
 					$product_price_model->delete(array(
 						'where' => $key_fields
@@ -1712,7 +1754,7 @@ class PC_shop_attributes extends PC_shop_attribute_model {
 						$other_fields['discount'] = null;
 					}
 					if ($existing_price_data) {
-						
+
 						$product_price_model->update(
 							$other_fields,
 							array(
