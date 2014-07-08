@@ -36,11 +36,7 @@ class PC_controller_pc_shop extends PC_controller {
 		$this->logger->absorb_debug_settings($this);
 		
 		$this->product_was_added_to_cart = false;
-		if (false and isset($_POST['add_to_basket']) and isset($_POST['product_id'])) {
-			$this->shop->cart->Add(intval($_POST['product_id']), 1, v($_POST['attributes']), true);
-			$this->shop->product_was_added_to_cart = $this->product_was_added_to_cart = true;
-		}
-		
+
 		$this->site->force_headings = false;
 		$this->action = '';
 		if ($this->routes->Get_count() > 1) {

@@ -2487,28 +2487,15 @@ class PC_shop_cart extends PC_base {
 	}
 	/** Finds a product entry CIID by productId and attributes */
 	public function Find($productId, $attributes = null) {
-		
 		foreach ($_SESSION['pc_shop']['cart']['items'] as $key => $item) {
 			if ($productId == $item[0]) {
-				if ($attributes == $item[3]) {
+				$diff1 = array_diff_assoc($attributes, $item[3]);
+				$diff2 = array_diff_assoc($item[3], $attributes);
+				if ( empty($diff1) && empty($diff2) )
 					return $key;
-				}
 			}
 		}
 		return null;
-		if( empty($_SESSION['pc_shop']['cart']['productIndex'][$productId]) )
-			return null;
-
-		// There are products with that productId in the cart.
-		// For now only one variation of product (attributes are ignored) can be
-		// added to cart so "search" algorithm is quite simple.
-		// Later some hook might be needed to add possibility to create custom
-		// search algorithm implementations.
-		
-		
-		
-		reset($_SESSION['pc_shop']['cart']['productIndex'][$productId]);
-		return key($_SESSION['pc_shop']['cart']['productIndex'][$productId]);
 	}
 	
 	/**
@@ -2527,13 +2514,16 @@ class PC_shop_cart extends PC_base {
 		if (!isset($_SESSION['pc_shop']['cart']['productIndex'][$productId]))
 			$_SESSION['pc_shop']['cart']['productIndex'][$productId] = Array();
 		$quantity = intval($quantity);
+		if( !is_array($attributes) )
+			$attributes = array();
 		$ciid = $this->Find($productId, $attributes);
 		$this->debug("ciid: $ciid", 1);
 		if( is_null($ciid) ) {
 			// Product is not in the cart yet so add it as a new item
-			if (!$available_quantity) {
-				return 0;
-			}
+			// TODO: add "infinite" available quantity
+			//if (!$available_quantity) {
+			//	return 0;
+			//}
 			if( $quantity < 1 )
 				return 0; // no need to add it
 			
@@ -2611,7 +2601,9 @@ class PC_shop_cart extends PC_base {
 		$this->debug("_SetQuantity($ciid, $quantity)");
 		$this->debug($_SESSION['pc_shop'], 4);
 		$old_qty = $_SESSION['pc_shop']['cart']['items'][$ciid][1];
-		if( 0 == ($qty = $_SESSION['pc_shop']['cart']['items'][$ciid][1] = min($_SESSION['pc_shop']['cart']['items'][$ciid][2], max($quantity, 0))) ) {
+		// TODO: add "infinite" available quantity
+		// if( 0 == ($qty = $_SESSION['pc_shop']['cart']['items'][$ciid][1] = min($_SESSION['pc_shop']['cart']['items'][$ciid][2], max($quantity, 0))) ) {
+		if( 0 == ($qty = $_SESSION['pc_shop']['cart']['items'][$ciid][1] = max($quantity, 0)) ) {
 			$productId = $_SESSION['pc_shop']['cart']['items'][$ciid][0];
 			unset(
 				$_SESSION['pc_shop']['cart']['items'][$ciid],

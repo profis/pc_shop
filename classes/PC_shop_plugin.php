@@ -495,12 +495,22 @@ final class PC_shop_plugin extends PC_base {
 	}
 	
 	public function After_page_load() {
+		/** @var PC_shop_site $shop */
 		$shop = $this->core->Get_object('PC_shop_site');
 		$highlight_cart = false;
 	
 		if (isset($_POST['add_to_basket']) and isset($_POST['product_id'])) {
-			$shop->product_was_added_to_cart = $shop->cart->Add(intval($_POST['product_id']), 1, v($_POST['attributes']));
+			$shop->product_was_added_to_cart = $shop->cart->Add(intval($_POST['product_id']), intval(v($_POST['quantity'], 1)), v($_POST['attributes']));
 			$highlight_cart = $shop->cart->product_was_added;
+			if( isset($_POST['_ajax']) ) {
+				@header('Content-Type: application/json; charset=utf-8');
+				echo json_encode(array(
+					'success' => $shop->product_was_added_to_cart,
+					'itemCount' => $shop->cart->Count(true),
+					'totalQuantity' => $shop->cart->Count(false),
+				));
+				exit;
+			}
 		}
 		
 		$this->site->Register_data('pc_shop_highlight_cart', $highlight_cart);

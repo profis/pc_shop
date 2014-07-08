@@ -1877,7 +1877,17 @@ class PC_shop_products_site extends PC_shop_products {
 			}
 		}
 	}
-	
+
+	static function parseAttributeValue($id, $value) {
+		$result = array('id' => $id);
+		if( preg_match('/^(.*)(#[0-9a-f]{6})$/i', $value, $mtc) ) {
+			$result['color'] = $mtc[2];
+			$value = trim($mtc[1]);
+		}
+		$result['value'] = $value;
+		return $result;
+	}
+
 	public function Parse(&$d) {
 		$this->Decode_flags($d);
 		$this->click('Decode_flags', 'Decode_flags');
@@ -1888,6 +1898,8 @@ class PC_shop_products_site extends PC_shop_products {
 			$d['attribute_index'] = array();
 			$d['combinations'] = array();
 			$d['combination_groups'] = array();
+			$d['price_combinations'] = array();
+			$d['price_combination_groups'] = array();
 			/** @var PC_shop_attribute_item_model $model */
 			$model = $this->core->Get_object('PC_shop_attribute_item_model');
 			$combinations = $model->get_all(array(
@@ -1945,7 +1957,7 @@ class PC_shop_products_site extends PC_shop_products {
 					);
 					$d['attribute_index'][$item['ref']] = &$d['attributes'][$item['attribute_id']];
 				}
-				$d['attributes'][$item['attribute_id']]['values'][$item['combined_value_id']] = array('id' => $item['value_id'], 'value' => $item['value']);
+				$d['attributes'][$item['attribute_id']]['values'][$item['combined_value_id']] = self::parseAttributeValue($item['value_id'], $item['value']);
 
 				if( $item['attribute2_id'] ) {
 					$grouping[] = $item['attribute2_id'];
@@ -1959,7 +1971,7 @@ class PC_shop_products_site extends PC_shop_products {
 						);
 						$d['attribute_index'][$item['ref2']] = &$d['attributes'][$item['attribute2_id']];
 					}
-					$d['attributes'][$item['attribute2_id']]['values'][$item['combined_value2_id']] = array('id' => $item['value2_id'], 'value' => $item['value2']);
+					$d['attributes'][$item['attribute2_id']]['values'][$item['combined_value2_id']] = self::parseAttributeValue($item['value2_id'], $item['value2']);
 				}
 
 				if( $item['attribute3_id'] ) {
@@ -1974,15 +1986,23 @@ class PC_shop_products_site extends PC_shop_products {
 						);
 						$d['attribute_index'][$item['ref3']] = &$d['attributes'][$item['attribute3_id']];
 					}
-					$d['attributes'][$item['attribute3_id']]['values'][$item['combined_value3_id']] = array('id' => $item['value3_id'], 'value' => $item['value3']);
+					$d['attributes'][$item['attribute3_id']]['values'][$item['combined_value3_id']] = self::parseAttributeValue($item['value3_id'], $item['value3']);
 				}
 				$group = implode(',', $grouping);
 				$val = implode(',', $val);
 				if( !isset($d['combinations'][$group]) ) {
 					$d['combination_groups'][] = $grouping;
+					if( $item['price'] || $item['price_diff'] || $item['discount'] )
+						$d['price_combination_groups'][] = $grouping;
 					$d['combinations'][$group] = array();
 				}
 				$d['combinations'][$group][$val] = $item;
+				if( $item['price'] || $item['price_diff'] || $item['discount'] )
+					$d['price_combinations'][$group][$val] = array(
+						'price' => floatval($item['price']),
+						'price_diff' => floatval($item['price_diff']),
+						'discount' => floatval($item['discount']),
+					);
 			}
 			/*
 

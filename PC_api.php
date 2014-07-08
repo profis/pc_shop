@@ -96,9 +96,9 @@ function process_api_for_cart($route = '') {
 				$item_real_key = $ciid;
 			}
 			if ($item_real_key) {
-				$price = $shop->products->get_price($cart_data['items'][$item_real_key]);
+				// $price = $shop->products->get_price($cart_data['items'][$item_real_key]);
 				$out["item"] = Array(
-					"price" => number_format($price, 2, ".", ""),
+					"price" => number_format($cart_data['items'][$item_real_key]["price"], 2, ".", ""),
 					"totalPrice" => number_format($cart_data['items'][$item_real_key]["totalPrice"], 2, ".", "")
 				);
 			}

@@ -75,61 +75,24 @@ class PC_shop_product_model extends PC_model {
 	}
 	
 	public function get_price(&$data, &$discount = 0, &$percentage_discount = 0, $attributes = array()) {
-		$discount = 0;
-		$percentage_discount = 0;
-		$full_price = $price = $data['price'];
-		$user_currency = $this->price->get_user_currency();
-		$user_currency_id = $this->price->get_user_currency_id();
-		if ($user_currency != $this->price->get_base_currency()) {
-			if (isset($data['prices'][$user_currency_id]) and $data['prices'][$user_currency_id] > 0) {
-				$full_price = $price = $data['prices'][$user_currency_id];
-			}
-			else {
-				$full_price = $price = $this->price->get_converted_price_in_currency($full_price, $user_currency, true);
-			}
-			return number_format($full_price, 2, ".", "");;
-		}
-		
-		if (true or v($data['hot'])) {
-			if (v($data['discount']) and $data['discount'] > 0 and $data['discount'] < $price) {
-				$price -= $data['discount'];
-			}
-			if (v($data['percentage_discount']) and $data['percentage_discount'] > 0 and $data['percentage_discount'] < 100) {
-				$discount_percent_price = floor($full_price * (100 - $data['percentage_discount'])) / 100;
-				if ($discount_percent_price < $price) {
-					$price = $discount_percent_price;
-				}
-			}
-		}
-		
-		if (!empty($attributes)) {
-			$price_data = $this->adjust_price($price, $data, $attributes);
-			$price = $price_data['price'];
-		}
-		
-		$discount = $full_price - $price;
-		if ($discount and $full_price) {
-			$percentage_discount = $discount * 100 / $full_price;
-		}
-		if ($price < 0) {
-			$price = 0;
-		}
-		return number_format($price, 2, ".", "");;
+		$priceData = $this->adjust_price($data['price'], $data, $attributes);
+		return number_format($priceData['price'], 2, ".", "");
 	}
 	
 	public function adjust_price($price, &$data, $attributes = array()) {
 		//echo 'adjust price';
-		$discount = 0;
-		$percentage_discount = 0;
-		
+
+		$currencyId = $this->price->get_user_currency_id();
+		if( isset($data['prices'][$currencyId]) && $data['prices'][$currencyId] > 0 )
+			$price = $data['prices'][$currencyId];
+		else
+			$price = $this->price->get_price_in_user_currency($data['price']);
+		$discount = $this->price->get_price_in_user_currency($data['discount']);
+		$percentage_discount = floatval($data['percentage_discount']);
 		$additional_discount = 0;
-		if ($price == $data['real_price'] and $data['price'] > $data['real_price']) {
-			$additional_discount = $data['price'] - $data['real_price'];
-			$price = $data['price'];
-		}
-		
+
 		$full_price = $price;
-		
+
 		$price_data = array(
 			'price' => $price,
 			'full_price' => $price,
@@ -146,51 +109,43 @@ class PC_shop_product_model extends PC_model {
 		//print_pre($attributes);
 		//print_pre($this->price_attribute_refs);
 		if (is_array($attributes)) {
+			foreach( $data['price_combination_groups'] as $groupAttributes ) {
+				$groupId = implode(',', $groupAttributes);
+				if( isset($data['price_combinations'][$groupId]) ) {
+					$val = array();
+					foreach( $groupAttributes as $attrId )
+						$val[] = isset($attributes[$attrId]) ? $attributes[$attrId] : null;
+					$val = implode(',', $val);
+					if( isset($data['price_combinations'][$groupId][$val]) ) {
+						$comboPriceData = &$data['price_combinations'][$groupId][$val];
+						if( $comboPriceData['price'] ) {
+							$full_price = $price = $this->price->get_price_in_user_currency($comboPriceData['price']);
+							$additional_discount = 0;
+						}
+						if( $comboPriceData['price_diff'] )
+							$price += $this->price->get_price_in_user_currency($comboPriceData['price_diff']);
+						if( $comboPriceData['discount'] )
+							$additional_discount += $this->price->get_price_in_user_currency($comboPriceData['discount']);
+					}
+				}
+			}
 			foreach ($attributes as $attribute_id => $attribute_value_id) {
-				$ref = v($this->price_attribute_refs[$attribute_id]);
-				if (!$ref) {
+				if( !isset($data['attributes'][$attribute_id]) )
 					continue;
-				}
-				if (v($data['price_attributes'][$ref]) and v($data['price_attributes'][$ref][$attribute_value_id])) {
-					$attribute_price_data = $data['price_attributes'][$ref][$attribute_value_id];
-					$price += $attribute_price_data['price_diff'];
-					if ($attribute_price_data['price'] > 0) {
-						$price = $attribute_price_data['price'];
-						$additional_discount = 0;
-					}
-					$full_price = $price;
-					$discount = v($attribute_price_data['discount']);
-					if ($discount and $price) {
-						//$percentage_discount = $discount * 100 / $price;
-						$price -= $discount;
-					}
-					if (isset($data["multiple_attributes"][$ref][$attribute_value_id])) {
-						$attributes_strings[] = $data["multiple_attributes"][$ref][$attribute_value_id]['name'] . ' - ' . $data["multiple_attributes"][$ref][$attribute_value_id]['value'];
-						$attribute_values_strings[] = $data["multiple_attributes"][$ref][$attribute_value_id]['value'];
-						
-						//$attributes_strings[] = 
-						$attributes_info[$attribute_id] = array(
-							'price_data' => $attribute_price_data,
-							'data' => $data["multiple_attributes"][$ref][$attribute_value_id]
-						);
-						
-					}
-					
-					$post_price_attribute_value = $attribute_value_id;
-					$post_price_attributes[$attribute_id] = $attribute_value_id;
-				}
-
+				$attr = $data['attributes'][$attribute_id];
+				$attributes_strings[] = $attr['name'] . ' - ' . $attr['values'][$attribute_value_id]['value'];
+				$attribute_values_strings[] = $attr['values'][$attribute_value_id]['value'];
+				$post_price_attributes[$attribute_id] = $attribute_value_id;
+				$attributes_info[$attribute_id] = array(
+					'name' => $attr['name'],
+					'value' => $attr['values'][$attribute_value_id]['value']
+				);
 			}
 		}
-		
-		//print_pre($attributes_strings);
-		
-		if ($additional_discount > 0) {
-			$additional_discount;
-			$price -= $additional_discount;
-			$discount += $additional_discount;
-		}
-		
+
+		$discount += $additional_discount;
+		$price -= $discount;
+
 		$price_data['price'] = $price;
 		$price_data['full_price'] = $full_price;
 		$price_data['discount'] = $discount;
