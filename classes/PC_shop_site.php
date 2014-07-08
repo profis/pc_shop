@@ -1370,7 +1370,6 @@ class PC_shop_products_site extends PC_shop_products {
 						$this_where = $value['clause'];
 					}
 					else {
-
 						$op = v($value['op'], '=');
 						$this_where = $field . ' ' . $op . ' ?';
 						if (in_array($value['op'], array('full_text', 'full_text_all'))) {
@@ -1873,7 +1872,6 @@ class PC_shop_products_site extends PC_shop_products {
 					$filter_data['havings'][] = $this_having;
 					$filter_data['having_query_params'] = array_merge($filter_data['having_query_params'], $this_having_query_params);
 				}
-
 			}
 		}
 	}
@@ -1892,7 +1890,7 @@ class PC_shop_products_site extends PC_shop_products {
 		$this->Decode_flags($d);
 		$this->click('Decode_flags', 'Decode_flags');
 
-        $parse_attributes = $this->parse_params === false || v($this->parse_params['attributes']);
+		$parse_attributes = $this->parse_params === false || v($this->parse_params['attributes']);
 		if ($parse_attributes) {
 			$d['attributes'] = array();
 			$d['attribute_index'] = array();

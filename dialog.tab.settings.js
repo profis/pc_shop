@@ -37,6 +37,19 @@ PC.plugin.pc_shop.settings = Ext.extend(PC.ux.configPanel, {
 				editable: false,
 				forceSelection: true,
 				triggerAction: 'all'
+			},
+			
+			{	_fld: 'name',
+				name: 'max_coupon_percentage',
+				fieldLabel: this.ln.max_coupon_percentage,
+				anchor: '100%',
+				//width: 300,
+				xtype: 'numberfield',
+				mode: 'local',
+				editable: false,
+				forceSelection: true,
+				value: '',
+				allowBlank: true
 			}
 		];
 	}

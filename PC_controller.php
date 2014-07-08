@@ -662,6 +662,7 @@ class PC_controller_pc_shop extends PC_controller {
 		
 		$this->debug($category_data, 4);
 		$this->currentCategory = $category_data;
+		$this->site->Register_data('currentCategory', $this->currentCategory);
 		$this->currentCategoryLink = $this->currentCategory['full_link'] = $this->shop->categories->Get_link_from_data($category_data, $this->site->loaded_page['route']);
 		$this->_set_seo_for_category();
 		$this->site->Set_url_suffix_callback(
@@ -739,6 +740,7 @@ class PC_controller_pc_shop extends PC_controller {
 	public function product_action($id) {
 		$this->_set_seo_for_product();
 		$this->Set_current_path($this->currentCategory['path']);
+		$this->site->Register_data('currentCategory', $this->currentCategory);
 		$this->currentProduct['page_type'] = 'pc_shop_product';
 		$this->site->Path_append($this->name, $this->currentProduct);
 		//$this->site->Use_component('js/hooks');
