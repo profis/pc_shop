@@ -120,7 +120,8 @@ var ln =  {
 		},
 		settings: {
 			new_order_email_admin: 'New order notification email address',
-			checkout_offer_to_register: 'Offer to register when buying'
+			checkout_offer_to_register: 'Offer to register when buying',
+			max_coupon_percentage: 'Maximum coupon discount percentage of total price'
 		},
 		_import: {
 			import_method: 'Import method',
@@ -264,7 +265,8 @@ var ln =  {
 		},
 		settings: {
 			new_order_email_admin: 'E. paštas, kuriuo siunčiamas pranešimas apie nauja užsakymą',
-			checkout_offer_to_register: 'Siūlyti registruotis perkant'
+			checkout_offer_to_register: 'Siūlyti registruotis perkant',
+			max_coupon_percentage: 'Maksimali kupono nuolaida procentais nuo visos užsakymo kainos'
 		},
 		_import: {
 			import_method: 'Importo tipas',
@@ -395,7 +397,8 @@ var ln =  {
 		},
 		settings: {
 			new_order_email_admin: 'Эл. почта, на которую отсылается сообщение о новом заказе',
-			checkout_offer_to_register: 'Предлагать регистрацию при покупке'
+			checkout_offer_to_register: 'Предлагать регистрацию при покупке',
+			max_coupon_percentage: 'Maximum coupon discount percentage of total price'
 		},
 		_import: {
 			import_method: 'Метод импорта',
