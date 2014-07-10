@@ -118,13 +118,13 @@ class PC_shop_product_model extends PC_model {
 					$val = implode(',', $val);
 					if( isset($data['price_combinations'][$groupId][$val]) ) {
 						$comboPriceData = &$data['price_combinations'][$groupId][$val];
-						if( $comboPriceData['price'] ) {
+						if( $comboPriceData['price'] > 0 ) {
 							$full_price = $price = $this->price->get_price_in_user_currency($comboPriceData['price']);
 							$additional_discount = 0;
 						}
-						if( $comboPriceData['price_diff'] )
+						if( $comboPriceData['price_diff'] > 0 )
 							$price += $this->price->get_price_in_user_currency($comboPriceData['price_diff']);
-						if( $comboPriceData['discount'] )
+						if( $comboPriceData['discount'] > 0 )
 							$additional_discount += $this->price->get_price_in_user_currency($comboPriceData['discount']);
 					}
 				}

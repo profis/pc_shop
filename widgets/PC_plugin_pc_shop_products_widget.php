@@ -23,16 +23,12 @@ class PC_plugin_pc_shop_products_widget extends PC_plugin_pc_shop_widget {
 	}
 	
 	public function get_params() {
-		if (v($_GET["page"])){
-			$paging_cr_pg = $_GET["page"];
+		if (v($this->_config["page"])) {
+			$paging_cr_pg = $this->_config["page"];
+		} else if (v($_REQUEST["page"])) {
+			$paging_cr_pg = $_REQUEST["page"];
 		} else {
 			$paging_cr_pg = 1;
-		}
-
-		if (v($_GET["ppage"])){
-			$paging_cr_ppg = $_GET["ppage"];
-		} else {
-			$paging_cr_ppg = 10;
 		}
 
 		$params = array();

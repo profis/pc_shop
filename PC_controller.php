@@ -393,7 +393,7 @@ class PC_controller_pc_shop extends PC_controller {
 		$payment_option = v($_POST['payment_option']);
 		$delivery_option = v($_POST['delivery_option']);
 		$params = array();
-		$data = PC_utils::getRequestData(array('country', 'city', 'post_index', 'is_company', 'company_name', 'company_code', 'company_pvm_code'));
+		$data = PC_utils::getRequestData(array('country', 'city', 'region', 'flat', 'post_index', 'is_company', 'company_name', 'company_code', 'company_pvm_code'));
 		if (isset($_POST['order_data']) and is_array($_POST['order_data'])) {
 			$data = array_merge($data, $_POST['order_data']);
 		}

@@ -1,4 +1,8 @@
 <?php
+/**
+ * Class PC_shop
+ * @property PC_shop_price $price
+ */
 abstract class PC_shop extends PC_base {
 	
 	/**
@@ -2119,6 +2123,7 @@ class PC_shop_orders extends PC_shop_order_model {
 		$data = pc_sanitize_value($data, 'strip_tags');
 		$this->data = $data;
 		$data = serialize($data);
+
 		$insert_query = "INSERT INTO {$this->db_prefix}shop_orders (date,user_id,name,email,address,phone,comment,payment_option,delivery_option,currency,is_paid,data) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)";
 		$r = $this->prepare($insert_query);
 		$insert_params = array(time(), $userId, $recipient, $email, $address, $phone, $comment, $payment_option, $delivery_option, $this->shop->price->get_user_currency(), $is_paid);
@@ -2365,7 +2370,7 @@ class PC_shop_cart extends PC_base {
 			$data['discounts']['coupon'] = $coupon_discount;
 		}
 		
-		foreach ($data['discounts'] as $discount) {
+		foreach ($data['discounts'] as &$discount) {
 			if (!is_array($discount)) {
 				$data['total_discount'] += $discount;
 			}
@@ -2377,7 +2382,10 @@ class PC_shop_cart extends PC_base {
 					if ($discount['percent'] > 100) {
 						$discount['percent'] = 100;
 					}
-					$data['total_discount'] += floor(($items_price - $data['total_discount']) * $discount['percent']) / 100;
+					$discount['amount'] = floor(($items_price - $data['total_discount']) * $discount['percent']) / 100;
+				}
+				if (isset($discount['amount'])) {
+					$data['total_discount'] += $discount['amount'];
 				}
 			}
 		}

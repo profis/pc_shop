@@ -1990,91 +1990,22 @@ class PC_shop_products_site extends PC_shop_products {
 				$val = implode(',', $val);
 				if( !isset($d['combinations'][$group]) ) {
 					$d['combination_groups'][] = $grouping;
-					if( $item['price'] || $item['price_diff'] || $item['discount'] )
-						$d['price_combination_groups'][] = $grouping;
 					$d['combinations'][$group] = array();
 				}
 				$d['combinations'][$group][$val] = $item;
-				if( $item['price'] || $item['price_diff'] || $item['discount'] )
+
+				if( $item['price'] || $item['price_diff'] || $item['discount'] ) {
+					if( !isset($d['price_combinations'][$group]) ) {
+						$d['price_combination_groups'][] = $grouping;
+						$d['price_combinations'][$group] = array();
+					}
 					$d['price_combinations'][$group][$val] = array(
 						'price' => floatval($item['price']),
 						'price_diff' => floatval($item['price_diff']),
 						'discount' => floatval($item['discount']),
 					);
-			}
-			/*
-
-			$d['multiple_attributes'] = $this->shop->attributes->ParseSQLResult($d['attributes']);
-			$this->click('ParseSQLResult', 'parse_ParseSQLResult');
-			if (!empty($d['multiple_attributes'])) {
-				$d['price_attributes'] = array();
-				$missing_refs = array_diff(array_keys($d['multiple_attributes']), $this->_price_attribute_ids);
-				if (!empty($missing_refs)) {
-					$attribute_model = $this->core->Get_object('PC_shop_attribute_model');
-					$new_ids = $attribute_model->get_all(array(
-						'where' => array(
-							'ref' => $missing_refs,
-						),
-						'key' => 'ref',
-						'value' => 'id',
-						//'query_only' => true
-					));
-					if ($new_ids) {
-						$this->_price_attribute_ids = array_merge($this->_price_attribute_ids, $new_ids);
-					}
-					//print_pre($this->_price_attribute_ids);
-					if (!empty($this->_price_attribute_ids)) {
-						$product_price_model = $this->core->Get_object('PC_shop_product_price_model');
-						$product_attribute_prices = $product_price_model->get_all(array(
-							'where' => array(
-								'product_id' => $d['id'],
-								't.c_id' => 0,
-								't.attribute_id' => array_values($this->_price_attribute_ids),
-								'(
-									attribute_value_id <> 0  
-									OR 
-									attribute_item_id <> 0 
-								)',
-
-								//array(
-								//	'field' => 'attribute_value_id',
-								//	'op' => '<>',
-								//	'value' => 0
-								//)
-
-							),
-							'join' => " LEFT JOIN {$this->db_prefix}shop_item_attributes ia 
-								ON ia.item_id = t.product_id and ia.attribute_id=t.attribute_id 
-									AND (
-									t.attribute_value_id = ia.value_id 
-									OR 
-									t.attribute_item_id = ia.id
-								)
-									",
-							//'join_params' => array($d['id']),
-							
-							'order' => 't.attribute_id, ia.position',
-							//'query_only' => true
-						));
-						//print_pre($product_attribute_prices);
-						$this->price_attribute_refs = $price_attribute_refs = array_flip($this->_price_attribute_ids);
-						foreach ($product_attribute_prices as $key => $pa) {
-							//print_pre($price_attribute);
-							$my_key = $price_attribute_refs[$pa['attribute_id']];
-							vv($d['price_attributes'][$my_key], array());
-							$sub_key = $pa['attribute_value_id'];
-							if ($pa['attribute_item_id']) {
-								$sub_key = '#' . $pa['attribute_item_id'];
-							}
-							$d['price_attributes'][$my_key][$sub_key] = $pa;
-						}
-						//print_pre($d['price_attributes'][$my_key]);
-					}
-					
 				}
-				
 			}
-			*/
 		}
 		
 		
