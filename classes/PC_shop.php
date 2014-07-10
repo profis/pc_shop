@@ -2245,7 +2245,6 @@ class PC_shop_cart extends PC_base {
 		
 		$items_price = $data['totalPrice'];
 		
-		
 		if ($delivery_option_data) {
 			$delivery_price = $price_model->get_price('delivery_' . $order_data['delivery_option']);
 			if (empty($delivery_price)) {

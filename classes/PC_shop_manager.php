@@ -307,9 +307,12 @@ class PC_shop_categories_manager extends PC_shop_categories {
 			$this->shop->products->Delete($product_id);
 		}
 		
-		$tree = $this->core->Get_object("PC_database_tree");
-		$tree->absorb_debug_settings($this);
-		$tree->Delete_gap('shop_categories', $c['lft']-1, ($c['rgt']-$c['lft']+1));
+		if (!v($params->do_not_delete_tree_gap)) {
+			$tree = $this->core->Get_object("PC_database_tree");
+			$tree->absorb_debug_settings($this);
+			$tree->Delete_gap('shop_categories', $c['lft']-1, ($c['rgt']-$c['lft']+1));
+		}
+		
 		//resources
 		$this->shop->resources->Delete(null, $id, true);
 		return true;
