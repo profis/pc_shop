@@ -2070,4 +2070,52 @@ class PC_shop_products_site extends PC_shop_products {
 
 
 	}
+
+	/**
+	 * @param int $productId Id pf the product
+	 * @param array $attributes An associative array of desired product attributes for which quantity must be calculated
+	 * @return int|null
+	 */
+	public function Get_product_quantity($productId, $attributes) {
+		$select = array('t.quantity');
+		$where = array('t.id = ?');
+		$order = 't.id';
+		$params = array($productId);
+		$join = array();
+		if( !empty($attributes) && is_array($attributes) ) {
+			$in = array();
+			foreach( $attributes as $attrKey => $attrVal )
+				$in[] = '(' . intval($attrKey) . ',' . intval($attrVal) . ')';
+			$in = '(' . implode(',', $in) . ')';
+
+			$select[] = 'pp.items_left';
+
+			$where[] = '((ia1.attribute_id,ia1.value_id) IN ' . $in . ' OR (ia1.attribute_id,ia1.id) IN ' . $in . ')';
+			$where[] = '(ia2.value_id IS NULL OR (ia2.attribute_id,ia2.value_id) IN ' . $in . ' OR (ia2.attribute_id,ia2.id) IN ' . $in . ')';
+			$where[] = '(ia3.value_id IS NULL OR (ia3.attribute_id,ia3.value_id) IN ' . $in . ' OR (ia3.attribute_id,ia3.id) IN ' . $in . ')';
+
+			$join[] = "INNER JOIN {$this->db_prefix}shop_item_attributes ia1 ON ia1.item_id=t.id AND (ia1.flags & 2) = 2 AND ia1.level = 1";
+			$join[] = "LEFT JOIN {$this->db_prefix}shop_item_attributes ia2 ON ia2.id=ia1.next_attribute_id";
+			$join[] = "LEFT JOIN {$this->db_prefix}shop_item_attributes ia3 ON ia3.id=ia2.next_attribute_id";
+			$join[] = "INNER JOIN {$this->db_prefix}shop_product_prices pp ON pp.product_id = t.id AND ((pp.attribute_id = ia1.attribute_id AND pp.attribute_value_id = ia1.value_id AND pp.attribute_item_id = 0) OR pp.attribute_item_id=ia1.id)";
+
+			$order = 'ia1.position DESC';
+		}
+
+		/** @var PC_shop_product_model $model */
+		$model = $this->core->Get_object('PC_shop_product_model');
+		$results = $model->get_all(array(
+			'select' => implode(', ', $select),
+			'where' => implode(' AND ', $where),
+			'query_params' => $params,
+			'order' => $order,
+			'join' => implode(' ', $join),
+		));
+		if( !empty($attributes) && is_array($attributes) ) {
+			foreach( $results as $result )
+				if( isset($result['items_left']) )
+					return intval($result['items_left']);
+		}
+		return intval($results[0]['quantity']);
+	}
 }

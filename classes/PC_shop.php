@@ -2223,7 +2223,7 @@ class PC_shop_orders extends PC_shop_order_model {
 class PC_shop_cart extends PC_base {
 	/**
 	 *
-	 * @var PC_shop 
+	 * @var PC_shop_site
 	 */
 	private $shop;
 	public function Init(PC_shop $shop) {
@@ -2512,17 +2512,16 @@ class PC_shop_cart extends PC_base {
 	
 	/**
 	 * 
-	 * @param type $productId
-	 * @param type $quantity
-	 * @param type $attributes
-	 * @return boolean|int
+	 * @param int $productId
+	 * @param int $quantity
+	 * @param array $attributes
+	 * @param bool $do_not_increment
+	 * @return bool|int
 	 */
 	public function Add($productId, $quantity=1, $attributes=null, $do_not_increment = false) {
 		$this->product_was_added = false;
 		$this->debug("Add($productId, $quantity, , $do_not_increment)");
 		if (!$this->shop->products->Exists($productId)) return false;
-		$available_quantity = v($this->shop->products->last_existing_item_quantity, 0);
-		$this->debug("available_quantity: $available_quantity", 3);
 		if (!isset($_SESSION['pc_shop']['cart']['productIndex'][$productId]))
 			$_SESSION['pc_shop']['cart']['productIndex'][$productId] = Array();
 		$quantity = intval($quantity);
@@ -2532,10 +2531,13 @@ class PC_shop_cart extends PC_base {
 		$this->debug("ciid: $ciid", 1);
 		if( is_null($ciid) ) {
 			// Product is not in the cart yet so add it as a new item
+
 			// TODO: add "infinite" available quantity
-			//if (!$available_quantity) {
-			//	return 0;
-			//}
+			$available_quantity = $this->shop->products->Get_product_quantity($productId, $attributes);
+			$this->debug("available_quantity: $available_quantity", 3);
+			if (!$available_quantity) {
+				return 0;
+			}
 			if( $quantity < 1 )
 				return 0; // no need to add it
 			
@@ -2614,8 +2616,8 @@ class PC_shop_cart extends PC_base {
 		$this->debug($_SESSION['pc_shop'], 4);
 		$old_qty = $_SESSION['pc_shop']['cart']['items'][$ciid][1];
 		// TODO: add "infinite" available quantity
-		// if( 0 == ($qty = $_SESSION['pc_shop']['cart']['items'][$ciid][1] = min($_SESSION['pc_shop']['cart']['items'][$ciid][2], max($quantity, 0))) ) {
-		if( 0 == ($qty = $_SESSION['pc_shop']['cart']['items'][$ciid][1] = max($quantity, 0)) ) {
+		if( 0 == ($qty = $_SESSION['pc_shop']['cart']['items'][$ciid][1] = min($_SESSION['pc_shop']['cart']['items'][$ciid][2], max($quantity, 0))) ) {
+		// if( 0 == ($qty = $_SESSION['pc_shop']['cart']['items'][$ciid][1] = max($quantity, 0)) ) {
 			$productId = $_SESSION['pc_shop']['cart']['items'][$ciid][0];
 			unset(
 				$_SESSION['pc_shop']['cart']['items'][$ciid],
