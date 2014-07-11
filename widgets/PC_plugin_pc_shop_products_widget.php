@@ -23,7 +23,7 @@ class PC_plugin_pc_shop_products_widget extends PC_plugin_pc_shop_widget {
 	}
 	
 	public function get_params() {
-		if (v($this->_config["page"])) {
+		if (isset($this->_config["page"])) {
 			$paging_cr_pg = $this->_config["page"];
 		} else if (v($_REQUEST["page"])) {
 			$paging_cr_pg = $_REQUEST["page"];

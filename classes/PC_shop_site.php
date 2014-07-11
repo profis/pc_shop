@@ -1900,6 +1900,7 @@ class PC_shop_products_site extends PC_shop_products {
 			$d['price_combination_groups'] = array();
 			/** @var PC_shop_attribute_item_model $model */
 			$model = $this->core->Get_object('PC_shop_attribute_item_model');
+			// Do not use p.quantity, use p.items_left instead. p.quantity is supposed to be used for getting price depending on ordered quantity.
 			$combinations = $model->get_all(array(
 				'select' => '
 					t.attribute_id, ia2.attribute_id AS attribute2_id, ia3.attribute_id AS attribute3_id,
@@ -1909,7 +1910,7 @@ class PC_shop_products_site extends PC_shop_products {
 					t.value_id, ia2.value_id AS value2_id, ia3.value_id AS value3_id,
 					IF(t.value_id IS NULL, t.id, t.value_id) AS combined_value_id, IF(ia2.value_id IS NULL, ia2.id, ia2.value_id) AS combined_value2_id, IF(ia3.value_id IS NULL, ia3.id, ia3.value_id) AS combined_value3_id,
 					IF(avc.value IS NULL, t.value, avc.value) AS value, IF(avc2.value IS NULL, ia2.value, avc2.value) AS value2, IF(avc3.value IS NULL, ia3.value, avc3.value) AS value3,
-					p.price, p.price_diff, p.discount, p.quantity, p.info_1, p.info_2, p.info_3
+					p.price, p.price_diff, p.discount, p.items_left, p.info_1, p.info_2, p.info_3
 				',
 				'where' => 't.item_id = ? AND t.level=1',
 				'query_params' => array(
@@ -1992,18 +1993,48 @@ class PC_shop_products_site extends PC_shop_products {
 					$d['combination_groups'][] = $grouping;
 					$d['combinations'][$group] = array();
 				}
-				$d['combinations'][$group][$val] = $item;
 
-				if( $item['price'] || $item['price_diff'] || $item['discount'] ) {
+				if( $item['items_left'] !== null )
+					$item['items_left'] = intval($item['items_left']); // it is returned as string, but we need a number for javascript
+
+				if( isset($d['combinations'][$group][$val]) ) {
+					$c = &$d['combinations'][$group][$val];
+					if( $item['price'] > 0 )
+						$c['price'] = $item['price'];
+					if( $item['price_diff'] > 0 )
+						$c['price_diff'] = $item['price_diff'];
+					if( $item['discount'] > 0 )
+						$c['discount'] = $item['discount'];
+					if( $item['items_left'] !== null )
+						$c['items_left'] = $item['items_left'];
+				}
+				else {
+					$d['combinations'][$group][$val] = $item;
+				}
+
+				if( $item['price'] > 0 || $item['price_diff'] > 0 || $item['discount'] > 0 || $item['items_left'] !== null ) {
 					if( !isset($d['price_combinations'][$group]) ) {
 						$d['price_combination_groups'][] = $grouping;
 						$d['price_combinations'][$group] = array();
 					}
-					$d['price_combinations'][$group][$val] = array(
-						'price' => floatval($item['price']),
-						'price_diff' => floatval($item['price_diff']),
-						'discount' => floatval($item['discount']),
-					);
+					if( isset($d['price_combinations'][$group][$val]) ) {
+						$c = &$d['price_combinations'][$group][$val];
+						if( $item['price'] > 0 )
+							$c['price'] = $item['price'];
+						if( $item['price_diff'] > 0 )
+							$c['price_diff'] = $item['price_diff'];
+						if( $item['discount'] > 0 )
+							$c['discount'] = $item['discount'];
+						if( $item['items_left'] !== null )
+							$c['items_left'] = $item['items_left'];
+					}
+					else
+						$d['price_combinations'][$group][$val] = array(
+							'price' => floatval($item['price']),
+							'price_diff' => floatval($item['price_diff']),
+							'discount' => floatval($item['discount']),
+							'items_left' => $item['items_left'],
+						);
 				}
 			}
 		}

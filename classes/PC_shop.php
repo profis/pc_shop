@@ -1426,7 +1426,7 @@ class PC_shop_attributes extends PC_shop_attribute_model {
 		}
 		
 		if ($itemType == self::ITEM_IS_PRODUCT) {
-			$select .= ', pp.price, pp.price_diff, pp.discount, pp.info_1, pp.info_2, pp.info_3, a2.id AS id2, a2.attribute_id AS attribute2_id, a2.value_id AS value2_id, a2.value AS value2, a3.id AS id3, a3.attribute_id AS attribute3_id, a3.value_id AS value3_id, a3.value AS value3';
+			$select .= ', pp.price, pp.price_diff, pp.discount, pp.items_left, pp.info_1, pp.info_2, pp.info_3, a2.id AS id2, a2.attribute_id AS attribute2_id, a2.value_id AS value2_id, a2.value AS value2, a3.id AS id3, a3.attribute_id AS attribute3_id, a3.value_id AS value3_id, a3.value AS value3';
 			$join .= " LEFT JOIN {$this->db_prefix}shop_product_prices pp 
 						ON pp.product_id=a.item_id AND pp.attribute_id=a.attribute_id
 						AND (
@@ -1730,7 +1730,7 @@ class PC_shop_attributes extends PC_shop_attribute_model {
 					);
 //				}
 
-				if (v($i['price'], 0) == 0 and v($i['price_diff'], 0) == 0) {
+				if (false and v($i['price'], 0) == 0 and v($i['price_diff'], 0) == 0) {
 					$product_price_model->delete(array(
 						'where' => $key_fields
 					));
@@ -1742,10 +1742,14 @@ class PC_shop_attributes extends PC_shop_attribute_model {
 					$other_fields  = array(
 						'price' => $i['price'],
 						'price_diff' => $i['price_diff'],
+						'items_left' => v($i['items_left'], null),
 						'info_1' => v($i['info_1']),
 						'info_2' => v($i['info_2']),
 						'info_3' => v($i['info_3']),
 					);
+					if (trim($other_fields['items_left']) == '') {
+						$other_fields['items_left'] = null;
+					}
 					if (v($i['price']) and $i['price'] > 0 or v($i['price_diff']) and $i['price_diff'] > 0) {
 						if (v($i['discount']) and $i['discount'] > 0) {
 							$other_fields['discount'] = $i['discount'];
