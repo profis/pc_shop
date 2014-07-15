@@ -883,7 +883,7 @@ Plugin.attributes.ParseAttributeValue = function(id, n) {
 Plugin.attributes.ItemStore = new Ext.data.JsonStore({
 	url: Plugin.api.Admin +'attributes/getForItem',
 	fields: [
-		'id', 'item_id', 'attribute_id', 'flags', 'value_id', 'value', 'price', 'price_diff', 'discount',
+		'id', 'item_id', 'attribute_id', 'flags', 'value_id', 'value', 'price', 'price_diff', 'items_left', 'discount',
 		'info_1', 'info_2', 'info_3', 
 		{name: 'attributeName', mapping: 'attribute_id', convert: Plugin.attributes.ParseAttributeName},
 		{name: 'displayValue', mapping: 'value_id', convert: Plugin.attributes.ParseAttributeValue}
@@ -914,6 +914,7 @@ Plugin.attributes.ItemStore = new Ext.data.JsonStore({
 				value_id: rec.data.value_id,
 				price: rec.data.price,
 				price_diff: rec.data.price_diff,
+				items_left: rec.data.items_left,
 				discount: rec.data.discount,
 				info_1: rec.data.info_1,
 				info_2: rec.data.info_2,
@@ -959,6 +960,7 @@ if (!hook_params.disabled) {
 		{header: 'Price', dataIndex: 'price'},
 		{header: 'Price difference', dataIndex: 'price_diff'},
 		{header: 'Discount', dataIndex: 'discount'},
+		{header: 'Quantity (items left)', dataIndex: 'items_left'},
 		{header: Plugin.ln.attributes_labels.info_1, dataIndex: 'info_1'},
 		{header: Plugin.ln.attributes_labels.info_2, dataIndex: 'info_2'},
 		{header: Plugin.ln.attributes_labels.info_3, dataIndex: 'info_3'}
@@ -1085,6 +1087,11 @@ Plugin.attributes.Grid = {
 					value: rec.data.discount
 				},
 				{	xtype: 'textfield',
+					fieldLabel: 'Quantity (items left)',
+					ref: '_items_left',
+					value: rec.data.items_left
+				},
+				{	xtype: 'textfield',
 					fieldLabel: Plugin.ln.attributes_labels.info_1,
 					ref: '_info_1',
 					value: rec.data.info_1
@@ -1132,6 +1139,7 @@ Plugin.attributes.Grid = {
 				if (w._price) {
 					rec.set('price', w._price.getValue());
 					rec.set('price_diff', w._price_diff.getValue());
+					rec.set('items_left', w._items_left.getValue());
 					rec.set('discount', w._discount.getValue());
 					rec.set('info_1', w._info_1.getValue());
 					rec.set('info_2', w._info_2.getValue());

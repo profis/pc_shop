@@ -604,6 +604,11 @@ CREATE TABLE IF NOT EXISTS `{prefix}shop_resources` (
 ) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
 
+ALTER TABLE  `pc_shop_products` ADD  `is_not_quantitive` TINYINT( 1 ) NOT NULL DEFAULT  '0' AFTER  `mpn`;
+
+ALTER TABLE  `pc_shop_product_prices` ADD  `items_left` MEDIUMINT( 8 ) UNSIGNED NULL DEFAULT NULL  AFTER  `discount`;
+
+
 -- 
 -- Dumping data for table `{prefix}variables`
 -- 

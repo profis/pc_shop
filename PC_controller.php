@@ -277,14 +277,15 @@ class PC_controller_pc_shop extends PC_controller {
 	
 	protected function _make_payment() {
 		$this->debug('controller:_make_payment()');
-		
+		$content = '';
 		if ($this->_get_payment_method_object()) {
-			$this->payment_method->make_online_payment();
+			$content = $this->payment_method->make_online_payment();
 			$this->debug('controller:onlined payment made ' . $this->payment_method->file);
 		}
 		else {
 			$this->ordered_action();
 		}
+		return $content;
 	}
 	
 	protected function _order_online_payment_cancel() {
@@ -449,7 +450,7 @@ class PC_controller_pc_shop extends PC_controller {
 			$this->core->Redirect_local(pc_append_route($this->page->Get_current_page_link(), 'cart'));
 			return;
 		}
-				
+		$content = '';		
 		$this->debug('order_action()');
 		
 		//if ($this->routes->Get(3) == 'fast') {
@@ -474,12 +475,15 @@ class PC_controller_pc_shop extends PC_controller {
 						'logger' => &$this
 					));
 				}
-				$this->_make_payment();
+				$content = $this->_make_payment();
 			}
 			if (!v($this->action_rendered)) {
 				$this->_set_coupon();
 				$this->Render('order');
 				$this->_before_action_finish();
+			}
+			if (!empty($content)) {
+				$this->text = $content;
 			}
 			return true;
 		//}
