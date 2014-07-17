@@ -41,7 +41,7 @@ abstract class PC_plugin_pc_shop_widget extends PC_widget {
 			elseif (isset($this->_config['page_ref']) and !empty($this->_config['page_ref'])) {
 				$url = $this->page->Get_page_link_by_reference($this->_config['page_ref']);
 			}
-			elseif ($this->site->loaded_page['controller'] == $this->plugin_name) {
+			elseif (isset($this->site->loaded_page['controller']) && $this->site->loaded_page['controller'] == $this->plugin_name) {
 				if ($page_only) {
 					$url = $this->page->Get_current_page_link();
 				}
