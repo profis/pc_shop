@@ -2007,6 +2007,12 @@ class PC_shop_products_site extends PC_shop_products {
 						$c['discount'] = $item['discount'];
 					if( $item['items_left'] !== null )
 						$c['items_left'] = $item['items_left'];
+					if( $item['info_1'] !== '' )
+						$c['info_1'] = $item['info_1'];
+					if( $item['info_2'] !== '' )
+						$c['info_2'] = $item['info_2'];
+					if( $item['info_3'] !== '' )
+						$c['info_3'] = $item['info_3'];
 				}
 				else {
 					$d['combinations'][$group][$val] = $item;

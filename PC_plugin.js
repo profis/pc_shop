@@ -1295,6 +1295,7 @@ Plugin.attributes.Grid = {
 				if (w._price) {
 					rec.set('price', w._price.getValue());
 					rec.set('price_diff', w._price_diff.getValue());
+					rec.set('items_left', w._items_left.getValue());
 					rec.set('discount', w._discount.getValue());
 					rec.set('items_left', w._items_left.getValue());
 					rec.set('info_1', w._info_1.getValue());
