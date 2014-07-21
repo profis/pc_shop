@@ -1,78 +1,105 @@
-$(document).ready(function(){
-	
-	function updateCart($this, $type){
-		var del_parent = $this.parent().parent();
-		$this = $this.parent().parent().parent();
-		if ($type == 'plus' || $type == 'minus') {
-			$this = $this.parent();
+var PC_shop_cart = {
+	update: function($object, type){
+		$this = $object.closest('[key]');
+		var $quantity = $this.find("input.cart_quantity");
+		var key = $this.attr("key");
+
+		var requestType = type;
+		var requestData = {};
+
+		if( typeof(requestType) == 'string' ) {
+			var quantity = parseInt($quantity.val());
+			if( isNaN(quantity) || quantity < 1 )
+				quantity = 1;
+			var url = PC_base_url + "api/plugin/pc_shop/cart/";
+			if (requestType == "plus") url += "addAt/" + key + "/1";
+			else if (requestType == "minus") url += "remove/" + key + "/1";
+			else if (requestType == "set") url += "set/" + key + "/" + quantity;
+			else if (requestType == "remove") url += "remove/" + key;
 		}
-		if ($type == 'remove') {
-			$this = del_parent;
+		else if( typeof(requestType) == 'object' ) {
+			url = requestType.url;
+			requestData = requestType.data;
 		}
-		var $key = $this.attr("key");
-		//var $vnt_price = $this.attr("vnt_price");
-		var $quantity = $this.find("input.cart_quantity").val();
-		
-		var url = PC_base_url + "api/plugin/pc_shop/cart/";
-		
-		if ($type == "plus") url += "addAt/"+$key+"/1";
-		else if ($type == "minus") url += "remove/"+$key+"/1";
-		else if ($type == "set") url += "set/"+$key+"/"+$quantity;
-		else if ($type == "remove") url += "remove/"+$key;			
-			
+		else
+			return;
+
+		$this.trigger('cartbusy');
+
 		$.ajax({
-			"url": url,
+			url: url,
+			data: requestData,
+			type: 'post',
+			dataType: 'json',
 			success: function(data) {
-				if (data.success > 0){
-					$this.find("input.cart_quantity").val(data.success);
-				} else {
-					$this.remove();
+				$this.trigger('cartdone');
+
+				if( typeof(requestType) == 'string' ) {
+					if( requestType == 'remove')
+						$this.remove();
+					else if( requestType == 'set' ) {
+						if( parseInt(data.success) != parseInt($quantity.val()) )
+							$quantity.val(data.success);
+					}
 				}
-				
+				else if( typeof(requestType) == 'object' ) {
+					if( typeof(requestType.success) == 'function' )
+						requestType.success.call($this, data, requestType);
+				}
+
 				if (data.item){
-					$this.find("span.price_val").text(data.item.totalPrice);
+					$this.find("span.price_val").text(format("### ### ##0,00", data.item.totalPrice));
+					$this.find(".total_price_val").text(format("### ### ##0,00", data.item.totalPrice));
 				}
-				
-				
-				var $tprice = format( "###0,00", data.totalPrice);
-				var $dprice = format( "###0,00", data.delivery_price);
-				var $fprice = format( "###0,00", data.full_price);
 
-				$("#tprice").text($tprice);
-				$("#dprice").text($dprice);
-				$("#fprice").text($fprice);
+				$("#cqty, #cart_item_count").text(data.total);
+				$('#cart_total_quantity').text(data.totalQuantity);
 
-				$("#ctprice").text($tprice);
-				$("#cdprice").text($dprice);
-				$("#cfprice").text($fprice);
+				var tprice = format("### ### ##0,00", data.totalPrice);
+				var dprice = format("### ### ##0,00", data.delivery_price);
+				var fprice = format("### ### ##0,00", data.order_full_price); // full_price or order_full_price?
 
-				//alert(JSON.stringify(data, null, 2));
+				$("#tprice").text(tprice);
+				$("#dprice").text(dprice);
+				$("#fprice").text(fprice);
 
-				$("#cqty").text(data.total);
-				
+				$("#ctprice").text(tprice);
+				$("#cdprice").text(dprice);
+				$("#cfprice").text(fprice);
+
+				if( typeof(data.discounts) == 'object' )
+					$('#promo_discount').text(format("### ### ##0,00", -data.discounts.coupon));
+
 				if (data.totalPrice > 0){
-					
+
 				} else {
 					$("table.cart").remove();
 					$("#cart_prices").remove();
 					$(".empty_cart").show();
-				
+				}
+			},
+			error: function() {
+				$this.trigger('cartdone');
+				if( typeof(requestType) == 'object' ) {
+					if( typeof(requestType.error) == 'function' )
+						requestType.error.call($this, requestType);
 				}
 			}
-		});				
+		});
 	}
-	
+};
+
+$(document).ready(function(){
 	$('.btn.plus').click(function(){
-		updateCart($(this), "plus");
+		PC_shop_cart.update($(this), "plus");
 	});
 	$('.btn.minus').click(function(){
-		updateCart($(this), "minus");
+		PC_shop_cart.update($(this), "minus");
 	});
 	$('.del_from_cart').click(function(){
-		updateCart($(this), "remove");
+		PC_shop_cart.update($(this), "remove");
 	});
 	$('.cart_quantity').change(function(){
-		updateCart($(this), "set");
+		PC_shop_cart.update($(this), "set");
 	});
-	
 });

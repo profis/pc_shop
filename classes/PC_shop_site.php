@@ -1912,7 +1912,7 @@ class PC_shop_products_site extends PC_shop_products {
 					IF(avc.value IS NULL, t.value, avc.value) AS value, IF(avc2.value IS NULL, ia2.value, avc2.value) AS value2, IF(avc3.value IS NULL, ia3.value, avc3.value) AS value3,
 					p.price, p.price_diff, p.discount, p.items_left, p.info_1, p.info_2, p.info_3
 				',
-				'where' => 't.item_id = ? AND t.level=1',
+				'where' => 't.item_id = ? AND t.level=1 AND (t.flags & ' . PC_shop_attributes::ITEM_IS_PRODUCT . ') = ' . PC_shop_attributes::ITEM_IS_PRODUCT,
 				'query_params' => array(
 					$this->site->ln,
 					$this->site->ln,
@@ -1924,8 +1924,8 @@ class PC_shop_products_site extends PC_shop_products {
 				),
 				'order' => 'a.position, av.position, a2.position, av2.position, a3.position, av3.position',
 				'join' => "
-					LEFT JOIN {$this->db_prefix}shop_item_attributes ia2 ON ia2.id = t.next_attribute_id
-					LEFT JOIN {$this->db_prefix}shop_item_attributes ia3 ON ia3.id = ia2.next_attribute_id
+					LEFT JOIN {$this->db_prefix}shop_item_attributes ia2 ON ia2.id = t.next_attribute_id AND (ia2.flags & " . PC_shop_attributes::ITEM_IS_PRODUCT . ") = " . PC_shop_attributes::ITEM_IS_PRODUCT . "
+					LEFT JOIN {$this->db_prefix}shop_item_attributes ia3 ON ia3.id = ia2.next_attribute_id AND (ia3.flags & " . PC_shop_attributes::ITEM_IS_PRODUCT . ") = " . PC_shop_attributes::ITEM_IS_PRODUCT . "
 					LEFT JOIN {$this->db_prefix}shop_attributes a ON a.id = t.attribute_id
 					LEFT JOIN {$this->db_prefix}shop_attributes a2 ON a2.id = ia2.attribute_id
 					LEFT JOIN {$this->db_prefix}shop_attributes a3 ON a3.id = ia3.attribute_id

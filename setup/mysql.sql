@@ -327,6 +327,10 @@ CREATE TABLE IF NOT EXISTS `{prefix}shop_item_attributes` (
   KEY `item_id` (`item_id`)
 ) ENGINE=MyISAM  DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
+ALTER TABLE  `{prefix}shop_item_attributes`
+	ADD `next_attribute_id` INT(11) UNSIGNED NULL DEFAULT NULL AFTER `position`,
+	ADD `level` SMALLINT(6) NOT NULL DEFAULT 1 AFTER `next_attribute_id`;
+
 -- --------------------------------------------------------
 
 -- 
@@ -540,6 +544,14 @@ CREATE TABLE IF NOT EXISTS `{prefix}shop_product_prices` (
   UNIQUE KEY `product_id` (`product_id`,`quantity`,`c_id`,`attribute_id`,`attribute_value_id`,`attribute_item_id`)
 ) ENGINE=MyISAM  DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
+ALTER TABLE  `{prefix}shop_product_prices`
+	ADD `items_left` MEDIUMINT(8) UNSIGNED NULL DEFAULT NULL AFTER `discount`;
+
+ALTER TABLE `{prefix}shop_product_prices`
+	CHANGE `info_1` `info_1` TEXT CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
+	CHANGE `info_2` `info_2` TEXT CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
+	CHANGE `info_3` `info_3` TEXT CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL;
+
 -- --------------------------------------------------------
 
 -- 
@@ -586,6 +598,9 @@ CREATE TABLE IF NOT EXISTS `{prefix}shop_products` (
   KEY `category_id` (`category_id`,`position`,`manufacturer_id`,`flags`)
 ) ENGINE=MyISAM  DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
+ALTER TABLE  `{prefix}shop_products`
+	ADD `is_not_quantitive` TINYINT( 1 ) NOT NULL DEFAULT  '0' AFTER  `mpn`;
+
 -- --------------------------------------------------------
 
 -- 
@@ -602,12 +617,6 @@ CREATE TABLE IF NOT EXISTS `{prefix}shop_resources` (
   UNIQUE KEY `item_id` (`item_id`,`file_id`,`flags`),
   KEY `position` (`position`)
 ) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
-
-
-ALTER TABLE  `pc_shop_products` ADD  `is_not_quantitive` TINYINT( 1 ) NOT NULL DEFAULT  '0' AFTER  `mpn`;
-
-ALTER TABLE  `pc_shop_product_prices` ADD  `items_left` MEDIUMINT( 8 ) UNSIGNED NULL DEFAULT NULL  AFTER  `discount`;
-
 
 -- 
 -- Dumping data for table `{prefix}variables`
