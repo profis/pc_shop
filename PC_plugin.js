@@ -40,7 +40,7 @@ PC.utils.localize('mod.'+ Plugin.Name, {
 		discount: 'Discount',
 		attributes: 'Attributes',
 		attributes_labels: {
-			'info_1': '',
+			'info_1': 'Image',
 			'info_2': '',
 			'info_3': ''
 		},
@@ -127,7 +127,7 @@ PC.utils.localize('mod.'+ Plugin.Name, {
 		discount: 'Nuolaida',
 		attributes: 'Atributai',
 		attributes_labels: {
-			'info_1': '',
+			'info_1': 'Paveikslas',
 			'info_2': '',
 			'info_3': ''
 		},
@@ -215,7 +215,7 @@ PC.utils.localize('mod.'+ Plugin.Name, {
 		discount: 'Скидка',
 		attributes: 'Атрибуты',
 		attributes_labels: {
-			'info_1': '',
+			'info_1': 'Изображение',
 			'info_2': '',
 			'info_3': ''
 		},
@@ -1027,6 +1027,7 @@ Plugin.attributes.Grid = {
 		var items = [];
 		var initialValue = (isCustom?rec.data.value:rec.data.value_id);
 		var initialValueIsSelected = (initialValue != null && initialValue != '');
+		var thisObj = this;
 		if (isCustom) {
 			items.push(
 				{	fieldLabel: 'Enter value',
@@ -1224,10 +1225,26 @@ Plugin.attributes.Grid = {
 					ref: '_items_left',
 					value: rec.data.items_left
 				},
-				{	xtype: 'textfield',
+				{	xtype: 'trigger',
 					fieldLabel: Plugin.ln.attributes_labels.info_1,
 					ref: '_info_1',
-					value: rec.data.info_1
+					value: rec.data.info_1,
+					triggerClass: 'x-form-search-trigger',
+					onTriggerClick: function() {
+						var field = this;
+						var params = {
+							callee: 'image',
+							save_fn: function(url, rec, callback, params){
+								field.setValue(url);
+								callback();
+							}
+						};
+						var src = w._info_1.getValue();
+						if (/^gallery\//.test(src)) {
+							params.select_id = src.substring(src.lastIndexOf('/')+1);
+						}
+						PC.dialog.gallery.show(params);
+					}
 				},
 				{	xtype: 'textfield',
 					fieldLabel: Plugin.ln.attributes_labels.info_2,
