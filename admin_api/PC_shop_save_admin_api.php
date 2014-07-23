@@ -87,9 +87,6 @@ class PC_shop_save_admin_api extends PC_shop_admin_api {
 	public function product() {
 		$this->_check_category_access($this->d['category_id']);
 		$params = array();
-		if (isset($this->d['manufacturer'])) {
-			$this->d['manufacturer_id'] = $this->d['manufacturer'];
-		}
 		$this->shop->attributes->absorb_debug_settings($this->shop->products);
 		if ($this->d['id'] == 0) {
 			$s = $this->shop->products->Create($this->d['category_id'], 0, $this->d, $params);
@@ -115,7 +112,6 @@ class PC_shop_save_admin_api extends PC_shop_admin_api {
 					$this->debug($hook_object->get_debug_string(), 2);
 				}
 			}
-	
 		}
 
 		$this->debug('Debug from attributes:', 1);
@@ -126,11 +122,9 @@ class PC_shop_save_admin_api extends PC_shop_admin_api {
 			return;
 		}
 		$this->_out['data'] = $this->shop->products->Get($this->d['id']);
-		$this->_out['data']['manufacturer'] = $this->_out['data']['manufacturer_id'];
 		$this->_out['data']['resources'] = $this->shop->resources->Get_parsed(null, $this->d['id']);
 		$this->_out['success'] = true;
 	}
-	
 }
 
 ?>

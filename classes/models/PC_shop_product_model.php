@@ -149,7 +149,7 @@ class PC_shop_product_model extends PC_model {
 		$price_data['price'] = $price;
 		$price_data['full_price'] = $full_price;
 		$price_data['discount'] = $discount;
-		$price_data['percentage_discount'] = $discount * 100 / $price;
+		$price_data['percentage_discount'] = ($price > 0) ? ($discount * 100 / $price) : 0;
 		$price_data['attributes_info'] = $attributes_info;
 		$price_data['attributes_string'] = implode('; ', $attributes_strings);
 		$price_data['attribute_values'] = $attribute_values_strings;

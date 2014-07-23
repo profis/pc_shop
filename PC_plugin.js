@@ -3250,7 +3250,6 @@ PC.editors.Register(Plugin.Name, 'product', function(){
 			var shortDescription = editor._short_description._short_description;
 			if (shortDescription.rendered) c.short_description = shortDescription.getValue();
 			
-			
 			if (typeof callback == 'function') callback(true);
 		},
 		Save: function(callback) {
