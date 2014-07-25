@@ -1640,24 +1640,27 @@ class PC_shop_attributes extends PC_shop_attribute_model {
 	}
 	
 	public function Remove_from_item($id=null, $itemId=null, $itemType=self::ITEM_IS_PRODUCT) {
-		$queryParams = $where = array();
+		$queryParams = $where = $whereDis = array();
 		if (!is_null($id)) {
 			if (is_array($id)) {
 				$where[] = 'id '.$this->sql_parser->in($id);
+				$whereDis[] = 'a.id '.$this->sql_parser->in($id);
 				$queryParams = array_merge($queryParams, $id);
 			}
 			else {
 				$where[] = 'id=?';
+				$whereDis[] = 'a.id=?';
 				$queryParams[] = $id;
 			}
 		}
 		else if (!is_null($itemId)) {
 			$where[] = 'item_id=? and flags&?=?';
+			$whereDis[] = 'a.item_id=? and (a.flags & ?)=?';
 			array_push($queryParams, $itemId, $itemType, $itemType);
 		}
         if (!count($where)) return false;
         // DELETE third attribute.
-        $r = $this->prepare("SELECT a2.next_attribute_id FROM {$this->db_prefix}shop_item_attributes a LEFT JOIN {$this->db_prefix}shop_item_attributes a2 ON a.next_attribute_id=a2.id WHERE " . implode(' and ', $where));
+        $r = $this->prepare("SELECT a2.next_attribute_id FROM {$this->db_prefix}shop_item_attributes a LEFT JOIN {$this->db_prefix}shop_item_attributes a2 ON a.next_attribute_id=a2.id WHERE " . implode(' and ', $whereDis));
         $s = $r->execute($queryParams);
         $id3 = $r->fetchColumn();
         if ($id3) {
