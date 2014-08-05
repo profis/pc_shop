@@ -81,7 +81,6 @@ class PC_shop_product_model extends PC_model {
 	
 	public function adjust_price($price, &$data, $attributes = array()) {
 		//echo 'adjust price';
-
 		$currencyId = $this->price->get_user_currency_id();
 		if( isset($data['prices'][$currencyId]) && $data['prices'][$currencyId] > 0 )
 			$price = $data['prices'][$currencyId];
@@ -93,6 +92,15 @@ class PC_shop_product_model extends PC_model {
 
 		$full_price = $price;
 
+		
+		if (v($data['percentage_discount']) and $data['percentage_discount'] > 0 and $data['percentage_discount'] < 100) {
+			$discount_percent_price = floor($full_price * ($data['percentage_discount'])) / 100;
+			if ($discount_percent_price < $price) {
+				$discount = $discount_percent_price;
+			}
+		}
+
+		
 		$price_data = array(
 			'price' => $price,
 			'full_price' => $price,
