@@ -465,8 +465,17 @@ class PC_shop_products extends PC_shop_product_model {
 	 * @var PC_shop
 	 */
 	protected $shop;
-	const PF_DEFAULT = 0x1, PF_PUBLISHED = 0x1,
-	PF_IS_PRODUCT_GROUP = 0x2, PF_PARENT_IS_PRODUCT = 0x4, PF_HOT = 0x8, PF_NOMENU = 0x16, PF_ROUTE_LOCK = 0x32;
+
+	// For those who don't understand: product flag constants are given in HEXADECIMAL numbers, NOT IN DECIMAL!
+	// Next numbers will be: 0x40, 0x80, 0x100, 0x200, 0x400, 0x800, 0x1000, ...
+	const PF_DEFAULT = 0x1;
+	const PF_PUBLISHED = 0x1;
+	const PF_IS_PRODUCT_GROUP = 0x2;
+	const PF_PARENT_IS_PRODUCT = 0x4;
+	const PF_HOT = 0x8;
+	const PF_NOMENU = 0x10;
+	const PF_ROUTE_LOCK = 0x20;
+
 	private $flagsMap = array(
 		'hot'=> self::PF_HOT,
 		'nomenu'=> self::PF_NOMENU,
@@ -475,11 +484,11 @@ class PC_shop_products extends PC_shop_product_model {
 		'parent_is_product'=> self::PF_PARENT_IS_PRODUCT,
 		'route_lock'=> self::PF_ROUTE_LOCK
 	);
+
 	/**
-	 * 
-	 * @param PC_shop $shop
+	 * @param PC_shop $id
 	 */
-	public function Init($id = 0) {
+	public function Init($id = null) {
 		$shop = $id;
 		parent::Init();
 		$this->shop = $shop;

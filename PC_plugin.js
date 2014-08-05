@@ -990,7 +990,7 @@ var attr_columns = [
     {header: 'Attribute 2', dataIndex: 'attributeName2', width: 150},
     {header: 'Value 2', dataIndex: 'displayValue2', width: 200},
     {header: 'Attribute 3', dataIndex: 'attributeName3', width: 150},
-    {header: 'Value 3', dataIndex: 'displayValue3', width: 200},
+    {header: 'Value 3', dataIndex: 'displayValue3', width: 200}
 
 ];
 
