@@ -402,7 +402,6 @@ class PC_controller_pc_shop extends PC_controller {
 		$this->debug('Additional data:', 1);
 		$this->debug($data, 1);
 		$clear_cart = true;
-		$clear_cart = false; //For testing
 		$user_id = null;
 		global $site_users;
 		if ($site_users) {
