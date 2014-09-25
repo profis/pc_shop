@@ -1901,52 +1901,73 @@ class PC_shop_products_site extends PC_shop_products {
 			/** @var PC_shop_attribute_item_model $model */
 			$model = $this->core->Get_object('PC_shop_attribute_item_model');
 			// Do not use p.quantity, use p.items_left instead. p.quantity is supposed to be used for getting price depending on ordered quantity.
+			$select = '';
+			$join = '';
+			$order = '';
+			$queryParams = array();
+			for( $idx = 1; $idx <= PC_shop::$COMBINATION_ATTRIBUTE_COUNT; $idx++ ) {
+				$tbl = ($idx > 1) ? ('ia' . $idx) : 't';
+				$suffix = ($idx > 1) ? $idx : '';
+				$prevTbl = ($idx > 2) ? ('ia' . ($idx - 1)) : 't';
+
+				$select .= "{$tbl}.attribute_id AS attribute{$suffix}_id,";
+				$select .= "a{$suffix}.ref AS ref{$suffix},";
+				$select .= "ac{$suffix}.name AS name{$suffix},";
+				$select .= "{$tbl}.id AS ia{$suffix}_id,";
+				$select .= "{$tbl}.value_id AS value{$suffix}_id,";
+				$select .= "IF({$tbl}.value_id IS NULL, {$tbl}.id, {$tbl}.value_id) AS combined_value{$suffix}_id,";
+				$select .= "IF(avc{$suffix}.value IS NULL, {$tbl}.value, avc{$suffix}.value) AS value{$suffix},";
+
+				if( $idx > 1 )
+					$join .= " LEFT JOIN {$this->db_prefix}shop_item_attributes {$tbl} ON {$tbl}.id = {$prevTbl}.next_attribute_id AND ({$tbl}.flags & " . PC_shop_attributes::ITEM_IS_PRODUCT . ") = " . PC_shop_attributes::ITEM_IS_PRODUCT;
+				$join .= " LEFT JOIN {$this->db_prefix}shop_attributes a{$suffix} ON a{$suffix}.id = {$tbl}.attribute_id";
+				$join .= " LEFT JOIN {$this->db_prefix}shop_attribute_contents ac{$suffix} ON ac{$suffix}.attribute_id = {$tbl}.attribute_id AND ac{$suffix}.ln=?";
+				$join .= " LEFT JOIN {$this->db_prefix}shop_attribute_values av{$suffix} ON av{$suffix}.id={$tbl}.value_id";
+				$join .= " LEFT JOIN {$this->db_prefix}shop_attribute_value_contents avc{$suffix} ON avc{$suffix}.value_id={$tbl}.value_id AND avc{$suffix}.ln=?";
+
+				$order .= ",a{$suffix}.position, av{$suffix}.position";
+
+				$queryParams[] = $this->site->ln;
+				$queryParams[] = $this->site->ln;
+			}
+			$queryParams[] = $d['id'];
 			$combinations = $model->get_all(array(
-				'select' => '
-					t.attribute_id, ia2.attribute_id AS attribute2_id, ia3.attribute_id AS attribute3_id,
-					a.ref, a2.ref AS ref2, a3.ref AS ref3,
-					ac.name, ac2.name AS name2, ac3.name AS name3,
-					t.id AS ia_id, ia2.id AS ia2_id, ia3.id AS ia3_id,
-					t.value_id, ia2.value_id AS value2_id, ia3.value_id AS value3_id,
-					IF(t.value_id IS NULL, t.id, t.value_id) AS combined_value_id, IF(ia2.value_id IS NULL, ia2.id, ia2.value_id) AS combined_value2_id, IF(ia3.value_id IS NULL, ia3.id, ia3.value_id) AS combined_value3_id,
-					IF(avc.value IS NULL, t.value, avc.value) AS value, IF(avc2.value IS NULL, ia2.value, avc2.value) AS value2, IF(avc3.value IS NULL, ia3.value, avc3.value) AS value3,
+				'select' => $select . '
 					p.price, p.price_diff, p.discount, p.items_left, p.info_1, p.info_2, p.info_3
 				',
 				'where' => 't.item_id = ? AND t.level=1 AND (t.flags & ' . PC_shop_attributes::ITEM_IS_PRODUCT . ') = ' . PC_shop_attributes::ITEM_IS_PRODUCT,
-				'query_params' => array(
-					$this->site->ln,
-					$this->site->ln,
-					$this->site->ln,
-					$this->site->ln,
-					$this->site->ln,
-					$this->site->ln,
-					$d['id'],
-				),
-				'order' => 'a.position, av.position, a2.position, av2.position, a3.position, av3.position',
-				'join' => "
-					LEFT JOIN {$this->db_prefix}shop_item_attributes ia2 ON ia2.id = t.next_attribute_id AND (ia2.flags & " . PC_shop_attributes::ITEM_IS_PRODUCT . ") = " . PC_shop_attributes::ITEM_IS_PRODUCT . "
-					LEFT JOIN {$this->db_prefix}shop_item_attributes ia3 ON ia3.id = ia2.next_attribute_id AND (ia3.flags & " . PC_shop_attributes::ITEM_IS_PRODUCT . ") = " . PC_shop_attributes::ITEM_IS_PRODUCT . "
-					LEFT JOIN {$this->db_prefix}shop_attributes a ON a.id = t.attribute_id
-					LEFT JOIN {$this->db_prefix}shop_attributes a2 ON a2.id = ia2.attribute_id
-					LEFT JOIN {$this->db_prefix}shop_attributes a3 ON a3.id = ia3.attribute_id
-					LEFT JOIN {$this->db_prefix}shop_attribute_contents ac ON ac.attribute_id = t.attribute_id AND ac.ln=?
-					LEFT JOIN {$this->db_prefix}shop_attribute_contents ac2 ON ac2.attribute_id = ia2.attribute_id AND ac2.ln=?
-					LEFT JOIN {$this->db_prefix}shop_attribute_contents ac3 ON ac3.attribute_id = ia3.attribute_id AND ac3.ln=?
-					LEFT JOIN {$this->db_prefix}shop_attribute_values av ON av.id=t.value_id
-					LEFT JOIN {$this->db_prefix}shop_attribute_values av2 ON av2.id=ia2.value_id
-					LEFT JOIN {$this->db_prefix}shop_attribute_values av3 ON av3.id=ia3.value_id
-					LEFT JOIN {$this->db_prefix}shop_attribute_value_contents avc ON avc.value_id=t.value_id AND avc.ln=?
-					LEFT JOIN {$this->db_prefix}shop_attribute_value_contents avc2 ON avc2.value_id=ia2.value_id AND avc2.ln=?
-					LEFT JOIN {$this->db_prefix}shop_attribute_value_contents avc3 ON avc3.value_id=ia3.value_id AND avc3.ln=?
-					LEFT JOIN {$this->db_prefix}shop_product_prices p ON p.product_id = t.item_id AND p.attribute_id = t.attribute_id AND (p.attribute_value_id <> 0 AND p.attribute_value_id = t.value_id OR p.attribute_item_id <> 0 AND p.attribute_item_id = t.id)
-				",
+				'query_params' => $queryParams,
+				'order' => ltrim($order, ','),
+				'join' => $join . " LEFT JOIN {$this->db_prefix}shop_product_prices p ON p.product_id = t.item_id AND p.attribute_id = t.attribute_id AND (p.attribute_value_id <> 0 AND p.attribute_value_id = t.value_id OR p.attribute_item_id <> 0 AND p.attribute_item_id = t.id)",
 			));
 			foreach( $combinations as $item ) {
 				$grouping = array();
 				$val = array();
+
+				for( $idx = 1; ; $idx++ ) {
+					$suffix = ($idx > 1) ? $idx : '';
+					if( !array_key_exists('attribute' . $suffix . '_id', $item) )
+						break;
+					$attrId = $item['attribute' . $suffix . '_id'];
+					if( $idx == 1 || $attrId ) {
+						$grouping[] = $attrId;
+						$val[] = $item['combined_value' . $suffix . '_id'];
+						if( !isset($d['attributes'][$item['attribute' . $suffix . '_id']]) ) {
+							$d['attributes'][$attrId] = array(
+								'id' => $attrId,
+								'ref' => $item['ref' . $suffix],
+								'name' => $item['name' . $suffix],
+								'values' => array()
+							);
+							$d['attribute_index'][$item['ref' . $suffix]] = &$d['attributes'][$attrId];
+						}
+						$d['attributes'][$attrId]['values'][$item['combined_value' . $suffix . '_id']] = self::parseAttributeValue($item['value' . $suffix . '_id'], $item['value' . $suffix]);
+					}
+				}
+
+				/*
 				$grouping[] = $item['attribute_id'];
 				$val[] = $item['combined_value_id'];
-
 				if( !isset($d['attributes'][$item['attribute_id']]) ) {
 					$d['attributes'][$item['attribute_id']] = array(
 						'id' => $item['attribute_id'],
@@ -1987,6 +2008,8 @@ class PC_shop_products_site extends PC_shop_products {
 					}
 					$d['attributes'][$item['attribute3_id']]['values'][$item['combined_value3_id']] = self::parseAttributeValue($item['value3_id'], $item['value3']);
 				}
+				*/
+
 				$group = implode(',', $grouping);
 				$val = implode(',', $val);
 				if( !isset($d['combinations'][$group]) ) {

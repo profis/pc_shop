@@ -4,7 +4,8 @@
  * @property PC_shop_price $price
  */
 abstract class PC_shop extends PC_base {
-	
+	static $COMBINATION_ATTRIBUTE_COUNT = 1;
+
 	/**
 	 *
 	 * @var PC_shop_categories_manager
@@ -44,6 +45,8 @@ abstract class PC_shop extends PC_base {
 	final public function Init($admin=false) {
 		if ($admin || is_a($this, 'PC_shop_manager')) $clsSuffix = 'manager';
 		else $clsSuffix = 'site';
+		self::$COMBINATION_ATTRIBUTE_COUNT = max(v($this->cfg['pc_shop']['combination_attribute_count'], 1), 1);
+
 		$this->categories = $this->core->Get_object('PC_shop_categories_'.$clsSuffix, array($this));
 		$this->products = $this->core->Get_object('PC_shop_products_'.$clsSuffix, array($this));
 		$this->resources = $this->core->Get_object('PC_shop_resources'.($clsSuffix=='manager'?"_".$clsSuffix:""), array($this));
@@ -712,6 +715,14 @@ class PC_shop_resources extends PC_base {
 		}
 		return $list;
 	}
+
+	/**
+	 * @param bool $isAttachment
+	 * @param null $type
+	 * @param null $access
+	 * @return array
+	 * @deprecated
+	 */
 	public function GetOld($isAttachment=false, $type=null, $access=null/*self::RF_AL_PUBLIC*/) {
 		//...
 		$item = array(
@@ -1435,16 +1446,19 @@ class PC_shop_attributes extends PC_shop_attribute_model {
 		}
 		
 		if ($itemType == self::ITEM_IS_PRODUCT) {
-			$select .= ', pp.price, pp.price_diff, pp.discount, pp.items_left, pp.info_1, pp.info_2, pp.info_3, a2.id AS id2, a2.attribute_id AS attribute2_id, a2.value_id AS value2_id, a2.value AS value2, a3.id AS id3, a3.attribute_id AS attribute3_id, a3.value_id AS value3_id, a3.value AS value3';
+			$select .= ', pp.price, pp.price_diff, pp.discount, pp.items_left, pp.info_1, pp.info_2, pp.info_3';
 			$join .= " LEFT JOIN {$this->db_prefix}shop_product_prices pp 
 						ON pp.product_id=a.item_id AND pp.attribute_id=a.attribute_id
 						AND (
 							pp.attribute_value_id <> 0 AND pp.attribute_value_id = a.value_id 
 							OR 
 							pp.attribute_item_id <> 0 AND pp.attribute_item_id = a.id 
-						)
-						LEFT JOIN {$this->db_prefix}shop_item_attributes a2 ON a.next_attribute_id=a2.id
-						LEFT JOIN {$this->db_prefix}shop_item_attributes a3 ON a2.next_attribute_id=a3.id";
+						)";
+			for( $i = 2; $i <= PC_shop::$COMBINATION_ATTRIBUTE_COUNT; $i++ ) {
+				$psuf = ($i > 2) ? ($i - 1) : '';
+				$select .= ", a{$i}.id AS id{$i}, a{$i}.attribute_id AS attribute{$i}_id, a{$i}.value_id AS value{$i}_id, a{$i}.value AS value{$i}";
+				$join .= " LEFT JOIN {$this->db_prefix}shop_item_attributes a{$i} ON a{$psuf}.next_attribute_id=a{$i}.id";
+			}
 		}
 		
 		$query = "SELECT $select FROM {$this->db_prefix}shop_item_attributes a"
@@ -1649,80 +1663,91 @@ class PC_shop_attributes extends PC_shop_attribute_model {
 	}
 	
 	public function Remove_from_item($id=null, $itemId=null, $itemType=self::ITEM_IS_PRODUCT) {
-		$queryParams = $where = $whereDis = array();
+		$queryParams = $where = array();
 		if (!is_null($id)) {
 			if (is_array($id)) {
 				$where[] = 'id '.$this->sql_parser->in($id);
-				$whereDis[] = 'a.id '.$this->sql_parser->in($id);
 				$queryParams = array_merge($queryParams, $id);
 			}
 			else {
 				$where[] = 'id=?';
-				$whereDis[] = 'a.id=?';
 				$queryParams[] = $id;
 			}
 		}
 		else if (!is_null($itemId)) {
 			$where[] = 'item_id=? and flags&?=?';
-			$whereDis[] = 'a.item_id=? and (a.flags & ?)=?';
 			array_push($queryParams, $itemId, $itemType, $itemType);
 		}
-        if (!count($where)) return false;
-        // DELETE third attribute.
-        $r = $this->prepare("SELECT a2.next_attribute_id FROM {$this->db_prefix}shop_item_attributes a LEFT JOIN {$this->db_prefix}shop_item_attributes a2 ON a.next_attribute_id=a2.id WHERE " . implode(' and ', $whereDis));
-        $s = $r->execute($queryParams);
-        $id3 = $r->fetchColumn();
-        if ($id3) {
-            $r = $this->prepare("DELETE FROM {$this->db_prefix}shop_item_attributes WHERE id=?");
-            $s = $r->execute(array($id3));
-        }
-        // DELETE second attribute.
-        $r = $this->prepare("SELECT next_attribute_id FROM {$this->db_prefix}shop_item_attributes WHERE " . implode(' and ', $where));
-        $s = $r->execute($queryParams);
-        $id2 = $r->fetchColumn();
-        if ($id2) {
-            $r = $this->prepare("DELETE FROM {$this->db_prefix}shop_item_attributes WHERE id=?");
-            $s = $r->execute(array($id2));
-        }
-        // DELETE price.
-        $r = $this->prepare("SELECT p.id FROM {$this->db_prefix}shop_item_attributes t LEFT JOIN {$this->db_prefix}shop_product_prices p ON p.product_id = t.item_id AND p.attribute_id = t.attribute_id AND (p.attribute_value_id <> 0 AND p.attribute_value_id = t.value_id OR p.attribute_item_id <> 0 AND p.attribute_item_id = t.id) WHERE t.id = ?");
-        $s = $r->execute(array($id));
-        $idp = $r->fetchColumn();
-        if ($idp) {
-            $r = $this->prepare("DELETE FROM {$this->db_prefix}shop_product_prices WHERE id=?");
-            $s = $r->execute(array($idp));
-        }
-        // DELETE first attribute.
-        $r = $this->prepare("DELETE FROM {$this->db_prefix}shop_item_attributes WHERE " . implode(' and ', $where));
-        $s = $r->execute($queryParams);
-        return $s;
+        if (empty($where))
+			return false;
+
+		$removeIds = array();
+		$priceIdData = array();
+		$nextIdList = array();
+
+		// collect all root level attributes
+		$r = $this->prepare($q = "SELECT id, item_id, attribute_id, value_id, next_attribute_id FROM {$this->db_prefix}shop_item_attributes WHERE " . implode(' and ', $where));
+
+		if( !$r->execute($queryParams) )
+			throw new DbException($r->errorInfo(), $q, $queryParams);
+		while( $f = $r->fetch(PDO_FETCH_ASSOC) ) {
+			$removeIds[] = $f['id'];
+			if( $f['next_attribute_id'] )
+				$nextIdList[] = $f['next_attribute_id'];
+			$priceIdData[] = array(
+				'item_id' => $f['item_id'],
+				'attribute_id' => $f['attribute_id'],
+				'value_id' => $f['value_id'],
+				'id' => $f['id'],
+			);
+		}
+
+		// collect all attributes in chain with found root attributes
+		while( !empty($nextIdList) ) {
+			$removeIds = array_merge($removeIds, $nextIdList);
+			$r = $this->prepare($q = "SELECT next_attribute_id FROM {$this->db_prefix}shop_item_attributes WHERE id " . $this->sql_parser->in($nextIdList));
+			if( !$r->execute() )
+				throw new DbException($r->errorInfo(), $q);
+			$nextIdList = array();
+			while( $f = $r->fetch(PDO_FETCH_ASSOC) ) {
+				if( $f['next_attribute_id'] )
+					$nextIdList[] = $f['next_attribute_id'];
+			}
+		}
+
+		// remove all collected attributes and prices associated with attribute chains
+		if( !empty($removeIds) ) {
+			$r = $this->prepare($q = "DELETE FROM {$this->db_prefix}shop_product_prices WHERE product_id = :item_id AND attribute_id = :attribute_id AND ((attribute_value_id <> 0 AND attribute_value_id = :value_id) OR (attribute_item_id <> 0 AND attribute_item_id = :id))");
+			foreach( $priceIdData as $params ) {
+				if( !$r->execute($params) )
+					throw new DbException($r->errorInfo(), $q, $params);
+			}
+
+			$r = $this->prepare($q = "DELETE FROM {$this->db_prefix}shop_item_attributes WHERE id " . $this->sql_parser->in($removeIds));
+			if( !$r->execute() )
+				throw new DbException($r->errorInfo(), $q);
+		}
+
+		return true;
 	}
 	public function Save_for_item($itemId, $itemType=self::ITEM_IS_PRODUCT, $data, $insert = false) {
 		$this->debug("Save_for_item($itemId, $itemType)");
 		$this->debug($data);
 		if (!is_array($data)) return false;
 		if (count(v($data['save'], array()))) foreach ($data['save'] as $i) {
-            // Save third attribute.
-            if ($i['id3'] == 0) {
-                $attribute_item_id3 = $this->Assign_to_item($itemId, $itemType, $i['attribute3_id'], $i['value3_id'], $i['value3'], null, 3);
-            } else {
-                $attribute_item_id3 = $i['id3'];
-                $this->Edit_for_item($i['id3'], $i['value3_id'], $i['value3']);
-            }
-            // Save second attribute.
-            if ($i['id2'] == 0) {
-                $attribute_item_id2 = $this->Assign_to_item($itemId, $itemType, $i['attribute2_id'], $i['value2_id'], $i['value2'], $attribute_item_id3, 2);
-            } else {
-                $attribute_item_id2 = $i['id2'];
-                $this->Edit_for_item($i['id2'], $i['value2_id'], $i['value2']);
-            }
-            // Save first attribute.
-            if ($insert or $i['id'] == 0) {
-                $attribute_item_id = $this->Assign_to_item($itemId, $itemType, $i['attribute_id'], $i['value_id'], $i['value'], $attribute_item_id2);
-            } else {
-                $attribute_item_id = $i['id'];
-                $this->Edit_for_item($i['id'], $i['value_id'], $i['value']);
-            }
+
+			// Save attribute combination.
+			$prev_attribute_item_id = null;
+			for( $idx = PC_shop::$COMBINATION_ATTRIBUTE_COUNT; $idx >= 1; $idx-- ) {
+				$suffix = ($idx > 1) ? $idx : '';
+				if ($i['id' . $suffix] == 0) {
+					$prev_attribute_item_id = $this->Assign_to_item($itemId, $itemType, $i['attribute' . $suffix . '_id'], $i['value' . $suffix . '_id'], $i['value' . $suffix . ''], $prev_attribute_item_id, $idx);
+				} else {
+					$prev_attribute_item_id = $i['id' . $suffix];
+					$this->Edit_for_item($i['id' . $suffix], $i['value' . $suffix . '_id'], $i['value' . $suffix]);
+				}
+			}
+
 			if ($itemType == self::ITEM_IS_PRODUCT && (isset($i['price']) || isset($i['price_diff']))) {
 				$product_price_model = $this->core->Get_object('PC_shop_product_price_model');
 				$product_price_model->absorb_debug_settings($this);
@@ -1738,7 +1763,7 @@ class PC_shop_attributes extends PC_shop_attribute_model {
 					$key_fields = array(
 						'product_id' => $itemId,
 						'attribute_id' => $i['attribute_id'],
-						'attribute_item_id' => $attribute_item_id,
+						'attribute_item_id' => $prev_attribute_item_id,
 					);
 //				}
 
@@ -1793,10 +1818,9 @@ class PC_shop_attributes extends PC_shop_attribute_model {
 				$product_price_model->clear_debug_string();
 			}
 		}
-		if (count(v($data['remove'], array()))) foreach ($data['remove'] as $id) {
-			$this->Remove_from_item($id);
-		}
-		
+		if (count(v($data['remove'], array())))
+			$this->Remove_from_item($data['remove']);
+
 		$position = 0;
 		if (count(v($data['positions'], array()))) foreach ($data['positions'] as $id) {
 			$position++;

@@ -264,6 +264,11 @@ PC.utils.localize('mod.'+ Plugin.Name, {
 	}
 });
 
+var pc_shop_foreach_attr_idx = function(callback) {
+	for( var idx = 1; idx <= pc_shop_COMBINATION_ATTRIBUTE_COUNT; idx++ )
+		callback(idx, (idx > 1) ? idx.toString() : '');
+};
+
 var hook_params = {};
 PC.hooks.Init('plugin/pc_shop/localize', hook_params);
 if (hook_params.localize) {
@@ -868,54 +873,36 @@ Plugin.attributes.ParseAttributeName = function(id, n) {
 	if (!attributeNode) return;
 	return attributeNode.data.name;
 };
-Plugin.attributes.ParseAttributeValue = function(id, n) {
-	if (id == null) {
-		if (typeof n.data == 'object') return n.data.value;
-		return n.value;
-	}
-	if (typeof n == 'object') var attributeId = n.attribute_id;
-	else var attributeId = n;
-	var attributeNode = Plugin.attributes.Store.getById(attributeId);
-	if (!attributeNode) return;
-	if (attributeNode.data.values[id] == undefined) return;
-	return PC.utils.extractName(attributeNode.data.values[id]);
-};
-Plugin.attributes.ParseAttributeValue2 = function(id, n) {
-    if (id == null) {
-        if (typeof n.data == 'object') return n.data.value2;
-        return n.value2;
-    }
-    if (typeof n == 'object') var attributeId = n.attribute2_id;
-    else var attributeId = n;
-    var attributeNode = Plugin.attributes.Store.getById(attributeId);
-    if (!attributeNode) return;
-    if (attributeNode.data.values[id] == undefined) return;
-    return PC.utils.extractName(attributeNode.data.values[id]);
-};
-Plugin.attributes.ParseAttributeValue3 = function(id, n) {
-    if (id == null) {
-        if (typeof n.data == 'object') return n.data.value3;
-        return n.value3;
-    }
-    if (typeof n == 'object') var attributeId = n.attribute3_id;
-    else var attributeId = n;
-    var attributeNode = Plugin.attributes.Store.getById(attributeId);
-    if (!attributeNode) return;
-    if (attributeNode.data.values[id] == undefined) return;
-    return PC.utils.extractName(attributeNode.data.values[id]);
-};
+
+pc_shop_foreach_attr_idx(function(idx, suffix) {
+	Plugin.attributes['ParseAttributeValue' + suffix] = function(id, n) {
+		if (id == null) {
+			if (typeof n.data == 'object') return n.data['value' + suffix];
+			return n['value' + suffix];
+		}
+		if (typeof n == 'object') var attributeId = n['attribute' + suffix + '_id'];
+		else var attributeId = n;
+		var attributeNode = Plugin.attributes.Store.getById(attributeId);
+		if (!attributeNode) return;
+		if (attributeNode.data.values[id] == undefined) return;
+		return PC.utils.extractName(attributeNode.data.values[id]);
+	};
+});
+
+var pc_shop_attribute_store_fields = ['item_id', 'flags', 'price', 'price_diff', 'items_left', 'discount', 'info_1', 'info_2', 'info_3'];
+pc_shop_foreach_attr_idx(function(idx, suffix) {
+	pc_shop_attribute_store_fields.push(
+		'id' + suffix,
+		'attribute' + suffix + '_id',
+		'value' + suffix + '_id',
+		'value' + suffix,
+		{name: 'attributeName' + suffix, mapping: 'attribute' + suffix + '_id', convert: Plugin.attributes.ParseAttributeName},
+		{name: 'displayValue' + suffix, mapping: 'value' + suffix + '_id', convert: Plugin.attributes['ParseAttributeValue' + suffix]}
+	);
+});
 Plugin.attributes.ItemStore = new Ext.data.JsonStore({
 	url: Plugin.api.Admin +'attributes/getForItem',
-	fields: [
-		'id', 'id2', 'id3', 'item_id', 'attribute_id', 'attribute2_id', 'attribute3_id', 'flags', 'value_id', 'value2_id', 'value3_id', 'value', 'value2', 'value3', 'price', 'price_diff', 'items_left', 'discount',
-		'info_1', 'info_2', 'info_3',
-		{name: 'attributeName', mapping: 'attribute_id', convert: Plugin.attributes.ParseAttributeName},
-        {name: 'attributeName2', mapping: 'attribute2_id', convert: Plugin.attributes.ParseAttributeName},
-        {name: 'attributeName3', mapping: 'attribute3_id', convert: Plugin.attributes.ParseAttributeName},
-		{name: 'displayValue', mapping: 'value_id', convert: Plugin.attributes.ParseAttributeValue},
-		{name: 'displayValue2', mapping: 'value2_id', convert: Plugin.attributes.ParseAttributeValue2},
-		{name: 'displayValue3', mapping: 'value3_id', convert: Plugin.attributes.ParseAttributeValue3}
-	],
+	fields: pc_shop_attribute_store_fields,
 	listeners: {
 		load: function(store, records, options){
 			store.commitChanges();
@@ -936,27 +923,21 @@ Plugin.attributes.ItemStore = new Ext.data.JsonStore({
 		
 		Ext.iterate(Plugin.attributes.ItemStore.getModifiedRecords(), function(rec){
 			if (Plugin.attributes.ItemStore._deletedFields[rec.id] != undefined) return;
-			list.save.push({
-				id: rec.data.id,
-				id2: rec.data.id2,
-				id3: rec.data.id3,
-				attribute_id: rec.data.attribute_id,
-				attribute2_id: rec.data.attribute2_id,
-				attribute3_id: rec.data.attribute3_id,
-				value_id: rec.data.value_id,
-                value2_id: rec.data.value2_id,
-                value3_id: rec.data.value3_id,
-				price: rec.data.price,
+			var saveData = {price: rec.data.price,
 				price_diff: rec.data.price_diff,
 				items_left: rec.data.items_left,
 				discount: rec.data.discount,
 				info_1: rec.data.info_1,
 				info_2: rec.data.info_2,
-				info_3: rec.data.info_3,
-				value: rec.data.value,
-				value2: rec.data.value2,
-				value3: rec.data.value3
+				info_3: rec.data.info_3
+			};
+			pc_shop_foreach_attr_idx(function(idx, suffix) {
+				saveData['id' + suffix] = rec.data['id' + suffix];
+				saveData['attribute' + suffix + '_id'] = rec.data['attribute' + suffix + '_id'];
+				saveData['value' + suffix + '_id'] = rec.data['value' + suffix + '_id'];
+				saveData['value' + suffix] = rec.data['value' + suffix];
 			});
+			list.save.push(saveData);
 		});
 		Ext.iterate(Plugin.attributes.ItemStore._deletedFields, function(id, rec){
 			if (rec.data.id == 0) return;
@@ -983,16 +964,13 @@ Plugin.attributes.ItemStore = new Ext.data.JsonStore({
 	}
 });
 
-var attr_columns = [
-	//dialog.expander,
-	{header: 'Attribute', dataIndex: 'attributeName', width: 150},
-	{header: 'Value', dataIndex: 'displayValue', id: 'pc_shop_item_attribute_value_col', width: 200},
-    {header: 'Attribute 2', dataIndex: 'attributeName2', width: 150},
-    {header: 'Value 2', dataIndex: 'displayValue2', width: 200},
-    {header: 'Attribute 3', dataIndex: 'attributeName3', width: 150},
-    {header: 'Value 3', dataIndex: 'displayValue3', width: 200}
-
-];
+var attr_columns = [];
+pc_shop_foreach_attr_idx(function(idx, suffix) {
+	attr_columns.push(
+		{header: ('Attribute ' + suffix).trim(), dataIndex: 'attributeName' + suffix, width: 150},
+		{header: ('Value ' + suffix).trim(), dataIndex: 'displayValue' + suffix, id: 'pc_shop_item_attribute_value' + suffix + '_col', width: 200}
+	);
+});
 
 var hook_params = {};
 PC.hooks.Init('plugin/pc_shop/page/product/attribute_price', hook_params);
@@ -1019,188 +997,110 @@ Plugin.attributes.Grid = {
 		if (typeof cfg != 'object') var cfg = {};
 		var grid = (cfg.grid != undefined?cfg.grid:this);
 		var ev = (cfg.ev != undefined?cfg.ev:Ext.EventObject);
-		var attrRec = grid.store._getAttributeData(rec);
-		var attrRec2 = grid.store._getAttributeData(rec, 'attribute2_id');
-		var attrRec3 = grid.store._getAttributeData(rec, 'attribute3_id');
-		if (!attrRec) return false;
-		var isCustom = parseInt(attrRec.data.is_custom);
 		var items = [];
-		var initialValue = (isCustom?rec.data.value:rec.data.value_id);
-		var initialValueIsSelected = (initialValue != null && initialValue != '');
 		var thisObj = this;
-		if (isCustom) {
-			items.push(
-				{	fieldLabel: 'Enter value',
-					ref: '_value',
-					anchor: '100%',
-					value: initialValue,
-					listeners: {
-						change: function(field, value, old) {
-							if (value != '') {
-								initialValueIsSelected = true;
-								w._saveBtn.enable();
-							}
-							else {
-								w._saveBtn.disable();
-							}
-						},
-						specialkey: function(fld, e) {
-							if (e.getKey() == e.ENTER) {
-								w.Save();
+
+		//w._saveBtn.emptyFields = 0;
+
+		var valid = true;
+		pc_shop_foreach_attr_idx(function(idx, suffix) {
+			if( !valid )
+				return;
+			var attrRec = grid.store._getAttributeData(rec, 'attribute' + suffix + '_id');
+			if( !attrRec ) {
+				if( idx == 1 )
+					valid = false;
+				return;
+			}
+			var isCustom = parseInt(attrRec.data.is_custom);
+			var initialValue = (isCustom ? rec.data['value' + suffix] : rec.data['value' + suffix + '_id']);
+			// var initialValueIsSelected = (initialValue != null && initialValue != '');
+			//if( initialValue == null || initialValue == '' )
+			//	w._saveBtn.emptyFields++;
+			if (isCustom) {
+				items.push(
+					{	fieldLabel: 'Enter value',
+						ref: '_value' + suffix,
+						anchor: '100%',
+						value: initialValue,
+						listeners: {
+							change: function(field, value, old) {
+								if (value != '') {
+									//w._saveBtn.emptyFields--;
+									//if( w._saveBtn.emptyFields == 0 )
+										w._saveBtn.enable();
+								}
+								else {
+									//w._saveBtn.emptyFields++;
+									w._saveBtn.disable();
+								}
+							},
+							specialkey: function(fld, e) {
+								if (e.getKey() == e.ENTER) {
+									w.Save();
+								}
 							}
 						}
-					}
-				},
-				{	xtype: 'compositefield',
-					ref: '_suggestions',
-					hidden: true,
-					fieldLabel: 'Suggestions',
-					items: [
-						{xtype: 'textfield', hidden: true},
-						{xtype: 'label', ref: '_list', text: '-', style: 'margin-top:3px;padding-bottom:3px;'}
-					]
-				}
-			);
-		}
-		else {
-			var storeData = [];
-			Ext.iterate(attrRec.data.values_order, function(value_order, index){
-				var value = attrRec.data.values[value_order];
-				storeData.push([value_order, Ext.util.Format.stripTags(PC.utils.extractName(value))]);
-			});
-            var storeData2 = [];
-            if(attrRec2) {
-                Ext.iterate(attrRec2.data.values_order, function(value_order, index){
-                    var value = attrRec2.data.values[value_order];
-                    storeData2.push([value_order, Ext.util.Format.stripTags(PC.utils.extractName(value))]);
-                });
-            }
-            var storeData3 = [];
-            if(attrRec3) {
-                Ext.iterate(attrRec3.data.values_order, function(value_order, index){
-                    var value = attrRec3.data.values[value_order];
-                    storeData3.push([value_order, Ext.util.Format.stripTags(PC.utils.extractName(value))]);
-                });
-            }
-			/*
-			Ext.iterate(attrRec.data.values, function(id, value){
-				storeData.push([id, Ext.util.Format.stripTags(PC.utils.extractName(value))]);
-			});
-			*/
-			items.push(
-				{	fieldLabel: 'Value 1',
-					xtype: 'combo',
-					ref: '_value_id',
-					anchor: '100%',
-					mode: 'local',
-					store: {
-						xtype: 'arraystore',
-						fields: ['id', 'name'],
-						idIndex: 0,
-						data: storeData
 					},
-					displayField: 'name',
-					valueField: 'id',
-					value: rec.data.value_id,
-					editable: false,
-					forceSelection: true,
-					triggerAction: 'all',
-					listeners: {
-						change: function(field, value, old) {
-							if (value != '') {
-								initialValueIsSelected = true;
-								w._saveBtn.enable();
-							}
+					{	xtype: 'compositefield', // this might not be needed
+						ref: '_suggestions' + suffix,
+						hidden: true,
+						fieldLabel: 'Suggestions',
+						items: [
+							{xtype: 'textfield', hidden: true},
+							{xtype: 'label', ref: '_list', text: '-', style: 'margin-top:3px;padding-bottom:3px;'}
+						]
+					}
+				);
+			}
+			else {
+				var storeData = [];
+				Ext.iterate(attrRec.data.values_order, function(value_order, index){
+					var value = attrRec.data.values[value_order];
+					storeData.push([value_order, Ext.util.Format.stripTags(PC.utils.extractName(value))]);
+				});
+				items.push(
+					{	fieldLabel: 'Value ' + idx,
+						xtype: 'combo',
+						ref: '_value' + suffix + '_id',
+						anchor: '100%',
+						mode: 'local',
+						store: {
+							xtype: 'arraystore',
+							fields: ['id', 'name'],
+							idIndex: 0,
+							data: storeData
 						},
-						specialkey: function(fld, e) {
-							if (e.getKey() == e.ENTER) {
-								w.Save();
+						displayField: 'name',
+						valueField: 'id',
+						value: rec.data['value' + suffix + '_id'],
+						editable: false,
+						forceSelection: true,
+						triggerAction: 'all',
+						listeners: {
+							change: function(field, value, old) {
+								if (value != '') {
+									//w._saveBtn.emptyFields--;
+									//if( w._saveBtn.emptyFields == 0 )
+										w._saveBtn.enable();
+								}
+							},
+							specialkey: function(fld, e) {
+								if (e.getKey() == e.ENTER) {
+									w.Save();
+								}
+							},
+							select: function(field, record, index) {
+								field.fireEvent('change', field, record.data.id);
 							}
-						},
-						select: function(field, record, index) {
-							field.fireEvent('change', field, record.data.id);
 						}
 					}
-				}
-			);
-            if (attrRec2) {
-                items.push(
-                    {    fieldLabel: 'Value 2',
-                        xtype: 'combo',
-                        ref: '_value2_id',
-                        anchor: '100%',
-                        mode: 'local',
-                        store: {
-                            xtype: 'arraystore',
-                            fields: ['id', 'name'],
-                            idIndex: 0,
-                            data: storeData2
-                        },
-                        displayField: 'name',
-                        valueField: 'id',
-                        value: rec.data.value2_id,
-                        editable: false,
-                        forceSelection: true,
-                        triggerAction: 'all',
-                        listeners: {
-                            change: function (field, value, old) {
-                                if (value != '') {
-                                    initialValueIsSelected = true;
-                                    w._saveBtn.enable();
-                                }
-                            },
-                            specialkey: function (fld, e) {
-                                if (e.getKey() == e.ENTER) {
-                                    w.Save();
-                                }
-                            },
-                            select: function (field, record, index) {
-                                field.fireEvent('change', field, record.data.id);
-                            }
-                        }
-                    }
-                );
-            }
-            if (attrRec3) {
-                items.push(
-                    {    fieldLabel: 'Value 3',
-                        xtype: 'combo',
-                        ref: '_value3_id',
-                        anchor: '100%',
-                        mode: 'local',
-                        store: {
-                            xtype: 'arraystore',
-                            fields: ['id', 'name'],
-                            idIndex: 0,
-                            data: storeData3
-                        },
-                        displayField: 'name',
-                        valueField: 'id',
-                        value: rec.data.value3_id,
-                        editable: false,
-                        forceSelection: true,
-                        triggerAction: 'all',
-                        listeners: {
-                            change: function (field, value, old) {
-                                if (value != '') {
-                                    initialValueIsSelected = true;
-                                    w._saveBtn.enable();
-                                }
-                            },
-                            specialkey: function (fld, e) {
-                                if (e.getKey() == e.ENTER) {
-                                    w.Save();
-                                }
-                            },
-                            select: function (field, record, index) {
-                                field.fireEvent('change', field, record.data.id);
-                            }
-                        }
-                    }
-                );
-            }
-        }
-		
+				);
+			}
+		});
+		if( !valid )
+			return false;
+
 		var hook_params = {};
 		PC.hooks.Init('plugin/pc_shop/page/product/attribute_price', hook_params);
 
@@ -1261,7 +1161,7 @@ Plugin.attributes.Grid = {
 		
 		
 		var windowCfg = {
-			title: (isCustom?'Editing':'Choose') +' value for "'+ attrRec.data.nameClean +'"',
+			title: 'Editing',
 			layout: 'form',
 			labelWidth: 70,
 			labelAlign: 'right',
@@ -1275,40 +1175,24 @@ Plugin.attributes.Grid = {
 			pageX: ev.getPageX(),
 			pageY: ev.getPageY(),
 			Save: function(){
-				if (isCustom) {
-					rec.set('value_id', null);
-					rec.set('value', w._value.getValue());
-					rec.set('displayValue', Plugin.attributes.ParseAttributeValue(null, rec));
-                    if (w._value2_id) {
-                        rec.set('value2_id', null);
-                        rec.set('value2', w._value2.getValue());
-                        rec.set('displayValue2', Plugin.attributes.ParseAttributeValue2(null, rec));
-                    }
-                    if (w._value3_id) {
-                        rec.set('value3_id', null);
-                        rec.set('value3', w._value3.getValue());
-                        rec.set('displayValue3', Plugin.attributes.ParseAttributeValue3(null, rec));
-                    }
-				}
-				else {
+				pc_shop_foreach_attr_idx(function(idx, suffix) {
+					if( idx > 1 && !w['_value' + suffix + '_id'] )
+						return;
+					var attrRec = grid.store._getAttributeData(rec, 'attribute' + suffix + '_id');
+					var isCustom = parseInt(attrRec.data.is_custom);
+					if( isCustom ) {
+						rec.set('value' + suffix + '_id', null);
+						rec.set('value' + suffix, w['_value' + suffix].getvalue());
+						rec.set('displayValue' + suffix, Plugin.attributes['ParseAttributeValue' + suffix](null, rec));
+					}
+					else {
+						var newId = w['_value' + suffix + '_id'].getValue();
+						rec.set('value' + suffix + '_id', newId);
+						rec.set('value' + suffix, '');
+						rec.set('displayValue' + suffix, Plugin.attributes['ParseAttributeValue' + suffix](newId, rec.data['attribute' + suffix + '_id']));
+					}
+				});
 
-					var newId = w._value_id.getValue();
-  					rec.set('value_id', newId);
-					rec.set('value', '');
-					rec.set('displayValue', Plugin.attributes.ParseAttributeValue(newId, rec.data.attribute_id));
-                    if (w._value2_id) {
-                        var newId2 = w._value2_id.getValue();
-                        rec.set('value2_id', newId2);
-                        rec.set('value2', '');
-                        rec.set('displayValue2', Plugin.attributes.ParseAttributeValue2(newId2, rec.data.attribute2_id));
-                    }
-                    if (w._value3_id) {
-                        var newId3 = w._value3_id.getValue();
-                        rec.set('value3_id', newId3);
-                        rec.set('value3', '');
-                        rec.set('displayValue3', Plugin.attributes.ParseAttributeValue3(newId3, rec.data.attribute3_id));
-                    }
-				}
 				if (w._price) {
 					rec.set('price', w._price.getValue());
 					rec.set('price_diff', w._price_diff.getValue());
@@ -1339,40 +1223,46 @@ Plugin.attributes.Grid = {
 			],
 			listeners: {
 				afterrender: function(w){
-					if (isCustom) {
-						Ext.Ajax.request({
-							url: Plugin.api.Admin +'attributes/getSuggestions',
-							method: 'POST',
-							params: {attributeId: attrRec.data.id},
-							success: function(result){
-								var data = Ext.util.JSON.decode(result.responseText);
-								if (data) {
-									if (typeof data == 'object') {
-										var options = [];
-										Ext.iterate(data, function(i) {
-											if (i == rec.data.value) return;
-											options.push('<a class="pc_shop_attribute_value_suggestion" href="#">'+ i +'</a>');
-										});
-										if (options.length) w._suggestions.innerCt._list.setText(options.join(', '), false);
-										var els = Ext.query('a.pc_shop_attribute_value_suggestion', w._suggestions.innerCt._list.el.dom);
-										if (els.length) {
-											Ext.iterate(els, function(el){
-												var extEl = Ext.get(el);
-												extEl.on('click', function(ev, el){
-													var oldValue = w._value.getValue();
-													w._value.setValue(el.innerHTML);
-													w._value.fireEvent('change', w._value, el.innerHTML, oldValue);
-												});
+					pc_shop_foreach_attr_idx(function(idx, suffix) {
+						var attrRec = grid.store._getAttributeData(rec, 'attribute' + suffix + '_id');
+						if( !attrRec )
+							return;
+						var isCustom = parseInt(attrRec.data.is_custom);
+						if (isCustom) {
+							Ext.Ajax.request({
+								url: Plugin.api.Admin +'attributes/getSuggestions',
+								method: 'POST',
+								params: {attributeId: attrRec.data.id},
+								success: function(result){
+									var data = Ext.util.JSON.decode(result.responseText);
+									if (data) {
+										if (typeof data == 'object') {
+											var options = [];
+											Ext.iterate(data, function(i) {
+												if (i == rec.data['value' + suffix]) return;
+												options.push('<a class="pc_shop_attribute_value_suggestion" href="#">'+ i +'</a>');
 											});
-											w._suggestions.show();
-											return true;
+											if (options.length) w['_suggestions' + suffix].innerCt._list.setText(options.join(', '), false);
+											var els = Ext.query('a.pc_shop_attribute_value_suggestion', w['_suggestions' + suffix].innerCt._list.el.dom);
+											if (els.length) {
+												Ext.iterate(els, function(el){
+													var extEl = Ext.get(el);
+													extEl.on('click', function(ev, el){
+														var oldValue = w['_value' + suffix].getValue();
+														w['_value' + suffix].setValue(el.innerHTML);
+														w['_value' + suffix].fireEvent('change', w['_value' + suffix], el.innerHTML, oldValue);
+													});
+												});
+												w['_suggestions' + suffix].show();
+												return true;
+											}
 										}
+										return true;
 									}
-									return true;
 								}
-							}
-						});
-					}
+							});
+						}
+					});
 				}
 			}
 		};
@@ -1474,113 +1364,42 @@ Plugin.attributes.Grid = {
 			text: 'Attributes',
 			style:'margin:0 2px;'
 		},
-		{	xtype: 'combo', mode: 'local',
-			ref: '../_attribute_id',
-			store: Plugin.attributes.Store,
-			valueField: 'id',
-			displayField: 'nameClean',
-			triggerAction: 'all',
-            width: 100,
-			//tpl: '<tpl for="."><div class="x-combo-list-item">{'+ this.displayField +'}</div></tpl>',
-			tpl: '<tpl for="."><div class="x-combo-list-item">{[PC.utils.extractName(values.names)]}</div></tpl>',
-			editable: false,
-			listeners: {
-				change: function(field, value, ovalue) {},
-				select: function(cb, rec, idx) {
-					cb.fireEvent('change', cb, cb.value, cb.originalValue);
-				},
-				expand: function(field){
-					Plugin.attributes.Store.filter('is_category_attribute', (PC.editors.Current[1]=='category'?'1':'0'));
-				}
+		// Attribute selectors are inserted at this point later (position 7).
+		{
+			xtype: 'button',
+			icon: 'images/clear_cache.png',
+			handler : function() {
+				pc_shop_foreach_attr_idx(function(idx, suffix) {
+					var cc = Ext.getCmp('attr' + suffix + '-combo');
+					cc.reset();
+				});
 			}
 		},
-        {	xtype: 'combo', mode: 'local',
-            id: 'attr2-combo',
-            ref: '../_attribute2_id',
-            store: Plugin.attributes.Store,
-            valueField: 'id',
-            displayField: 'nameClean',
-            triggerAction: 'all',
-            width: 100,
-            tpl: '<tpl for="."><div class="x-combo-list-item">{[PC.utils.extractName(values.names)]}</div></tpl>',
-            editable: false,
-            listeners: {
-                change: function(field, value, ovalue) {},
-                select: function(cb, rec, idx) {
-                    cb.fireEvent('change', cb, cb.value, cb.originalValue);
-                },
-                expand: function(field){
-                    Plugin.attributes.Store.filter('is_category_attribute', (PC.editors.Current[1]=='category'?'1':'0'));
-                }
-            }
-        },
-        {
-            xtype: 'button',
-            icon: 'images/clear_cache.png',
-            handler : function() {
-                var cc = Ext.getCmp('attr2-combo');
-                cc.reset();
-            }
-        },
-        {	xtype: 'combo', mode: 'local',
-            id: 'attr3-combo',
-            ref: '../_attribute3_id',
-            store: Plugin.attributes.Store,
-            valueField: 'id',
-            displayField: 'nameClean',
-            triggerAction: 'all',
-            width: 100,
-            tpl: '<tpl for="."><div class="x-combo-list-item">{[PC.utils.extractName(values.names)]}</div></tpl>',
-            editable: false,
-            listeners: {
-                change: function(field, value, ovalue) {},
-                select: function(cb, rec, idx) {
-                    cb.fireEvent('change', cb, cb.value, cb.originalValue);
-                },
-                expand: function(field){
-                    Plugin.attributes.Store.filter('is_category_attribute', (PC.editors.Current[1]=='category'?'1':'0'));
-                }
-            }
-        },
-        {
-            xtype: 'button',
-            icon: 'images/clear_cache.png',
-            handler : function() {
-                var cc = Ext.getCmp('attr3-combo');
-                cc.reset();
-            }
-        },
         '-',
 		{	icon: 'images/add.png', text: PC.i18n.add,// text: Plugin.ln.addAttribute,
 			handler: function(){
-				var attField = PC.editors.Get().attributesGrid._attribute_id;
-				var attField2 = PC.editors.Get().attributesGrid._attribute2_id;
-				var attField3 = PC.editors.Get().attributesGrid._attribute3_id;
-				var id = attField.getValue();
-				var id2 = attField2.getValue();
-				var id3 = attField3.getValue();
-				var rec = attField.store.getById(id);
-				var rec2 = attField2.store.getById(id2);
-				var rec3 = attField3.store.getById(id3);
-				if (!rec) return;
-				var gridRec = new Plugin.attributes.ItemStore.recordType({
-					id: 0,
-					id2: 0,
-					id3: 0,
-					//item_id: rec.data.,
-					attribute_id: id,
-					attribute2_id: id2,
-					attribute3_id: id3,
-					value_id: null,
-					value2_id: null,
-					value3_id: null,
-					value: null,
-					value2: null,
-					value3: null
+				var gridFields = {};
+				var valid = false;
+				pc_shop_foreach_attr_idx(function(idx, suffix) {
+					var field = PC.editors.Get().attributesGrid['_attribute' + suffix + '_id'];
+					var id = field.getValue();
+					if( !field.store.getById(id) )
+						return;
+					gridFields['id' + suffix] = 0;
+					gridFields['attribute' + suffix + '_id'] = id;
+					gridFields['value' + suffix + '_id'] = null;
+					gridFields['value' + suffix] = null;
+					valid = true;
 				});
-				gridRec.set('attributeName', Plugin.attributes.ParseAttributeName(id, gridRec));
-				gridRec.set('attributeName2', Plugin.attributes.ParseAttributeName(id2, gridRec));
-				gridRec.set('attributeName3', Plugin.attributes.ParseAttributeName(id3, gridRec));
+				if( !valid )
+					return;
+
+				var gridRec = new Plugin.attributes.ItemStore.recordType(gridFields);
+
+				pc_shop_foreach_attr_idx(function(idx, suffix) {
+					gridRec.set('attributeName' + suffix, Plugin.attributes.ParseAttributeName(gridFields['attribute' + suffix + '_id'], gridRec));
+				});
+
 				gridRec.markDirty();
 				Plugin.attributes.ItemStore.add(gridRec);
 				//init edit
@@ -1634,6 +1453,34 @@ Plugin.attributes.Grid = {
 		*/
 	]
 };
+
+// fill in toolbar with attribute field chain
+var attribute_toolbar_offset = 7;
+pc_shop_foreach_attr_idx(function(idx, suffix) {
+	Plugin.attributes.Grid.tbar.splice(attribute_toolbar_offset++, 0, {
+		xtype: 'combo',
+		mode: 'local',
+		id: 'attr' + suffix + '-combo',
+		ref: '../_attribute' + suffix + '_id',
+		store: Plugin.attributes.Store,
+		valueField: 'id',
+		displayField: 'nameClean',
+		triggerAction: 'all',
+		width: 100,
+		tpl: '<tpl for="."><div class="x-combo-list-item">{[PC.utils.extractName(values.names)]}</div></tpl>',
+		editable: false,
+		listeners: {
+			change: function(field, value, ovalue) {},
+			select: function(cb, rec, idx) {
+				cb.fireEvent('change', cb, cb.value, cb.originalValue);
+			},
+			expand: function(field){
+				Plugin.attributes.Store.filter('is_category_attribute', (PC.editors.Current[1]=='category'?'1':'0'));
+			}
+		}
+	});
+});
+
 Plugin.attributes.Load = function(type, itemId){
 	var ed = PC.editors.Get();
 	ed.attributesGrid.store.setBaseParam('type', type);
