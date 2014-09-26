@@ -1687,10 +1687,9 @@ class PC_shop_attributes extends PC_shop_attribute_model {
 
 		// collect all root level attributes
 		$r = $this->prepare($q = "SELECT id, item_id, attribute_id, value_id, next_attribute_id FROM {$this->db_prefix}shop_item_attributes WHERE " . implode(' and ', $where));
-
 		if( !$r->execute($queryParams) )
 			throw new DbException($r->errorInfo(), $q, $queryParams);
-		while( $f = $r->fetch(PDO_FETCH_ASSOC) ) {
+		while( $f = $r->fetch() ) {
 			$removeIds[] = $f['id'];
 			if( $f['next_attribute_id'] )
 				$nextIdList[] = $f['next_attribute_id'];
@@ -1706,10 +1705,10 @@ class PC_shop_attributes extends PC_shop_attribute_model {
 		while( !empty($nextIdList) ) {
 			$removeIds = array_merge($removeIds, $nextIdList);
 			$r = $this->prepare($q = "SELECT next_attribute_id FROM {$this->db_prefix}shop_item_attributes WHERE id " . $this->sql_parser->in($nextIdList));
-			if( !$r->execute() )
+			if( !$r->execute($nextIdList) )
 				throw new DbException($r->errorInfo(), $q);
 			$nextIdList = array();
-			while( $f = $r->fetch(PDO_FETCH_ASSOC) ) {
+			while( $f = $r->fetch() ) {
 				if( $f['next_attribute_id'] )
 					$nextIdList[] = $f['next_attribute_id'];
 			}
@@ -1724,7 +1723,7 @@ class PC_shop_attributes extends PC_shop_attribute_model {
 			}
 
 			$r = $this->prepare($q = "DELETE FROM {$this->db_prefix}shop_item_attributes WHERE id " . $this->sql_parser->in($removeIds));
-			if( !$r->execute() )
+			if( !$r->execute($removeIds) )
 				throw new DbException($r->errorInfo(), $q);
 		}
 
