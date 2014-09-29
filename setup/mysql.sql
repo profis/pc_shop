@@ -323,13 +323,11 @@ CREATE TABLE IF NOT EXISTS `{prefix}shop_item_attributes` (
   `value_id` int(10) unsigned DEFAULT NULL,
   `value` varchar(255) COLLATE utf8_unicode_ci DEFAULT NULL,
   `position` smallint(5) unsigned NOT NULL DEFAULT '0',
+  `next_attribute_id` INT(11) UNSIGNED NULL DEFAULT NULL,
+  `level` SMALLINT(6) NOT NULL DEFAULT 1,
   PRIMARY KEY (`id`),
   KEY `item_id` (`item_id`)
 ) ENGINE=MyISAM  DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
-
-ALTER TABLE  `{prefix}shop_item_attributes`
-	ADD `next_attribute_id` INT(11) UNSIGNED NULL DEFAULT NULL AFTER `position`,
-	ADD `level` SMALLINT(6) NOT NULL DEFAULT 1 AFTER `next_attribute_id`;
 
 -- --------------------------------------------------------
 
@@ -532,25 +530,18 @@ CREATE TABLE IF NOT EXISTS `{prefix}shop_product_prices` (
   `price` decimal(15,2) unsigned NOT NULL,
   `price_diff` decimal(10,2) NOT NULL DEFAULT '0.00',
   `discount` decimal(10,2) unsigned DEFAULT NULL,
+  `items_left` MEDIUMINT(8) UNSIGNED NULL DEFAULT NULL,
   `quantity` mediumint(8) unsigned NOT NULL DEFAULT '0',
   `c_id` int(11) unsigned NOT NULL DEFAULT '0',
   `attribute_id` int(10) NOT NULL DEFAULT '0',
   `attribute_value_id` int(10) NOT NULL DEFAULT '0',
   `attribute_item_id` int(10) NOT NULL DEFAULT '0',
-  `info_1` varchar(20) COLLATE utf8_unicode_ci NOT NULL,
-  `info_2` varchar(40) COLLATE utf8_unicode_ci NOT NULL,
-  `info_3` varchar(80) COLLATE utf8_unicode_ci NOT NULL,
+  `info_1` TEXT COLLATE utf8_unicode_ci NOT NULL,
+  `info_2` TEXT COLLATE utf8_unicode_ci NOT NULL,
+  `info_3` TEXT COLLATE utf8_unicode_ci NOT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `product_id` (`product_id`,`quantity`,`c_id`,`attribute_id`,`attribute_value_id`,`attribute_item_id`)
 ) ENGINE=MyISAM  DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
-
-ALTER TABLE  `{prefix}shop_product_prices`
-	ADD `items_left` MEDIUMINT(8) UNSIGNED NULL DEFAULT NULL AFTER `discount`;
-
-ALTER TABLE `{prefix}shop_product_prices`
-	CHANGE `info_1` `info_1` TEXT CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
-	CHANGE `info_2` `info_2` TEXT CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
-	CHANGE `info_3` `info_3` TEXT CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL;
 
 -- --------------------------------------------------------
 
@@ -579,6 +570,7 @@ CREATE TABLE IF NOT EXISTS `{prefix}shop_products` (
   `external_id` varchar(255) COLLATE utf8_unicode_ci DEFAULT NULL,
   `manufacturer_id` smallint(5) unsigned NOT NULL,
   `mpn` varchar(255) COLLATE utf8_unicode_ci NOT NULL,
+  `is_not_quantitive` TINYINT(1) NOT NULL DEFAULT 0,
   `quantity` mediumint(8) unsigned NOT NULL,
   `flags` smallint(5) unsigned NOT NULL,
   `warranty` tinyint(3) unsigned NOT NULL,
@@ -597,9 +589,6 @@ CREATE TABLE IF NOT EXISTS `{prefix}shop_products` (
   UNIQUE KEY `external_id` (`external_id`),
   KEY `category_id` (`category_id`,`position`,`manufacturer_id`,`flags`)
 ) ENGINE=MyISAM  DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
-
-ALTER TABLE  `{prefix}shop_products`
-	ADD `is_not_quantitive` TINYINT( 1 ) NOT NULL DEFAULT  '0' AFTER  `mpn`;
 
 -- --------------------------------------------------------
 
@@ -889,3 +878,4 @@ INSERT IGNORE INTO `{prefix}variables` (`vkey`, `controller`, `site`, `ln`, `val
 ('manufacturer', 'pc_shop', 0, 'en', 'Manufacturer'),
 ('manufacturer', 'pc_shop', 0, 'ru', 'Производитель');
 
+INSERT IGNORE INTO `{prefix}db_version` (`plugin`, `version`) VALUES('pc_shop', '1.6.0');
