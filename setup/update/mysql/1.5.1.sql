@@ -1,4 +1,4 @@
-CREATE TABLE IF NOT EXISTS `{prefix}shop_attributes_categories` (
+CREATE TABLE `{prefix}shop_attributes_categories` (
   `id` int(10) NOT NULL AUTO_INCREMENT,
   `attribute_id` int(10) NOT NULL,
   `category_id` smallint(5) NOT NULL,
@@ -16,4 +16,4 @@ ALTER TABLE `{prefix}shop_order_items`
 	CHANGE `price` `price` DECIMAL(15,2) UNSIGNED NOT NULL;
 
 ALTER TABLE `{prefix}shop_attribute_values`
-	ADD `position` `position` SMALLINT(5) UNSIGNED NOT NULL DEFAULT 0 AFTER `attribute_id`;
+	ADD `position` SMALLINT(5) UNSIGNED NOT NULL DEFAULT 0 AFTER `attribute_id`;

@@ -1,4 +1,4 @@
-CREATE TABLE IF NOT EXISTS `{prefix}shop_category_products` (
+CREATE TABLE `{prefix}shop_category_products` (
   `id` int(10) NOT NULL AUTO_INCREMENT,
   `category_id` int(10) NOT NULL,
   `product_id` int(10) NOT NULL,
