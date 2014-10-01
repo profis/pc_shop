@@ -562,13 +562,13 @@ final class PC_shop_plugin extends PC_base {
 					array_push($routes, $cat['route']);
 					array_push($bounds, $cat['rgt']);
 
-					$route = implode('/', $routes);
+					$route = implode('/', $routes) . '/';
 					$map->addURL($baseUrls[$cat['ln']] . $route);
 					$categoryId = $cat['id'];
 				}
 
 				if( $cat['product_route'] )
-					$map->addURL($baseUrls[$cat['ln']] . $route . '/' . $cat['product_route'], 'weekly', 0.6);
+					$map->addURL($baseUrls[$cat['ln']] . $route . $cat['product_route'] . '/', 'weekly', 0.6);
 			}
 		}
 	}
