@@ -1,4 +1,6 @@
 <?php
+use \Profis\CMS\SiteMap;
+
 final class PC_shop_plugin extends PC_base {
 	public $shop;
 	public function Init($plugin_name) {
@@ -16,7 +18,7 @@ final class PC_shop_plugin extends PC_base {
 		return $this->shop;
 	}
 	public static function ParseID($id) {
-		$s = preg_match("#^(([a-z0-9\-_]*)/)?([0-9]+)$#im", $id, $m);
+		$s = preg_match("#^(([a-z0-9\\-_]*)/)?([0-9]+)$#im", $id, $m);
 		if (!$s) return false;
 		return array(
 			'type'=> $m[2],
@@ -515,5 +517,59 @@ final class PC_shop_plugin extends PC_base {
 		
 		$this->site->Register_data('pc_shop_highlight_cart', $highlight_cart);
 	}
-	
+
+	public function generateSiteMap($params) {
+		global $page, $site, $db;
+		/** @var \Profis\CMS\SiteMap $map */
+		$map = $params['map'];
+		$pageId = $params['pageId'];
+
+		$s = $db->prepare($q = "SELECT lft,rgt FROM `{$this->db_prefix}shop_categories` WHERE `pid`=:pageId");
+		if( !$s->execute($p = array('pageId' => $pageId)) )
+			throw new \DbException($s->errorInfo(), $q, $p);
+		$where = array();
+		$queryParams = array();
+		while( $row = $s->fetch() ) {
+			$where[] = 'c.lft BETWEEN ? AND ?';
+			$queryParams[] = $row['lft'];
+			$queryParams[] = $row['rgt'];
+		}
+
+		if( !empty($where) ) {
+			$baseUrls = array();
+			foreach( $params['languages'] as $lng )
+				$baseUrls[$lng] = $page->Get_page_link_by_id($pageId, $lng);
+
+			$s = $db->prepare($q = "SELECT c.id, c.lft, c.rgt, cc.ln, cc.route, pc.route AS product_route FROM `{$this->db_prefix}shop_categories` c INNER JOIN `{$this->db_prefix}shop_category_contents` cc ON cc.category_id=c.id AND cc.route != '' LEFT JOIN `{$this->db_prefix}shop_products` p ON p.category_id=c.id LEFT JOIN `{$this->db_prefix}shop_product_contents` pc ON pc.product_id=p.id AND pc.route != '' AND pc.ln = cc.ln WHERE " . implode(' OR ', $where) . " ORDER BY cc.ln, c.lft");
+			if( !$s->execute($queryParams) )
+				throw new \DbException($s->errorInfo(), $q, $queryParams);
+
+			$lng = null;
+			$categoryId = null;
+			$route = null;
+			while( $cat = $s->fetch() ) {
+				if( $lng != $cat['ln'] ) {
+					$routes = array();
+					$bounds = array();
+					$lng = $cat['ln'];
+				}
+
+				if( $categoryId != $cat['id'] ) {
+					while( !empty($bounds) && end($bounds) < $cat['lft'] ) {
+						array_pop($routes);
+						array_pop($bounds);
+					}
+					array_push($routes, $cat['route']);
+					array_push($bounds, $cat['rgt']);
+
+					$route = implode('/', $routes);
+					$map->addURL($baseUrls[$cat['ln']] . $route);
+					$categoryId = $cat['id'];
+				}
+
+				if( $cat['product_route'] )
+					$map->addURL($baseUrls[$cat['ln']] . $route . '/' . $cat['product_route'], 'weekly', 0.6);
+			}
+		}
+	}
 }

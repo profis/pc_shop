@@ -93,6 +93,8 @@ $core->Register_hook('core/site/request-from-permalink', array($pluginCls, 'Get_
 
 $core->Register_hook('after_load_page', array($pluginCls, 'After_page_load'));
 
+$core->Register_hook('sitemap.generate.pc_shop', array($pluginCls, 'generateSiteMap'));
+
 $this->auth->permissions->Register($this->currentlyParsing, 'categories', 'PC_shop_permission_manager::Authorize_by_pid');
 
 
