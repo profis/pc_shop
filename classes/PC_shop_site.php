@@ -16,7 +16,7 @@ class PC_shop_categories_site extends PC_shop_categories {
 	/**
 	 * 
 	 * @param array $category_data
-	 * return Array of parents' id's
+	 * @return int[] Array of parents' id's
 	 */
 	public function Get_all_parents(&$category_data) {
 		$this->debug("Get_all_parents({$category_data['id']})");
@@ -2120,12 +2120,14 @@ class PC_shop_products_site extends PC_shop_products {
 			$select[] = 'pp.items_left';
 
 			$where[] = '((ia1.attribute_id,ia1.value_id) IN ' . $in . ' OR (ia1.attribute_id,ia1.id) IN ' . $in . ')';
-			$where[] = '(ia2.value_id IS NULL OR (ia2.attribute_id,ia2.value_id) IN ' . $in . ' OR (ia2.attribute_id,ia2.id) IN ' . $in . ')';
-			$where[] = '(ia3.value_id IS NULL OR (ia3.attribute_id,ia3.value_id) IN ' . $in . ' OR (ia3.attribute_id,ia3.id) IN ' . $in . ')';
-
 			$join[] = "INNER JOIN {$this->db_prefix}shop_item_attributes ia1 ON ia1.item_id=t.id AND (ia1.flags & 2) = 2 AND ia1.level = 1";
-			$join[] = "LEFT JOIN {$this->db_prefix}shop_item_attributes ia2 ON ia2.id=ia1.next_attribute_id";
-			$join[] = "LEFT JOIN {$this->db_prefix}shop_item_attributes ia3 ON ia3.id=ia2.next_attribute_id";
+
+			for( $i = 2; $i <= PC_shop::$COMBINATION_ATTRIBUTE_COUNT; $i++ ) {
+				$j = $i - 1;
+				$where[] = "(ia{$i}.value_id IS NULL OR (ia{$i}.attribute_id,ia{$i}.value_id) IN {$in} OR (ia{$i}.attribute_id,ia{$i}.id) IN {$in})";
+				$join[] = "LEFT JOIN {$this->db_prefix}shop_item_attributes ia{$i} ON ia{$i}.id=ia{$j}.next_attribute_id";
+			}
+
 			$join[] = "INNER JOIN {$this->db_prefix}shop_product_prices pp ON pp.product_id = t.id AND ((pp.attribute_id = ia1.attribute_id AND pp.attribute_value_id = ia1.value_id AND pp.attribute_item_id = 0) OR pp.attribute_item_id=ia1.id)";
 
 			$order = 'ia1.position DESC';
