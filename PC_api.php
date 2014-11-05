@@ -1,4 +1,10 @@
 <?php
+/**
+ * @var PC_core $core
+ * @var PC_site $site
+ * @var PC_database $db
+ * @var PC_routes $routes
+ */
 header('Content-Type: application/json');
 header('Cache-Control: no-cache');
 $out = array();
@@ -109,7 +115,7 @@ function process_api_for_cart($route = '') {
 }
 
 function process_api_for_order() {
-	global $core, $cfg, $routes;
+	global $core, $site, $cfg, $routes;
 	$out = array();
 	$shop = $core->Get_object('PC_shop_site');
 	/* @var $shop PC_shop_site */
@@ -123,11 +129,30 @@ function process_api_for_order() {
 			$out['order'] = $shop->orders->Get_preserved_order_data();
 			break;
 		case 'save':
-			$shop->orders->Preserve_order_data();
+			$prevOrder = $shop->orders->Get_preserved_order_data();
+			if( isset($_REQUEST['order']) && is_array($_REQUEST['order']) )
+				$order = array_merge($prevOrder, $_REQUEST['order']);
+			else
+				$order = $prevOrder;
+			$deliveryOption = v($order['delivery_option']);
+			if( $deliveryOption && $deliveryOption == v($prevOrder['delivery_option']) ) {
+				if( isset($_REQUEST['delivery_form_data']) ) {
+					if( !isset($order['delivery_form_data']) )
+						$order['delivery_form_data'] = array();
+					$order['delivery_form_data'][$deliveryOption] = $_REQUEST['delivery_form_data'];
+					$shop->orders->Preserve_order_data($order);
+				}
+			}
+			$shop->orders->Preserve_order_data($order);
+
 			$out = process_api_for_cart('get');
+			$out['delivery_form'] = $site->Get_widget_text('PC_plugin_pc_shop_delivery_form_widget');
+
 			if (isset($_GET['temp']) == 'temp') {
 				$shop->orders->Clear_preserved_order_data();
 			}
+
+			//$core->Init_callback()
 			break;
 	}
 

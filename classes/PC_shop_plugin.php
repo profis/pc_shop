@@ -1,5 +1,6 @@
 <?php
 use \Profis\CMS\SiteMap;
+use \Profis\Db\DbException;
 
 final class PC_shop_plugin extends PC_base {
 	public $shop;
@@ -526,7 +527,7 @@ final class PC_shop_plugin extends PC_base {
 
 		$s = $db->prepare($q = "SELECT lft,rgt FROM `{$this->db_prefix}shop_categories` WHERE `pid`=:pageId");
 		if( !$s->execute($p = array('pageId' => $pageId)) )
-			throw new \DbException($s->errorInfo(), $q, $p);
+			throw new DbException($s->errorInfo(), $q, $p);
 		$where = array();
 		$queryParams = array();
 		while( $row = $s->fetch() ) {
@@ -542,7 +543,7 @@ final class PC_shop_plugin extends PC_base {
 
 			$s = $db->prepare($q = "SELECT c.id, c.lft, c.rgt, cc.ln, cc.route, pc.route AS product_route FROM `{$this->db_prefix}shop_categories` c INNER JOIN `{$this->db_prefix}shop_category_contents` cc ON cc.category_id=c.id AND cc.route != '' LEFT JOIN `{$this->db_prefix}shop_products` p ON p.category_id=c.id LEFT JOIN `{$this->db_prefix}shop_product_contents` pc ON pc.product_id=p.id AND pc.route != '' AND pc.ln = cc.ln WHERE " . implode(' OR ', $where) . " ORDER BY cc.ln, c.lft");
 			if( !$s->execute($queryParams) )
-				throw new \DbException($s->errorInfo(), $q, $queryParams);
+				throw new DbException($s->errorInfo(), $q, $queryParams);
 
 			$lng = null;
 			$categoryId = null;

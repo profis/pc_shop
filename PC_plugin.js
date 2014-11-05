@@ -44,6 +44,14 @@ PC.utils.localize('mod.'+ Plugin.Name, {
 			'info_2': '',
 			'info_3': ''
 		},
+		weight: 'Weight',
+		volume: 'Volume',
+		length: 'Length',
+		width: 'Width',
+		height: 'Height',
+		kilogramms: 'kg',
+		millimeters: 'mm',
+		cubic_meters: 'm³',
 		manufacturer: 'Manufacturer',
 		mpn: 'Manufacturer product number (MPN)',
 		quantity: 'Quantity',
@@ -131,6 +139,14 @@ PC.utils.localize('mod.'+ Plugin.Name, {
 			'info_2': '',
 			'info_3': ''
 		},
+		weight: 'Svoris',
+		volume: 'Tūris',
+		length: 'Ilgis',
+		width: 'Plotis',
+		height: 'Aukštis',
+		kilogramms: 'kg',
+		millimeters: 'mm',
+		cubic_meters: 'm³',
 		manufacturer: 'Gamintojas',
 		mpn: 'Gamintojo kodas (MPN)',
 		quantity: 'Kiekis',
@@ -219,6 +235,14 @@ PC.utils.localize('mod.'+ Plugin.Name, {
 			'info_2': '',
 			'info_3': ''
 		},
+		weight: 'Вес',
+		volume: 'Обьём',
+		length: 'Длинна',
+		width: 'Ширина',
+		height: 'Высота',
+		kilogramms: 'кг',
+		millimeters: 'мм',
+		cubic_meters: 'м³',
 		manufacturer: 'Производитель',
 		mpn: 'Производственный код (MPN)',
 		quantity: 'Кол-во',
@@ -889,7 +913,7 @@ pc_shop_foreach_attr_idx(function(idx, suffix) {
 	};
 });
 
-var pc_shop_attribute_store_fields = ['item_id', 'flags', 'price', 'price_diff', 'items_left', 'discount', 'info_1', 'info_2', 'info_3'];
+var pc_shop_attribute_store_fields = ['item_id', 'flags', 'price', 'price_diff', 'items_left', 'discount', 'info_1', 'info_2', 'info_3', 'weight', 'volume', 'length', 'width', 'height'];
 pc_shop_foreach_attr_idx(function(idx, suffix) {
 	pc_shop_attribute_store_fields.push(
 		'id' + suffix,
@@ -929,7 +953,12 @@ Plugin.attributes.ItemStore = new Ext.data.JsonStore({
 				discount: rec.data.discount,
 				info_1: rec.data.info_1,
 				info_2: rec.data.info_2,
-				info_3: rec.data.info_3
+				info_3: rec.data.info_3,
+				weight: rec.data.weight,
+				volume: rec.data.volume,
+				length: rec.data.length,
+				width: rec.data.width,
+				height: rec.data.height
 			};
 			pc_shop_foreach_attr_idx(function(idx, suffix) {
 				saveData['id' + suffix] = rec.data['id' + suffix];
@@ -980,6 +1009,11 @@ if (!hook_params.disabled) {
 		{header: 'Price difference', dataIndex: 'price_diff'},
 		{header: 'Discount', dataIndex: 'discount'},
 		{header: 'Quantity (items left)', dataIndex: 'items_left'},
+		{header: Plugin.ln.weight + ' (' + Plugin.ln.kilogramms + ')', dataIndex: 'weight'},
+		{header: Plugin.ln.volume + ' (' + Plugin.ln.cubic_meters + ')', dataIndex: 'volume'},
+		{header: Plugin.ln.length + ' (' + Plugin.ln.millimeters + ')', dataIndex: 'length'},
+		{header: Plugin.ln.width + ' (' + Plugin.ln.millimeters + ')', dataIndex: 'width'},
+		{header: Plugin.ln.height + ' (' + Plugin.ln.millimeters + ')', dataIndex: 'height'},
 		{header: Plugin.ln.attributes_labels.info_1, dataIndex: 'info_1'},
 		{header: Plugin.ln.attributes_labels.info_2, dataIndex: 'info_2'},
 		{header: Plugin.ln.attributes_labels.info_3, dataIndex: 'info_3'}
@@ -1125,6 +1159,46 @@ Plugin.attributes.Grid = {
 					ref: '_items_left',
 					value: rec.data.items_left
 				},
+				{	xtype: 'numberfield',
+					fieldLabel: Plugin.ln.weight + ' (' + Plugin.ln.kilogramms + ')',
+					ref: '_weight',
+					value: rec.data.weight,
+					allowBlank: true,
+					allowNegative: false,
+					decimalPrecision: 3
+				},
+				{	xtype: 'numberfield',
+					fieldLabel: Plugin.ln.volume + ' (' + Plugin.ln.cubic_meters + ')',
+					ref: '_volume',
+					value: rec.data.volume,
+					allowBlank: true,
+					allowNegative: false,
+					decimalPrecision: 9
+				},
+				{	xtype: 'numberfield',
+					fieldLabel: Plugin.ln.length + ' (' + Plugin.ln.millimeters + ')',
+					ref: '_length',
+					value: rec.data.length,
+					allowBlank: true,
+					allowNegative: false,
+					allowDecimals: false
+				},
+				{	xtype: 'numberfield',
+					fieldLabel: Plugin.ln.width + ' (' + Plugin.ln.millimeters + ')',
+					ref: '_width',
+					value: rec.data.width,
+					allowBlank: true,
+					allowNegative: false,
+					allowDecimals: false
+				},
+				{	xtype: 'numberfield',
+					fieldLabel: Plugin.ln.height + ' (' + Plugin.ln.millimeters + ')',
+					ref: '_height',
+					value: rec.data.height,
+					allowBlank: true,
+					allowNegative: false,
+					allowDecimals: false
+				},
 				{	xtype: 'trigger',
 					fieldLabel: Plugin.ln.attributes_labels.info_1,
 					ref: '_info_1',
@@ -1155,7 +1229,7 @@ Plugin.attributes.Grid = {
 					fieldLabel: Plugin.ln.attributes_labels.info_3,
 					ref: '_info_3',
 					value: rec.data.info_3
-				}	
+				}
 			);
 		}
 		
@@ -1182,7 +1256,7 @@ Plugin.attributes.Grid = {
 					var isCustom = parseInt(attrRec.data.is_custom);
 					if( isCustom ) {
 						rec.set('value' + suffix + '_id', null);
-						rec.set('value' + suffix, w['_value' + suffix].getvalue());
+						rec.set('value' + suffix, w['_value' + suffix].getValue());
 						rec.set('displayValue' + suffix, Plugin.attributes['ParseAttributeValue' + suffix](null, rec));
 					}
 					else {
@@ -1202,6 +1276,11 @@ Plugin.attributes.Grid = {
 					rec.set('info_1', w._info_1.getValue());
 					rec.set('info_2', w._info_2.getValue());
 					rec.set('info_3', w._info_3.getValue());
+					rec.set('weight', w._weight.getValue());
+					rec.set('volume', w._volume.getValue());
+					rec.set('length', w._length.getValue());
+					rec.set('width', w._width.getValue());
+					rec.set('height', w._height.getValue());
 				}
 				w.close();
 			},
@@ -1602,6 +1681,11 @@ Plugin.view_factory = {
 				
 				},
 				{ref: '_mpn', fieldLabel: Plugin.ln.mpn, xtype: 'textfield'},
+				{ref: '_weight', fieldLabel: Plugin.ln.weight + ' (' + Plugin.ln.kilogramms + ')', xtype: 'numberfield', allowBlank: true, allowNegative: false, decimalPrecision: 3},
+				{ref: '_volume', fieldLabel: Plugin.ln.volume + ' (' + Plugin.ln.cubic_meters + ')', xtype: 'numberfield', allowBlank: true, allowNegative: false, decimalPrecision: 9},
+				{ref: '_length', fieldLabel: Plugin.ln.length + ' (' + Plugin.ln.millimeters + ')', xtype: 'numberfield', allowBlank: true, allowNegative: false, allowDecimals: false},
+				{ref: '_width', fieldLabel: Plugin.ln.width + ' (' + Plugin.ln.millimeters + ')', xtype: 'numberfield', allowBlank: true, allowNegative: false, allowDecimals: false},
+				{ref: '_height', fieldLabel: Plugin.ln.height + ' (' + Plugin.ln.millimeters + ')', xtype: 'numberfield', allowBlank: true, allowNegative: false, allowDecimals: false},
 				{ref: '_quantity', fieldLabel: Plugin.ln.quantity, xtype: 'numberfield'},
 				{ref: '_warranty', fieldLabel: Plugin.ln.warranty, xtype: 'numberfield'},
 				{ref: '_price', fieldLabel: Plugin.ln.price + ' (' + PC.plugin.pc_shop.base_currency + ')', xtype: 'numberfield', id: 'pc_shop_price_in_base_currency'},
@@ -2968,6 +3052,11 @@ PC.editors.Register(Plugin.Name, 'product', function(){
 				editor._properties._external_id,
 				editor._properties._manufacturer,
 				editor._properties._mpn,
+				editor._properties._weight,
+				editor._properties._volume,
+				editor._properties._length,
+				editor._properties._width,
+				editor._properties._height,
 				editor._properties._price,
 				editor._properties._discount,
 				editor._properties._percentage_discount,
@@ -3051,6 +3140,11 @@ PC.editors.Register(Plugin.Name, 'product', function(){
 				editor._properties._external_id.setValue(data.external_id);
 				editor._properties._manufacturer.setValue(data.manufacturer_id);
 				editor._properties._mpn.setValue(data.mpn);
+				editor._properties._weight.setValue(data.weight);
+				editor._properties._volume.setValue(data.volume);
+				editor._properties._length.setValue(data.length);
+				editor._properties._width.setValue(data.width);
+				editor._properties._height.setValue(data.height);
 				editor._properties._price.setValue(data.price);
 				editor._properties._discount.setValue(data.discount);
 				editor._properties._percentage_discount.setValue(data.percentage_discount);
@@ -3072,6 +3166,11 @@ PC.editors.Register(Plugin.Name, 'product', function(){
 			d.external_id = editor._properties._external_id.getValue();
 			d.manufacturer_id = editor._properties._manufacturer.getValue();
 			d.mpn = editor._properties._mpn.getValue();
+			d.weight = editor._properties._weight.getValue();
+			d.volume = editor._properties._volume.getValue();
+			d.length = editor._properties._length.getValue();
+			d.width = editor._properties._width.getValue();
+			d.height = editor._properties._height.getValue();
 			d.price = editor._properties._price.getValue();
 			d.prices = editor._properties._prices.getValue();
 			d.discount = editor._properties._discount.getValue();

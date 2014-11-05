@@ -146,7 +146,7 @@ CREATE TABLE IF NOT EXISTS `{prefix}shop_categories` (
   KEY `parent_id` (`parent_id`,`lft`,`rgt`,`flags`),
   KEY `lft` (`lft`),
   KEY `rgt` (`rgt`)
-) ENGINE=MyISAM  DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
 -- --------------------------------------------------------
 
@@ -167,7 +167,7 @@ CREATE TABLE IF NOT EXISTS `{prefix}shop_category_contents` (
   `permalink` varchar(255) COLLATE utf8_unicode_ci NOT NULL,
   PRIMARY KEY (`category_id`,`ln`),
   KEY `route` (`route`)
-) ENGINE=MyISAM DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
 -- --------------------------------------------------------
 
@@ -327,7 +327,7 @@ CREATE TABLE IF NOT EXISTS `{prefix}shop_item_attributes` (
   `level` SMALLINT(6) NOT NULL DEFAULT 1,
   PRIMARY KEY (`id`),
   KEY `item_id` (`item_id`)
-) ENGINE=MyISAM  DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
 -- --------------------------------------------------------
 
@@ -356,7 +356,7 @@ CREATE TABLE IF NOT EXISTS `{prefix}shop_manufacturers` (
   `name` varchar(255) COLLATE utf8_unicode_ci NOT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `name` (`name`)
-) ENGINE=MyISAM  DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
 -- --------------------------------------------------------
 
@@ -416,7 +416,7 @@ CREATE TABLE IF NOT EXISTS `{prefix}shop_orders` (
   `data` text COLLATE utf8_unicode_ci NOT NULL,
   `token` varchar(100) COLLATE utf8_unicode_ci NOT NULL,
   `transaction_id` varchar(100) COLLATE utf8_unicode_ci NOT NULL,
-  KEY `id` (`id`)
+  PRIMARY KEY (`id`)
 ) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
 -- --------------------------------------------------------
@@ -498,10 +498,8 @@ CREATE TABLE IF NOT EXISTS `{prefix}shop_product_contents` (
   `seo_keywords` text COLLATE utf8_unicode_ci NOT NULL,
   `route` varchar(255) COLLATE utf8_unicode_ci NOT NULL,
   PRIMARY KEY (`product_id`,`ln`),
-  KEY `route` (`route`),
-  FULLTEXT KEY `name` (`name`),
-  FULLTEXT KEY `description` (`description`)
-) ENGINE=MyISAM DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+  KEY `route` (`route`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
 -- --------------------------------------------------------
 
@@ -539,9 +537,14 @@ CREATE TABLE IF NOT EXISTS `{prefix}shop_product_prices` (
   `info_1` TEXT COLLATE utf8_unicode_ci NOT NULL,
   `info_2` TEXT COLLATE utf8_unicode_ci NOT NULL,
   `info_3` TEXT COLLATE utf8_unicode_ci NOT NULL,
+  `weight` DECIMAL(9,3) UNSIGNED NULL DEFAULT NULL,
+  `volume` DECIMAL(18,9) UNSIGNED NULL DEFAULT NULL,
+  `length` INT(10) UNSIGNED NULL DEFAULT NULL,
+  `width` INT(10) UNSIGNED NULL DEFAULT NULL,
+  `height` INT(10) UNSIGNED NULL DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `product_id` (`product_id`,`quantity`,`c_id`,`attribute_id`,`attribute_value_id`,`attribute_item_id`)
-) ENGINE=MyISAM  DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
 -- --------------------------------------------------------
 
@@ -585,10 +588,15 @@ CREATE TABLE IF NOT EXISTS `{prefix}shop_products` (
   `info_1` varchar(10) COLLATE utf8_unicode_ci NOT NULL,
   `info_2` varchar(80) COLLATE utf8_unicode_ci NOT NULL,
   `info_3` varchar(255) COLLATE utf8_unicode_ci NOT NULL,
+  `weight` DECIMAL(9,3) UNSIGNED NULL DEFAULT NULL,
+  `volume` DECIMAL(18,9) UNSIGNED NULL DEFAULT NULL,
+  `length` INT(10) UNSIGNED NULL DEFAULT NULL,
+  `width` INT(10) UNSIGNED NULL DEFAULT NULL,
+  `height` INT(10) UNSIGNED NULL DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `external_id` (`external_id`),
   KEY `category_id` (`category_id`,`position`,`manufacturer_id`,`flags`)
-) ENGINE=MyISAM  DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
 -- --------------------------------------------------------
 
@@ -854,6 +862,10 @@ INSERT IGNORE INTO `{prefix}variables` (`vkey`, `controller`, `site`, `ln`, `val
 ('order_success_summary', 'pc_shop', 0, 'en', 'The information about the order was sent to your email.'),
 ('order_success_summary', 'pc_shop', 0, 'ru', 'Данные о заказе высланы на вашу эл. почту.'),
 
+('order_total_exceeds_cod_limit', 'pc_shop', 0, 'lt', 'Užsakymo suma viršija maksimalią sumą, kurią galima sumokėti kurjeriui pristačius užsakymą.'),
+('order_total_exceeds_cod_limit', 'pc_shop', 0, 'en', 'Order total exceeds "cash on delivery" limit.'),
+('order_total_exceeds_cod_limit', 'pc_shop', 0, 'ru', 'Сумма заказа превышает максимальную сумму, которую можно оплатить курьеру по доставке заказа.'),
+
 ('search_label', 'pc_shop', 0, 'lt', 'Įveskite paieškos žodžius'),
 ('search_label', 'pc_shop', 0, 'en', 'Enter your search terms'),
 ('search_label', 'pc_shop', 0, 'ru', 'Введите условия поиска'),
@@ -878,4 +890,4 @@ INSERT IGNORE INTO `{prefix}variables` (`vkey`, `controller`, `site`, `ln`, `val
 ('manufacturer', 'pc_shop', 0, 'en', 'Manufacturer'),
 ('manufacturer', 'pc_shop', 0, 'ru', 'Производитель');
 
-INSERT IGNORE INTO `{prefix}db_version` (`plugin`, `version`) VALUES('pc_shop', '1.6.0');
+INSERT IGNORE INTO `{prefix}db_version` (`plugin`, `version`) VALUES('pc_shop', '1.8.4');

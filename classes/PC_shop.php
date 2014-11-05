@@ -1,4 +1,6 @@
 <?php
+use \Profis\Db\DbException;
+
 /**
  * Class PC_shop
  * @property PC_shop_price $price
@@ -58,7 +60,7 @@ abstract class PC_shop extends PC_base {
 		$fields = array();
 		$fields['categories'] = array('flags', 'discount', 'percentage_discount', 'external_id', 'redirect');
 		$fields['category_contents'] = array('name', 'custom_name', 'description', 'seo_title', 'seo_description', 'seo_keywords', 'route', 'permalink');
-		$fields['products'] = array('manufacturer_id', 'mpn', 'is_not_quantitive', 'quantity', 'flags', 'warranty', 'discount', 'percentage_discount', 'hot_from', 'price', 'external_id', 'import_method', 'state', 'info_1', 'info_2', 'info_3');
+		$fields['products'] = array('manufacturer_id', 'mpn', 'is_not_quantitive', 'quantity', 'flags', 'warranty', 'discount', 'percentage_discount', 'hot_from', 'price', 'external_id', 'import_method', 'state', 'info_1', 'info_2', 'info_3', 'weight', 'volume', 'length', 'width', 'height');
 		$fields['product_contents'] = array('name', 'custom_name', 'short_description', 'description', 'seo_title', 'seo_description', 'seo_keywords', 'route', 'permalink');
 		foreach ($fields as $table=>&$cols) {
 			foreach ($cols as $col) {
@@ -118,7 +120,15 @@ abstract class PC_shop extends PC_base {
 				
 			case 'hot_from':
 				return true;
-				
+			case 'weight':
+			case 'volume':
+				return $value === '' || is_numeric($value);
+
+			case 'length':
+			case 'width':
+			case 'height':
+				return $value === '' || preg_match('#^[0-9]+$#', $value);
+
 			default: return false;
 		}
 		return false;
@@ -504,10 +514,6 @@ class PC_shop_products extends PC_shop_product_model {
 		return (bool)$r->rowCount();
 	}
 	
-	/* MARTYNUI
-	Cia turetu buti tikrinimas ne pagal prekes ID, o pagal prekes name ($row[$cell]) tos kategorijos viduje (filtras pagal parent ir product name is content lenteles)
-	kazkas panasaus SELECT count(*) FROM pc_shop_products p JOIN pc_shop_product_contents c ON c.product_id=p.id AND c.ln='ru' WHERE name={$row[$cell]} and p.category_id=...
-	*/
 	public function Exists_in_content($col, $value, $lang, $category_id = '') {
 		$this->debug("Exists_in_content($col, $value, $lang, category: $category_id)");
 		$where = '';
@@ -517,10 +523,10 @@ class PC_shop_products extends PC_shop_product_model {
 			$where .= ' AND p.category_id = ?';
 			$params[] = $category_id; 
 		}
-		$query = "SELECT p.id 
-			FROM pc_shop_products p 
-			JOIN pc_shop_product_contents c ON c.product_id=p.id AND c.ln = '$lang' 
-			WHERE $col = ? $where
+		$query = "SELECT p.id
+			FROM {$this->db_prefix}shop_products p
+			JOIN {$this->db_prefix}shop_product_contents c ON c.product_id=p.id AND c.ln = '$lang' 
+			WHERE " . $col . " = ? " . $where . "
 			LIMIT 1";
 		$this->debug_query($query, $params, 1);
 		$r = $this->prepare($query);
@@ -716,24 +722,6 @@ class PC_shop_resources extends PC_base {
 		return $list;
 	}
 
-	/**
-	 * @param bool $isAttachment
-	 * @param null $type
-	 * @param null $access
-	 * @return array
-	 * @deprecated
-	 */
-	public function GetOld($isAttachment=false, $type=null, $access=null/*self::RF_AL_PUBLIC*/) {
-		//...
-		$item = array(
-			'name'=> $name,
-			'value'=> $value, //link
-			'access'=> self::RF_AL_PUBLIC
-		);
-		if ($isAttachment) $item['type'] = $this->core->Get_file_type($value);
-		$items[] = $item;
-		return $items;
-	}
 	public static function Decode_flags(&$data) {
 		if (!isset($data['flags'])) return false;
 		$data['is_category'] = (($data['flags'] & self::RF_IS_CATEGORY) != 0);
@@ -806,7 +794,7 @@ class PC_shop_item_resources{
 			if (!$this->Is_category()) {
 				$flag_op = '!=';
 			}
-			$query = "SELECT * FROM {$cfg['db']['prefix']}shop_resources WHERE item_id=? and flags&?$flag_op? ORDER BY position";
+			$query = "SELECT * FROM {$cfg['db']['prefix']}shop_resources WHERE item_id=? and flags & ? " . $flag_op . " ? ORDER BY position";
 			$r = $db->prepare($query);
 			$query_params = array($this->itemId, $flags, $flags);
 			$s = $r->execute($query_params);
@@ -1446,7 +1434,7 @@ class PC_shop_attributes extends PC_shop_attribute_model {
 		}
 		
 		if ($itemType == self::ITEM_IS_PRODUCT) {
-			$select .= ', pp.price, pp.price_diff, pp.discount, pp.items_left, pp.info_1, pp.info_2, pp.info_3';
+			$select .= ', pp.price, pp.price_diff, pp.discount, pp.items_left, pp.info_1, pp.info_2, pp.info_3, pp.`weight`, pp.`volume`, pp.`length`, pp.`width`, pp.`height`';
 			$join .= " LEFT JOIN {$this->db_prefix}shop_product_prices pp 
 						ON pp.product_id=a.item_id AND pp.attribute_id=a.attribute_id
 						AND (
@@ -1469,7 +1457,11 @@ class PC_shop_attributes extends PC_shop_attribute_model {
 		$s = $r->execute($queryParams);
 		if (!$s) return false;
 		$list = array();
-		while ($d = $r->fetch()) $list[] = $d;
+		while ($d = $r->fetch()) {
+			$d['weight'] = preg_replace('#(?:\\.0+|(\\.[0-9]*[1-9])0*)$#', '$1', $d['weight']); // remove trailing zeroes
+			$d['volume'] = preg_replace('#(?:\\.0+|(\\.[0-9]*[1-9])0*)$#', '$1', $d['volume']); // remove trailing zeroes
+			$list[] = $d;
+		}
 		return $list;
 	}
 	
@@ -1632,7 +1624,7 @@ class PC_shop_attributes extends PC_shop_attribute_model {
 	public function Assign_to_item($itemId, $itemType=self::ITEM_IS_PRODUCT, $attributeId, $valueId=null, $value=null, $nextAttributeId = null, $level = 1) {
 		$query = "INSERT INTO {$this->db_prefix}shop_item_attributes (item_id,attribute_id,flags,value_id,value,next_attribute_id, level) VALUES(?,?,?,?,?,?,?)";
 		$r = $this->prepare($query);
-		$params = array($itemId, $attributeId, $itemType, $valueId, $value, $nextAttributeId, $level);
+		$params = array($itemId, $attributeId ? $attributeId : 0, $itemType, $valueId, $value, $nextAttributeId, $level);
 		$s = $r->execute($params);
 		$this->debug_query($query, $params);
 		if (!$s) return false;
@@ -1653,7 +1645,7 @@ class PC_shop_attributes extends PC_shop_attribute_model {
 			$set_array[$key] = $value . ' = ?';
 		}
 		$fields_s = implode(', ', $set_array);
-		$query = "UPDATE {$this->db_prefix}shop_item_attributes SET $fields_s WHERE id=?";
+		$query = "UPDATE {$this->db_prefix}shop_item_attributes SET " . $fields_s . " WHERE id=?";
 		$r = $this->prepare($query);
 		$params = array_values($fields);
 		$params[] = $id;
@@ -1782,6 +1774,11 @@ class PC_shop_attributes extends PC_shop_attribute_model {
 						'info_1' => v($i['info_1']),
 						'info_2' => v($i['info_2']),
 						'info_3' => v($i['info_3']),
+						'weight' => v($i['weight']),
+						'volume' => v($i['volume']),
+						'length' => v($i['length']),
+						'width' => v($i['width']),
+						'height' => v($i['height']),
 					);
 					if (trim($other_fields['items_left']) == '') {
 						$other_fields['items_left'] = null;
@@ -2109,29 +2106,11 @@ class PC_shop_orders extends PC_shop_order_model {
 	
 	public function Preserve_order_data($order_data = null) {
 		if (is_null($order_data) or !is_array($order_data)) {
-			if (isset($_POST['order'])) {
+			if (isset($_POST['order']))
 				$order_data = $_POST['order'];
-				//print_pre($order_data);
-				if (!is_array($order_data)) {
-					$order_data = array();
-				}
-				if (!isset($order_data['order_data']) or !is_array($order_data['order_data'])) {
-					$order_data['order_data'] = array();
-				}
-				foreach ($order_data as $key => $value) {
-					$starting = 'order_data[';
-					if (strpos($key, $starting) === 0) {
-						$new_key = substr($key, strlen($starting));
-						$new_key = trim($new_key, ']');
-						$order_data['order_data'][$new_key] = $value;
-					}
-				}
-				//print_pre($order_data['order_data']);
-			}
 		}
-		if (is_array($order_data)) {
+		if (is_array($order_data))
 			$_SESSION['pc_shop']['order'] = $order_data;
-		}
 	}
 	
 	public function Get_preserved_order_data() {
@@ -2209,8 +2188,6 @@ class PC_shop_orders extends PC_shop_order_model {
 				$params->errors->Add('unknown_product', 'Unknown product in the cart');
 			}
 			else {
-				$discount;
-				$discount_percentage;
 				$price = $this->shop->products->get_price($product, $discount, $discount_percentage, $product_basket_data['attributes']);
 				$insert_item_query_params = array($orderId, $productId, $quantity, PC_utils::array_to_string($product_basket_data['attributes']), $price);
 				$this->debug_query($insert_item_query, $insert_item_query_params);
@@ -2302,21 +2279,45 @@ class PC_shop_cart extends PC_base {
 	}
 	
 	/**
-	 * 
-	 * @param type $data array with key 'totalPrice' (total price of items)
+	 * @param array $data An associative array that is filled in with calculated values. The only key that is required to be in the array is 'totalPrice' - total price of items.
+	 * - float 'totalPrice': Price of all items in the order.
+	 * - float 'eligible_discount': (optional) A coupon discount amount (not percent) that must be applied.
+	 * - float 'delivery_price': (optional) Price of the delivery. This field is replaced by calculated value.
+	 * - float 'cod_price': (optional) "Cash On Delivery", or in other words how much is added to the price due to the payment in cash when using courier delivery service. This field is replaced by calculated value.
+	 * - float 'full_price': (optional) Total price (items + delivery + COD). This field is replaced by calculated value.
+	 * - float 'order_delivery_price': (optional) Price of the delivery. This field is replaced by calculated value.
+	 * - float 'order_cod_price': (optional) "Cash On Delivery", or in other words how much is added to the price due to the payment in cash when using courier delivery service. This field is replaced by calculated value.
+	 * - float 'order_full_price': (optional) Total price (items + delivery + COD). It is recalculated after invoking 'pc_shop/cart/calculate_prices' event from 'order_delivery_price', 'order_cod_price' and 'discounts'. This field is replaced by calculated value.
+	 * - float[] 'discounts': (optional) An associative array of applied discounts. This field is replaced by calculated values and may contain 'eligible_discount'.
+	 * - string[] 'errors': (optional) A list of errors that happened while trying to calculate the price. If the array is not empty then the final price is most probably incorrect.
+	 * - array 'delivery_info': (optional) Information filled in by delivery plugins. All array elements are optional and may not be filled in by plugins.
+	 *   - int 'period_min': (optional) Minimum number of days for delivery.
+	 *   - int 'period_max': (optional) Maximum number of days for delivery.
+	 *   - string 'date_min': (optional) Minimum date of delivery.
+	 *   - string 'date_max': (optional) Maximum date of delivery.
+	 *   - float 'cod_limit': (optional) Maximum price that may be paid in cash to the courier upon delivery.
+	 * @param array $default_order_data
+	 * @param array $coupon_data
 	 */
 	public function Calculate_prices(&$data, $default_order_data = array(), $coupon_data = array()) {
+		$data['errors'] = array();
+		$data['delivery_info'] = array();
+
 		$this->debug('Calculate_prices()');
 		$order_data = $this->shop->orders->Get_preserved_order_data();
 		
-		if (!$order_data) {
+		if (!$order_data)
 			$order_data = $default_order_data;
-		}
+
+		if( !isset($order_data['payment_option']) )
+			$order_data['payment_option'] = null;
+
 		//$delivery_price = v($this->cfg['pc_shop']['delivery_price'], 0);
 		$delivery_price = 0;
 		$cod_price = 0;
 		$delivery_option_data = false;
-		
+
+		/** @var PC_shop_price_model $price_model */
 		$price_model = $this->core->Get_object('PC_shop_price_model');
 		
 		if (isset($order_data['delivery_option'])) {
@@ -2327,7 +2328,10 @@ class PC_shop_cart extends PC_base {
 					'enabled' => 1
 				)
 			));
-		};
+		}
+		else {
+			$order_data['delivery_option'] = null;
+		}
 		
 		$items_price = $data['totalPrice'];
 		
@@ -2350,49 +2354,23 @@ class PC_shop_cart extends PC_base {
 				}
 			}
 		}
-		
-		$data['delivery_price'] = $delivery_price;
-		
-		$data['cod_price'] = $cod_price;
+
+		$data['order_delivery_price'] = $data['delivery_price'] = $delivery_price;
+		$data['order_cod_price'] = $data['cod_price'] = $cod_price;
 		
 		$total_price = $items_price + $delivery_price + $cod_price;
-		$data['full_price'] = $total_price;
-		
-		
-		if (false and isset($order_data['delivery_option'])) {
-			$delivery_option_model = new PC_shop_delivery_option_model();
-			$delivery_option_data = $delivery_option_model->get_one(array(
-				'where' => array(
-					'code' => $order_data['delivery_option'],
-					'enabled' => 1
-				)
-			));
-			if ($delivery_option_data) {
-				$delivery_price = $delivery_option_data['delivery_price'];
-				if ($delivery_option_data['no_delivery_price_from'] > 0 and $items_price >= $delivery_option_data['no_delivery_price_from']) {
-					$delivery_price = 0;
-				}
-				if (v($order_data['payment_option']) == PC_shop_payment_option_model::CASH and $delivery_option_data['cod_price'] > 0) {
-					$cod_price = $delivery_option_data['cod_price'];
-					if ($delivery_option_data['no_cod_price_from'] > 0 and $items_price >= $delivery_option_data['no_cod_price_from']) {
-						$cod_price = 0;
-					}
-				}
-			}
-			
-		}
-		
-		$data['order_delivery_price'] = $delivery_price;
-		$data['order_cod_price'] = $cod_price;
-		$total_price = $items_price + $delivery_price + $cod_price;
-		$data['order_full_price'] = $total_price;
-		
+		$data['order_full_price'] = $data['full_price'] = $total_price;
+
 		$data['discounts'] = array();
-		
+
+		$form_data = isset($order_data['delivery_form_data'][$order_data['delivery_option']]) ? $order_data['delivery_form_data'][$order_data['delivery_option']] : array();
+
 		$this->core->Init_hooks('pc_shop/cart/calculate_prices', array(
 			'data'=> &$data,
 			'order_data' => $order_data,
 			'coupon_data' => $coupon_data,
+			'delivery_option_data' => $delivery_option_data,
+			'delivery_form_data' => $form_data,
 			'logger' => $this,
 		));
 		$data['total_discount'] = 0;
@@ -2430,9 +2408,16 @@ class PC_shop_cart extends PC_base {
 		
 		$total_price = $items_price + $data['order_delivery_price'] + $data['order_cod_price'] - $data['total_discount'];
 		$data['order_full_price'] = $total_price;
-		
+
 		$data['order_delivery_prices'] = $data['order_cod_price'] + $data['order_delivery_price'];
-		
+
+		if( isset($order_data['payment_option'], $data['delivery_info']['cod_limit'])
+			&& $order_data['payment_option'] == PC_shop_payment_option_model::CASH
+			&& $data['delivery_info']['cod_limit'] < $data['order_full_price']
+		)
+			$data['errors'][] = $this->core->Get_variable('order_total_exceeds_cod_limit', null, 'pc_shop');
+
+		// format numbers
 		$data['total_discount'] = number_format($data['total_discount'], 2, ".", "");
 		
 		$data['cod_price'] = number_format($data['cod_price'], 2, ".", "");
@@ -2442,13 +2427,18 @@ class PC_shop_cart extends PC_base {
 		$data['order_cod_price'] = number_format($data['order_cod_price'], 2, ".", "");
 		$data['order_delivery_price'] = number_format($data['order_delivery_price'], 2, ".", "");
 		$data['order_full_price'] = number_format($data['order_full_price'], 2, ".", "");
-		
+
+		if( !empty($data['errors']) )
+			$data['errors'] = '<ul><li>' . implode('</li><li>', $data['errors']) . '</li></ul>';
+		else
+			$data['errors'] = '';
 	}
 	
 	/**
 	 * 
-	 * @param boolean $raw
-	 * @return type
+	 * @param bool $raw
+	 * @param array $params
+	 * @return array
 	 */
 	public function Get($raw=false, &$params = array()) {
 		$this->click('Get()');
@@ -2512,7 +2502,6 @@ class PC_shop_cart extends PC_base {
 			if (v($cart_item['price_data']['attributes_string'])) {
 				$cart_item['name'] .= ' (' . $cart_item['price_data']['attributes_string'] . ')';
 			}
-			$attributes_string;
 			//$cart_item['attributes_info'] = $this->shop->products->get_attributes_info($p, $cart_item['attributes']);
 			//$cart_item['attributes_string'] = $attributes_string;
 			$d['items'][$ciid] = $cart_item;

@@ -44,6 +44,8 @@ Register_class_autoloader('PC_shop_price_model', $clsPath.'models/PC_shop_price_
 Register_class_autoloader('PC_shop_payment_method', $clsPath . 'PC_shop_payment_method.php');
 Register_class_autoloader('PC_shop_price', $clsPath . 'PC_shop_price.php');
 
+Register_class_autoloader('PC_plugin_pc_shop_delivery_form_widget', $thisPath . 'widgets/PC_plugin_pc_shop_delivery_form_widget.php');
+
 Register_class_autoloader('PC_plugin_pc_shop_widget', $thisPath . 'widgets/PC_plugin_pc_shop_widget.php');
 Register_class_autoloader('PC_plugin_pc_shop_category_menu_widget', $thisPath . 'widgets/PC_plugin_pc_shop_category_menu_widget.php');
 Register_class_autoloader('PC_plugin_pc_shop_all_category_menu_widget', $thisPath . 'widgets/PC_plugin_pc_shop_all_category_menu_widget.php');

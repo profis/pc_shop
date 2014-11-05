@@ -84,7 +84,7 @@ CREATE TABLE `{prefix}shop_item_attributes` (
   `position` smallint(5) unsigned NOT NULL DEFAULT '0',
   PRIMARY KEY (`id`),
   KEY `item_id` (`item_id`)
-) ENGINE=MyISAM  DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
 CREATE TABLE `{prefix}shop_payment_option_contents` (
   `payment_option_id` smallint(5) unsigned NOT NULL,
@@ -154,9 +154,7 @@ ALTER TABLE `{prefix}shop_orders`
 
 ALTER TABLE `{prefix}shop_product_contents`
 	CHANGE `short_description` `short_description` TEXT COLLATE utf8_unicode_ci NOT NULL,
-	CHANGE `description` `description` MEDIUMTEXT COLLATE utf8_unicode_ci NOT NULL,
-	ADD FULLTEXT KEY `name` (`name`),
-	ADD FULLTEXT KEY `description` (`description`);
+	CHANGE `description` `description` MEDIUMTEXT COLLATE utf8_unicode_ci NOT NULL;
 
 ALTER TABLE `{prefix}shop_products`
 	ADD `hot_from` INT(10) UNSIGNED DEFAULT NULL AFTER `percentage_discount`,

@@ -769,6 +769,8 @@ class PC_shop_products_manager extends PC_shop_products {
 		$list = array();
 		while ($d = $r_product->fetch()) {
 			$this->Decode_flags($d);
+			$d['weight'] = preg_replace('#(?:\\.0+|(\\.[0-9]*[1-9])0*)$#', '$1', $d['weight']); // remove trailing zeroes
+			$d['volume'] = preg_replace('#(?:\\.0+|(\\.[0-9]*[1-9])0*)$#', '$1', $d['volume']); // remove trailing zeroes
 			$d['contents'] = array();
 			$s = $r_contents->execute(array($d['id']));
 			if (!$s) return false;
