@@ -7,10 +7,8 @@
  * @property PC_shop_resources $resources
  */
 class PC_shop_site extends PC_shop {
-	public function Get_attributes($id, $itemType=self::ITEM_IS_PRODUCT) {
-		
-	}
 }
+
 class PC_shop_categories_site extends PC_shop_categories {
 	
 	/**

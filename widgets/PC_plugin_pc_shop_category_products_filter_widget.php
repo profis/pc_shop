@@ -190,7 +190,7 @@ class PC_plugin_pc_shop_category_products_filter_widget extends PC_plugin_pc_sho
 					$attribute_items_params['where'][] = "t.item_id IN (".$products_query.")";
 				}
 				$attribute_items_params['where'][] = $this->db->get_flag_query_condition(
-					PC_shop_attribute_model::ITEM_IS_PRODUCT, 
+					PC_shop_attributes::ITEM_IS_PRODUCT,
 					$attribute_items_params['query_params'], 
 					'flags', 
 					't'

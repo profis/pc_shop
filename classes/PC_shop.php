@@ -886,7 +886,10 @@ class PC_shop_item_resources{
 	}
 }
 class PC_shop_attributes extends PC_shop_attribute_model {
-	const AF_DEFAULT = 0x1, ITEM_IS_CATEGORY = 0x1, ITEM_IS_PRODUCT = 0x2;
+	const AF_DEFAULT = 0x1;
+	const ITEM_IS_CATEGORY = 0x1;
+	const ITEM_IS_PRODUCT = 0x2;
+
 	private $flagsMap = array(
 		'item_is_category'=> self::ITEM_IS_CATEGORY,
 		'item_is_product'=> self::ITEM_IS_PRODUCT
