@@ -55,7 +55,7 @@ class PC_plugin_pc_shop_category_menu_widget extends PC_vmenu_widget {
 
 			$menu[$key]['productCount'] = isset($counters[$menu_item['id']]) ? $counters[$menu_item['id']] : 0;
 
-			if ($this->site->Is_opened($menu_item['id'], 'id', 'pc_shop')) {
+			if ($this->isActiveCategory($menu_item['id'])) {
 				$menu[$key]['_active'] = true;
 				if( $maxLevels < 1 || $level < $maxLevels ) {
 					$menu[$key]['_submenu'] = $this->shop->categories->Get(null, $menu_item['id'], null, $params);
@@ -64,5 +64,15 @@ class PC_plugin_pc_shop_category_menu_widget extends PC_vmenu_widget {
 			}
 		}
 	}
-	
+
+	protected function isActiveCategory($categoryId) {
+		if (!is_array(v($this->site->loaded_page['subpath']))) return false;
+		foreach ($this->site->loaded_page['subpath'] as $i) {
+			if (v($i['_correspondingPlugin']) != $this->plugin_name || isset($i['product_id']) )
+				continue;
+			if ($i['id'] == $categoryId)
+				return true;
+		}
+		return false;
+	}
 }

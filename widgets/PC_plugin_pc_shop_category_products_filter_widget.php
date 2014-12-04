@@ -109,7 +109,6 @@ class PC_plugin_pc_shop_category_products_filter_widget extends PC_plugin_pc_sho
 			'key' => 'attribute',
 			'order' => 't.position'
 		));
-		//print_pre($category_filters);
 		$filter_attribute_ids = array_keys($category_filters);
 		$attribute_model = new PC_shop_attribute_model();
 		if (!empty($filter_attribute_ids)) {

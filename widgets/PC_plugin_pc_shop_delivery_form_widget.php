@@ -1,5 +1,5 @@
 <?php
-class PC_plugin_pc_shop_delivery_form_widget extends PC_widget {
+class PC_plugin_pc_shop_delivery_form_widget extends PC_plugin_pc_shop_widget {
 	public $plugin_name = 'pc_shop';
 
 	protected $_template_group = 'delivery_form';
@@ -27,6 +27,8 @@ class PC_plugin_pc_shop_delivery_form_widget extends PC_widget {
 				'order' => $order,
 				'form_data' => $form_data,
 			));
+			if( !is_array($data['form']) )
+				$data['form'] = array();
 			$data['form_data'] = $form_data;
 		}
 		return $data;

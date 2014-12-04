@@ -35,7 +35,6 @@ function process_api_for_cart($route = '') {
 	$shop = $core->Get_object('PC_shop_site');
 	/* @var $shop PC_shop_site */
 
-
 	$shop->cart->debug = true;
 	$shop->cart->set_instant_debug_to_file($cfg['path']['logs'] . 'pc_shop/cart_api.html', null, 5);
 
@@ -55,7 +54,7 @@ function process_api_for_cart($route = '') {
 			$sendCartState = true;
 			break;
 		case 'add':
-			$out['success'] = $shop->cart->Add($routes->Get(3), $routes->Get(4, 1), v($_POST['attributes']));
+			$out['success'] = $shop->cart->Add($routes->Get(3), $routes->Get(4, 1), v($_POST['attributes'], null));
 			$sendCartState = true;
 			break;
 		case 'set':
@@ -130,17 +129,27 @@ function process_api_for_order() {
 			break;
 		case 'save':
 			$prevOrder = $shop->orders->Get_preserved_order_data();
+
+			if( !is_array($prevOrder) )
+				$prevOrder = array();
+			$isNew = empty($prevOrder);
+
 			if( isset($_REQUEST['order']) && is_array($_REQUEST['order']) )
 				$order = array_merge($prevOrder, $_REQUEST['order']);
 			else
 				$order = $prevOrder;
+
+			if( $isNew ) {
+				$shop->orders->Preserve_order_data($order);
+				$order = $shop->orders->Get_preserved_order_data();
+			}
+
 			$deliveryOption = v($order['delivery_option']);
 			if( $deliveryOption && $deliveryOption == v($prevOrder['delivery_option']) ) {
 				if( isset($_REQUEST['delivery_form_data']) ) {
 					if( !isset($order['delivery_form_data']) )
 						$order['delivery_form_data'] = array();
 					$order['delivery_form_data'][$deliveryOption] = $_REQUEST['delivery_form_data'];
-					$shop->orders->Preserve_order_data($order);
 				}
 			}
 			$shop->orders->Preserve_order_data($order);

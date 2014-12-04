@@ -15,19 +15,22 @@ abstract class PC_shop_payment_method extends PC_base {
 	protected $_response;
 	
 	protected $_payment_data;
+	/** @var array */
 	protected $_order_data;
+	/** @var PC_shop_site */
 	protected $_shop_site;
-	
+
+	/** @var bool */
 	protected $_test = false;
 	
 	protected $_error = '';
+
 	public $order_id;
 	
 	public function Init($payment_data, $order_data = array(), $shop_site = null) {
 		$this->_payment_data = $payment_data;
 		$this->_order_data = $order_data;
 		$this->_shop_site = $shop_site;
-		
 	}
 	
 	public function get_error() {
@@ -42,7 +45,7 @@ abstract class PC_shop_payment_method extends PC_base {
 		return $this->_order_data;
 	}
 	
-	protected function _get_order_data($id) {
+	protected function _get_order_data() {
 		return $this->_shop_site->orders->get($this->order_id);
 	}
 	

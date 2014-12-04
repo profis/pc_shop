@@ -51,7 +51,7 @@ foreach ($this->order_data['data'] as $key => $value) {
 		<td><?php echo $this->Get_variable('same_items_price');?></td>
 	</tr>
 <?php
-	
+
 foreach ($this->order_data['items'] as $item) {
 
 ?>

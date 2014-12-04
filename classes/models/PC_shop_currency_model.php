@@ -6,6 +6,9 @@ class PC_shop_currency_model extends PC_model {
 	
 	protected function _set_tables() {
 		$this->_table = 'shop_currencies';
+
+		$this->_content_table = 'shop_currency_contents';
+		$this->_content_table_relation_col = 'currency_id';
 	}
 	
 }

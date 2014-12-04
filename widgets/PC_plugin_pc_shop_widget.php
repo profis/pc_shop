@@ -24,8 +24,12 @@ abstract class PC_plugin_pc_shop_widget extends PC_widget {
 		if (isset($this->_config['category'])) {
 			$this->currentCategory = $this->_config['category'];
 		}
+
 		$this->price = $this->core->Get_object('PC_shop_price');
 		$this->shop = $this->core->Get_object('PC_shop_site');
+
+		$this->site->Add_script('plugins/' . $this->plugin_name . '/js/number.format.min.js');
+		$this->site->Add_script('plugins/' . $this->plugin_name . '/js/shop.js');
 	}
 	
 	public function Get_variable($var) {

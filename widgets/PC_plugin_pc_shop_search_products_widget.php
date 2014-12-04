@@ -4,13 +4,15 @@ class PC_plugin_pc_shop_search_products_widget extends PC_plugin_pc_shop_product
 	public function get_template_group() {
 		 return parent::get_template_group() . ':_plugin/' . $this->plugin_name . '/search_products';
 	}
-	
-	
+
+
 	protected function _get_search_options() {
 		return array(
 			array(
 				'input' => 'q',
-				'op' => 'full_text_all',
+				'op' => 'like',
+				'like_pref' => true,
+				'like_suff' => true,
 				'field' => array('pc.name', 'pc.description'),
 				'group' => 'text'
 			),
@@ -55,8 +57,14 @@ class PC_plugin_pc_shop_search_products_widget extends PC_plugin_pc_shop_product
 					$filter['value'] .= '%';
 				}
 			}
-			
-			$params['filter'][] = $filter;
+			if( is_array($filter['field']) ) {
+				foreach( $filter['field'] as $fieldName ) {
+					$filter['field'] = $fieldName;
+					$params['filter'][] = $filter;
+				}
+			}
+			else
+				$params['filter'][] = $filter;
 		}
 	
 		vv($params['joins'], array());

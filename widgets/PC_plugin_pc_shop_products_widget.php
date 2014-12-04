@@ -5,6 +5,11 @@ class PC_plugin_pc_shop_products_widget extends PC_plugin_pc_shop_widget {
 	protected $_template_group = 'products';
 	
 	protected $_category_id;
+
+	/** @var PC_plugin_pc_shop_sort_products_widget */
+	public $sort_widget = null;
+	/** @var array */
+	public $sort_widget_data = null;
 	
 	protected function _get_default_config() {
 		return array(
@@ -14,6 +19,8 @@ class PC_plugin_pc_shop_products_widget extends PC_plugin_pc_shop_widget {
 			'per_page' => 10,
 			'per_row' => 0,
 			'list_item_thumb_type' => 'small',
+			'default_sort' => '',
+			'empty_sort_name' => '',
 			'sort_options' => array(
 				'price_asc' => array('field' => 'real_price', 'var' => 'price', 'dir' => 'asc'),
 				'price_desc' => array('field' => 'real_price', 'var' => 'price', 'dir' => 'desc'),
@@ -63,12 +70,12 @@ class PC_plugin_pc_shop_products_widget extends PC_plugin_pc_shop_widget {
 				'limit' => $this->_config['limit'],
 			);
 		}
-		
+
 		$params['parse'] = array(
 			//'description' => true,
 			//'attributes' => true,
-			//'recources' => true,
-			'recources' => 'first_img_only'
+			//'resources' => true,
+			'resources' => 'first_img_only'
 		);
 		if( v($this->_config['fetchAttributes']) )
 			$params['parse']['attributes'] = true;
@@ -86,27 +93,31 @@ class PC_plugin_pc_shop_products_widget extends PC_plugin_pc_shop_widget {
 		$shop_products_site->absorb_debug_settings($this);
 		$params = $this->get_params();
 		$get_vars = false;
-		$this->sort_widget = false;
-		$this->sort_widget_data = false;
-		
-		$category_id = null;
+
 		$base_url = $this->site->Get_link();
-		if (isset($this->_config['category'])) {
-			if (is_array($this->_config['category'])) {
-				$category_id = $this->_config['category']['id'];
-				$base_url =$this->_config['category']['full_link'];
-			}
-			else {
-				$category_id = $this->_config['category'];
-			}
-			
-		}
 		//$base_url = PC_utils::getCurrUrl();
-		
+
+		$itemIdList = (isset($this->_config['itemIdList']) && is_array($this->_config['itemIdList'])) ? $this->_config['itemIdList'] : null;
+		$category_id = null;
+
+		if( $itemIdList === null ) {
+			if (isset($this->_config['category'])) {
+				if (is_array($this->_config['category'])) {
+					$category_id = $this->_config['category']['id'];
+					$base_url =$this->_config['category']['full_link'];
+				}
+				else {
+					$category_id = $this->_config['category'];
+				}
+			}
+		}
+
 		if ($this->_config['sort_options']) {
 			$this->sort_widget = new PC_plugin_pc_shop_sort_products_widget(array(
 				'base_url' => $this->_get_url(),
-				'sort_options' => $this->_config['sort_options']
+				'sort_options' => $this->_config['sort_options'],
+				'default_sort' => $this->_config['default_sort'],
+				'empty_sort_name' => $this->_config['empty_sort_name'],
 			));
 			$this->sort_widget_data = $this->sort_widget->get_data();
 			if ($this->sort_widget_data['sort_option']) {
@@ -114,16 +125,16 @@ class PC_plugin_pc_shop_products_widget extends PC_plugin_pc_shop_widget {
 				if (isset($this->sort_widget_data['sort_option']['dir'])) {
 					$params['order_direction'] = $this->sort_widget_data['sort_option']['dir'];
 				}
-				$get_vars = $this->sort_widget_data['get_vars'];				
+				$get_vars = $this->sort_widget_data['get_vars'];
 			}
 		}
-		//print_pre($params);
-		//echo $category_id; 
+
 		$data = array(
-			'items' => $shop_products_site->Get(null, $category_id, $params),
+			'items' => $shop_products_site->Get($itemIdList, $category_id, $params),
 			'params' => $params,
 			'base_url' => $base_url
 		);
+
 		if ($get_vars) {
 			$data['get_vars'] = $get_vars;
 		}

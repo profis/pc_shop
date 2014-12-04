@@ -1,5 +1,5 @@
 <?php
-class PC_plugin_pc_shop_sort_products_widget extends PC_widget {
+class PC_plugin_pc_shop_sort_products_widget extends PC_plugin_pc_shop_widget {
 	
 	public $plugin_name = 'pc_shop';
 
@@ -48,7 +48,9 @@ class PC_plugin_pc_shop_sort_products_widget extends PC_widget {
 				'name' => $this->_config['empty_sort_name']
 			);
 		}
-		
+
+		$set = isset($_REQUEST[$this->_config['order_var']]) && isset($_REQUEST[$this->_config['order_dir_var']]);
+
 		foreach ($this->_config['sort_options'] as $key => $sort_option) {
 			$order_vars = array(
 				$this->_config['order_var'] => $sort_option['var']
@@ -59,10 +61,16 @@ class PC_plugin_pc_shop_sort_products_widget extends PC_widget {
 				'link' => PC_utils::getUrl($base_url, $order_vars),
 				'name' => $this->core->Get_plugin_variable('sort_by_' . $key, 'pc_shop')
 			);
-			if (isset($_GET[$this->_config['order_var']]) 
-				and $_GET[$this->_config['order_var']] == $sort_option['var']
-				and isset($_GET[$this->_config['order_dir_var']])
-				and $_GET[$this->_config['order_dir_var']] == $sort_option['dir']
+
+			if(
+				(
+					$set
+					&& $_REQUEST[$this->_config['order_var']] == $sort_option['var']
+					&& $_REQUEST[$this->_config['order_dir_var']] == $sort_option['dir']
+				) || (
+					!$set
+					&& $key == $this->_config['default_sort']
+				)
 			) {
 				$menu_item['active'] = true;
 				$this->sort_option = $sort_option;

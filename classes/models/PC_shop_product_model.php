@@ -86,29 +86,9 @@ class PC_shop_product_model extends PC_model {
 			$price = $data['prices'][$currencyId];
 		else
 			$price = $this->price->get_price_in_user_currency($data['price']);
+
 		$discount = $this->price->get_price_in_user_currency($data['discount']);
-		$percentage_discount = floatval($data['percentage_discount']);
-		$additional_discount = 0;
 
-		$full_price = $price;
-
-		
-		if (v($data['percentage_discount']) and $data['percentage_discount'] > 0 and $data['percentage_discount'] < 100) {
-			$discount_percent_price = floor($full_price * ($data['percentage_discount'])) / 100;
-			if ($discount_percent_price < $price) {
-				$discount = $discount_percent_price;
-			}
-		}
-
-		
-		$price_data = array(
-			'price' => $price,
-			'full_price' => $price,
-			'discount' => $discount,
-			'percentage_discount' => $percentage_discount,
-		);
-		
-		
 		$attributes_strings = array();
 		$attribute_values_strings = array();
 		$attributes_info = array();
@@ -127,13 +107,14 @@ class PC_shop_product_model extends PC_model {
 					if( isset($data['price_combinations'][$groupId][$val]) ) {
 						$comboPriceData = &$data['price_combinations'][$groupId][$val];
 						if( $comboPriceData['price'] > 0 ) {
-							$full_price = $price = $this->price->get_price_in_user_currency($comboPriceData['price']);
-							$additional_discount = 0;
+							$price = $this->price->get_price_in_user_currency($comboPriceData['price']);
+							$discount = 0;
 						}
-						if( $comboPriceData['price_diff'] > 0 )
+						if( $comboPriceData['price_diff'] > 0 ) {
 							$price += $this->price->get_price_in_user_currency($comboPriceData['price_diff']);
+						}
 						if( $comboPriceData['discount'] > 0 )
-							$additional_discount += $this->price->get_price_in_user_currency($comboPriceData['discount']);
+							$discount = $this->price->get_price_in_user_currency($comboPriceData['discount']);
 					}
 				}
 			}
@@ -151,13 +132,17 @@ class PC_shop_product_model extends PC_model {
 			}
 		}
 
-		$discount += $additional_discount;
+		$percentage_discount = floatval(v($data['percentage_discount'], 0));
+		if ($percentage_discount > 0 and $percentage_discount < 100)
+			$discount = max($discount, floor($price * $percentage_discount) / 100); // choose a better discount: absolute or percentage
+
+		$full_price = $price;
 		$price -= $discount;
 
 		$price_data['price'] = $price;
 		$price_data['full_price'] = $full_price;
 		$price_data['discount'] = $discount;
-		$price_data['percentage_discount'] = ($price > 0) ? ($discount * 100 / $price) : 0;
+		$price_data['percentage_discount'] = ($price > 0) ? ($discount * 100 / $full_price) : 0;
 		$price_data['attributes_info'] = $attributes_info;
 		$price_data['attributes_string'] = implode('; ', $attributes_strings);
 		$price_data['attribute_values'] = $attribute_values_strings;

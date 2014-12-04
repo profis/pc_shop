@@ -1,4 +1,5 @@
 <?php
+use \Profis\Db\DbException;
 
 /**
  * Class PC_shop_site
@@ -7,6 +8,35 @@
  * @property PC_shop_resources $resources
  */
 class PC_shop_site extends PC_shop {
+	public function getDeliveryOptions() {
+		//return PC_shop_delivery_option_model::get_select_options();
+		$m = new PC_shop_delivery_option_model();
+		return $m->get_all(array(
+			'content' => true,
+			'where' => array(
+				'enabled' => 1
+			),
+			'key' => 'code',
+			'value' => 'name',
+			'order' => 'position',
+			//'query_only' => true
+		));
+	}
+
+	public function getPaymentOptions() {
+		//return PC_shop_payment_option_model::get_select_options();
+		$m = new PC_shop_payment_option_model();
+		return $m->get_all(array(
+			'content' => true,
+			'where' => array(
+				'enabled' => 1
+			),
+			'key' => 'code',
+			'value' => 'name',
+			'order' => 'position',
+			//'query_only' => true
+		));
+	}
 }
 
 class PC_shop_categories_site extends PC_shop_categories {
@@ -1654,11 +1684,10 @@ class PC_shop_products_site extends PC_shop_products {
 			if (v($params->echo_query)) {
 				echo $this->get_debug_query_string($query, $queryParams);
 			}
-			
-			if (!$s) {
-				$this->cache->set($ckey, false);
-				return false;
-			}
+
+			if (!$s)
+				throw new DbException($r->errorInfo(), $query, $queryParams);
+
 			if ($params->Has_paging()) {
 				$rTotal = $this->query("SELECT FOUND_ROWS()");
 				if ($rTotal) $params->paging->Set_total($total = $rTotal->fetchColumn());
@@ -1706,11 +1735,15 @@ class PC_shop_products_site extends PC_shop_products {
 				}
 				
 			}
-			$this->cache->set($ckey, Array($total, &$list), 3600*24);
+
+			if ($returnOne && empty($list) )
+				$this->cache->set($ckey, false, 3600*24);
+			else
+				$this->cache->set($ckey, Array($total, &$list), 3600*24);
 		}
 		
 		//$this->debug($list, 4);
-		
+
 		$this->click('After fetching and parsing()');
 		
 		if ($returnOne) {
@@ -1931,7 +1964,7 @@ class PC_shop_products_site extends PC_shop_products {
 			$queryParams[] = $d['id'];
 			$combinations = $model->get_all(array(
 				'select' => $select . '
-					p.price, p.price_diff, p.discount, p.items_left, p.info_1, p.info_2, p.info_3
+					p.price, p.price_diff, p.discount, p.items_left, p.info_1, p.info_2, p.info_3, p.weight, p.volume, p.length, p.width, p.height
 				',
 				'where' => 't.item_id = ? AND t.level=1 AND (t.flags & ' . PC_shop_attributes::ITEM_IS_PRODUCT . ') = ' . PC_shop_attributes::ITEM_IS_PRODUCT,
 				'query_params' => $queryParams,
@@ -1963,57 +1996,24 @@ class PC_shop_products_site extends PC_shop_products {
 					}
 				}
 
-				/*
-				$grouping[] = $item['attribute_id'];
-				$val[] = $item['combined_value_id'];
-				if( !isset($d['attributes'][$item['attribute_id']]) ) {
-					$d['attributes'][$item['attribute_id']] = array(
-						'id' => $item['attribute_id'],
-						'ref' => $item['ref'],
-						'name' => $item['name'],
-						'values' => array()
-					);
-					$d['attribute_index'][$item['ref']] = &$d['attributes'][$item['attribute_id']];
-				}
-				$d['attributes'][$item['attribute_id']]['values'][$item['combined_value_id']] = self::parseAttributeValue($item['value_id'], $item['value']);
-
-				if( $item['attribute2_id'] ) {
-					$grouping[] = $item['attribute2_id'];
-					$val[] = $item['combined_value2_id'];
-					if( !isset($d['attributes'][$item['attribute2_id']]) ) {
-						$d['attributes'][$item['attribute2_id']] = array(
-							'id' => $item['attribute2_id'],
-							'ref' => $item['ref2'],
-							'name' => $item['name2'],
-							'values' => array()
-						);
-						$d['attribute_index'][$item['ref2']] = &$d['attributes'][$item['attribute2_id']];
-					}
-					$d['attributes'][$item['attribute2_id']]['values'][$item['combined_value2_id']] = self::parseAttributeValue($item['value2_id'], $item['value2']);
-				}
-
-				if( $item['attribute3_id'] ) {
-					$grouping[] = $item['attribute3_id'];
-					$val[] = $item['combined_value3_id'];
-					if( !isset($d['attributes'][$item['attribute3_id']]) ) {
-						$d['attributes'][$item['attribute3_id']] = array(
-							'id' => $item['attribute3_id'],
-							'ref' => $item['ref3'],
-							'name' => $item['name3'],
-							'values' => array()
-						);
-						$d['attribute_index'][$item['ref3']] = &$d['attributes'][$item['attribute3_id']];
-					}
-					$d['attributes'][$item['attribute3_id']]['values'][$item['combined_value3_id']] = self::parseAttributeValue($item['value3_id'], $item['value3']);
-				}
-				*/
-
 				$group = implode(',', $grouping);
 				$val = implode(',', $val);
 				if( !isset($d['combinations'][$group]) ) {
 					$d['combination_groups'][] = $grouping;
 					$d['combinations'][$group] = array();
 				}
+
+				// convert numeric types
+				$item['price'] = floatval($item['price']);
+				$item['price_diff'] = floatval($item['price_diff']);
+				$item['discount'] = floatval($item['discount']);
+				$item['items_left'] = intval($item['items_left']);
+				$item['weight'] = floatval($item['weight']);
+				$item['volume'] = floatval($item['volume']);
+				$item['width'] = floatval($item['width']);
+				$item['height'] = floatval($item['height']);
+				$item['length'] = floatval($item['length']);
+
 
 				if( $item['items_left'] !== null )
 					$item['items_left'] = intval($item['items_left']); // it is returned as string, but we need a number for javascript
@@ -2034,9 +2034,20 @@ class PC_shop_products_site extends PC_shop_products {
 						$c['info_2'] = $item['info_2'];
 					if( $item['info_3'] !== '' )
 						$c['info_3'] = $item['info_3'];
+					if( $item['weight'] > 0 )
+						$c['weight'] = $item['weight'];
+					if( $item['volume'] > 0 )
+						$c['volume'] = $item['volume'];
+					if( $item['width'] > 0 )
+						$c['width'] = $item['width'];
+					if( $item['height'] > 0 )
+						$c['height'] = $item['height'];
+					if( $item['length'] > 0 )
+						$c['length'] = $item['length'];
 				}
 				else {
 					$d['combinations'][$group][$val] = $item;
+
 				}
 
 				if( $item['price'] > 0 || $item['price_diff'] > 0 || $item['discount'] > 0 || $item['items_left'] !== null ) {
@@ -2057,9 +2068,9 @@ class PC_shop_products_site extends PC_shop_products {
 					}
 					else
 						$d['price_combinations'][$group][$val] = array(
-							'price' => floatval($item['price']),
-							'price_diff' => floatval($item['price_diff']),
-							'discount' => floatval($item['discount']),
+							'price' => $item['price'],
+							'price_diff' => $item['price_diff'],
+							'discount' => $item['discount'],
 							'items_left' => $item['items_left'],
 						);
 				}
@@ -2146,5 +2157,110 @@ class PC_shop_products_site extends PC_shop_products {
 					return intval($result['items_left']);
 		}
 		return intval($results[0]['quantity']);
+	}
+
+	/**
+	 * Processes attribute selection for the given product and applies changes that are specific for such attribute
+	 * collection. For example, if product has the price 500, but red colored product has price 550 and blue colored
+	 * has price 540, then, when we apply red color attribute, price of the product on output becomes 550.
+	 *
+	 * @param array $product A product to apply attributes to.
+	 * @param array $attributes An associative array of attributes to apply to the product. Key must be attribute id and value must be it's value id.
+	 * @return array A product with applied attributes.
+	 */
+	public function applyAttributes($product, $attributes) {
+		if( isset($product['applied_attributes']) )
+			return $product;
+
+		$currencyId = $this->price->get_user_currency_id();
+
+		if( isset($product['prices'][$currencyId]) && $product['prices'][$currencyId] > 0 )
+			$price = $product['prices'][$currencyId];
+		else
+			$price = $this->price->get_price_in_user_currency($product['price']);
+
+		$discount = $this->price->get_price_in_user_currency($product['discount']);
+
+		$attributes_strings = array();
+		$attribute_values_strings = array();
+		$attributes_info = array();
+		$applied_attributes = array();
+
+		$result = $product;
+		$result['info_1'] = null;
+		$result['info_2'] = null;
+		$result['info_3'] = null;
+
+		if( is_array($attributes) ) {
+			foreach( $product['combination_groups'] as $groupAttributes ) {
+				$groupId = implode(',', $groupAttributes);
+				if( isset($product['combinations'][$groupId]) ) {
+					$val = array();
+					foreach( $groupAttributes as $attrId )
+						$val[] = isset($attributes[$attrId]) ? $attributes[$attrId] : null;
+					$val = implode(',', $val);
+					if( isset($product['combinations'][$groupId][$val]) ) {
+						$comboData = &$product['combinations'][$groupId][$val];
+						if( $comboData['price'] > 0 ) {
+							$price = $this->price->get_price_in_user_currency($comboData['price']);
+							$discount = 0;
+						}
+						if( $comboData['price_diff'] > 0 )
+							$price += $this->price->get_price_in_user_currency($comboData['price_diff']);
+						if( $comboData['discount'] > 0 )
+							$discount = $this->price->get_price_in_user_currency($comboData['discount']);
+
+						if( isset($comboData['items_left']) )
+							$result['quantity'] = $comboData['items_left'];
+						if( isset($comboData['info_1']) )
+							$result['info_1'] = $comboData['info_1'];
+						if( isset($comboData['info_2']) )
+							$result['info_2'] = $comboData['info_2'];
+						if( isset($comboData['info_3']) )
+							$result['info_3'] = $comboData['info_3'];
+
+						if( $comboData['weight'] > 0 )
+							$result['weight'] = $comboData['weight'];
+						if( $comboData['volume'] > 0 )
+							$result['volume'] = $comboData['volume'];
+						if( $comboData['width'] > 0 )
+							$result['width'] = $comboData['width'];
+						if( $comboData['length'] > 0 )
+							$result['length'] = $comboData['length'];
+						if( $comboData['height'] > 0 )
+							$result['height'] = $comboData['height'];
+					}
+				}
+			}
+			foreach ($attributes as $attribute_id => $attribute_value_id) {
+				if( !isset($product['attributes'][$attribute_id]) )
+					continue;
+				$attr = $product['attributes'][$attribute_id];
+				$attributes_strings[] = $attr['name'] . ' - ' . $attr['values'][$attribute_value_id]['value'];
+				$attribute_values_strings[] = $attr['values'][$attribute_value_id]['value'];
+				$applied_attributes[$attribute_id] = $attribute_value_id;
+				$attributes_info[$attribute_id] = array(
+					'name' => $attr['name'],
+					'value' => $attr['values'][$attribute_value_id]['value']
+				);
+			}
+		}
+
+		$percentage_discount = floatval(v($product['percentage_discount'], 0));
+		if ($percentage_discount > 0 and $percentage_discount < 100)
+			$discount = max($discount, floor($price * $percentage_discount) / 100); // choose a better discount: absolute or percentage
+
+		$result['real_price'] = $price - $discount;
+		$result['price'] = $price;
+		$result['discount'] = $discount;
+		$result['percentage_discount'] = ($price > 0) ? ($discount * 100 / $price) : 0;
+		$result['attributes_info'] = $attributes_info;
+		$result['attributes_string'] = implode('; ', $attributes_strings);
+		$result['attribute_values'] = $attribute_values_strings;
+		$result['attribute_values_string'] = implode('; ', $attribute_values_strings);
+		$result['applied_attributes'] = $applied_attributes;
+		$result['post_price_attributes'] = $applied_attributes;
+
+		return $result;
 	}
 }

@@ -1881,6 +1881,28 @@ class PC_shop_orders extends PC_shop_order_model {
 	public function Init($id = 0) {
 		$this->shop = $id;
 		$this->user = $this->core->Get_object('PC_user');
+
+		if( $id instanceof PC_shop_site ) {
+			// ensure payment and delivery options are initially selected
+			$orderData = $this->Get_preserved_order_data();
+			$update = false;
+			if (!is_array($orderData)) {
+				$orderData = array();
+				$update = true;
+			}
+			if (!isset($orderData['delivery_option'])) {
+				$options = $this->shop->getDeliveryOptions();
+				$orderData['delivery_option'] = key($options);
+				$update = true;
+			}
+			if (!isset($orderData['payment_option'])) {
+				$options = $this->shop->getPaymentOptions();
+				$orderData['payment_option'] = key($options);
+				$update = true;
+			}
+			if ($update)
+				$this->Preserve_order_data($orderData);
+		}
 	}
 	public function Get($id=null, &$params=array()) {
 		$this->debug('Get()');
@@ -2108,12 +2130,16 @@ class PC_shop_orders extends PC_shop_order_model {
 	}
 	
 	public function Preserve_order_data($order_data = null) {
+		$current_order_data = isset($_SESSION['pc_shop']['order']) ? $_SESSION['pc_shop']['order'] : array();
 		if (is_null($order_data) or !is_array($order_data)) {
 			if (isset($_POST['order']))
 				$order_data = $_POST['order'];
 		}
-		if (is_array($order_data))
-			$_SESSION['pc_shop']['order'] = $order_data;
+		if (is_array($order_data)) {
+			$current_order_data = array_merge($current_order_data, $order_data);
+			$_SESSION['pc_shop']['order'] = $current_order_data;
+		}
+		return $current_order_data;
 	}
 	
 	public function Get_preserved_order_data() {
@@ -2368,14 +2394,20 @@ class PC_shop_cart extends PC_base {
 
 		$form_data = isset($order_data['delivery_form_data'][$order_data['delivery_option']]) ? $order_data['delivery_form_data'][$order_data['delivery_option']] : array();
 
-		$this->core->Init_hooks('pc_shop/cart/calculate_prices', array(
+		$eventArgs = array(
 			'data'=> &$data,
 			'order_data' => $order_data,
 			'coupon_data' => $coupon_data,
 			'delivery_option_data' => $delivery_option_data,
 			'delivery_form_data' => $form_data,
 			'logger' => $this,
-		));
+		);
+
+		if( $delivery_option_data )
+			$this->core->Init_callback($delivery_option_data['code'] . '.calculateDeliveryPrice', $eventArgs);
+
+		$this->core->Init_hooks('pc_shop/cart/calculate_prices', $eventArgs);
+
 		$data['total_discount'] = 0;
 		
 		if (v($data['eligible_discount'])) {

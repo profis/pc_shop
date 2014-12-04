@@ -9,6 +9,9 @@ class PC_controller_pc_shop extends PC_controller {
 	protected $shop;
 	
 	protected $type = null;
+
+	/** @var PC_shop_payment_method */
+	public $payment_method = null;
 	
 	public function Init($do_not_bind_to_site = false) {
 		global $shop_controller;
@@ -16,6 +19,7 @@ class PC_controller_pc_shop extends PC_controller {
 		parent::Init();
 		$this->shop = $this->core->Get_object('PC_shop_site');
 	}
+	
 	public function Process($params) {
 		//available page types: category/product/register/activate/cart/order/ order/fast
 		//fast-order must enter this data: address, recipient, email (for order data to send)
@@ -34,6 +38,10 @@ class PC_controller_pc_shop extends PC_controller {
 		
 		$this->logger = new PC_debug();
 		$this->logger->absorb_debug_settings($this);
+		
+		$pluginName = basename(dirname(__FILE__));
+		$this->site->Add_script('plugins/' . $pluginName . '/js/number.format.min.js');
+		$this->site->Add_script('plugins/' . $pluginName . '/js/shop.js');
 		
 		$this->product_was_added_to_cart = false;
 
@@ -210,21 +218,21 @@ class PC_controller_pc_shop extends PC_controller {
 		$this->Render('cart');
 	}
 	
-	protected function _validate_fast_order() {
-		if (!trim($_POST['name'])) {
+	protected function _validate_fast_order($data) {
+		if (!trim($data['name'])) {
 			return false;
 		}
-		if (!trim($_POST['email'])) {
+		if (!trim($data['email'])) {
 			return false;
 		}
 		if (v($_POST['is_company'])) {
-			if (!trim(v($_POST['company_name']))) {
+			if (!trim(v($data['company_name']))) {
 				return false;
 			}
-			if (!trim(v($_POST['company_code']))) {
+			if (!trim(v($data['company_code']))) {
 				return false;
 			}
-			if (!trim(v($_POST['company_pvm_code']))) {
+			if (!trim(v($data['company_pvm_code']))) {
 				return false;
 			}
 		}
@@ -299,8 +307,6 @@ class PC_controller_pc_shop extends PC_controller {
 					if ($result == PC_shop_payment_method::STATUS_SUCCESS) {
 						$this->order_data = $this->payment_method->get_order_data();
 						$this->order_id = $this->order_data['id'];
-						$this->_order_set_is_paid();
-						$this->_inform_about_order(true);
 					}
 					$this->render('order.online_payment.success');
 					break;
@@ -340,7 +346,8 @@ class PC_controller_pc_shop extends PC_controller {
 		}
 		exit;
 	}
-	
+
+	/** @deprecated */
 	protected function _order_online_payment_successful($response) {
 		if ($response['status'] != 1) {
 			throw new Exception("Payment hasn't been accepted yet");
@@ -385,15 +392,17 @@ class PC_controller_pc_shop extends PC_controller {
 	protected function _insert_order() {
 		$this->debug("_insert_order()");
 		$this->site->Register_data('createOrderSubmitted', true);
-		$this->shop->orders->Preserve_order_data($_POST);
-		$name = v($_POST['name']);
-		$email = v($_POST['email']);
-		$comment = v($_POST['comment']);
-		$address = v($_POST['address']);
-		$phone = v($_POST['phone']);
-		$payment_option = v($_POST['payment_option']);
-		$delivery_option = v($_POST['delivery_option']);
+		$this->shop->orders->Preserve_order_data();
+		$data = $this->shop->orders->Get_preserved_order_data();
+		$name = v($data['name']);
+		$email = v($data['email']);
+		$comment = v($data['comment']);
+		$address = v($data['address']);
+		$phone = v($data['phone']);
+		$payment_option = v($data['payment_option']);
+		$delivery_option = v($data['delivery_option']);
 		$params = array();
+
 		$data = PC_utils::getRequestData(array('country', 'city', 'region', 'flat', 'post_index', 'is_company', 'company_name', 'company_code', 'company_pvm_code'));
 		if (isset($_POST['order_data']) and is_array($_POST['order_data'])) {
 			$data = array_merge($data, $_POST['order_data']);
@@ -403,6 +412,7 @@ class PC_controller_pc_shop extends PC_controller {
 		$this->debug($data, 1);
 		$clear_cart = true;
 		$user_id = null;
+		/** @var PC_user $site_users */
 		global $site_users;
 		if ($site_users) {
 			$user_id = $site_users->GetID();
@@ -447,31 +457,34 @@ class PC_controller_pc_shop extends PC_controller {
 		}
 		$content = '';		
 		$this->debug('order_action()');
-		
+
 		//if ($this->routes->Get(3) == 'fast') {
 			$this->site->Set_url_suffix_callback(
-				$this, 
-				'get_link_to_order_fast', 
+				$this,
+				'get_link_to_order_fast',
 				array()
 			);
 			if ($this->routes->Get(3) == 'fast') {
 				$this->site->Register_data('isFastOrder', true);
 			}
 			//print_r($_POST);
-			if (isset($_POST['order']) and $this->_validate_fast_order()) {
-				//$this->payment_method = new $();
-				$r = $this->_insert_order();
-				$this->order_data = $this->shop->orders->get($this->order_id);
-				if ($r and $this->order_id and $this->order_data) {
-					$this->core->Init_hooks('plugin/pc_shop/after-order-create', array(
-						'order_id'=> $this->order_id,
-						'order_data' => &$this->order_data,
-						'other_data' => &$this->other_data,
-						'logger' => &$this
-					));
+			if (isset($_POST['order']) && $this->_validate_fast_order($_POST['order']) ) {
+				$cartData = $this->shop->cart->Get();
+				if( empty($cartData['errors'])) {
+					$r = $this->_insert_order();
+					$this->order_data = $this->shop->orders->get($this->order_id);
+					if ($r and $this->order_id and $this->order_data) {
+						$this->core->Init_hooks('plugin/pc_shop/after-order-create', array(
+							'order_id'=> $this->order_id,
+							'order_data' => &$this->order_data,
+							'other_data' => &$this->other_data,
+							'logger' => &$this
+						));
+					}
+					$content = $this->_make_payment();
 				}
-				$content = $this->_make_payment();
 			}
+
 			if (!v($this->action_rendered)) {
 				$this->_set_coupon();
 				$this->Render('order');
@@ -577,13 +590,13 @@ class PC_controller_pc_shop extends PC_controller {
 	protected function _inform_about_order($is_paid = false) {
 		$this->payment_logger->debug('Sending emails about order', 2);
 		$this->_tpl_is_paid = $is_paid;
-		$this->_send_order_email_to_admin($is_paid);
 		$this->_send_order_email_to_buyer($is_paid);
+		$this->_send_order_email_to_admin($is_paid);
 	}
 	
 	protected function _send_order_email_to_buyer($is_paid = false) {
 		$buyer_email_body = $this->Render('order.email.buyer');
-		
+
 		$this->debug('Email text for buyer:', 3);
 		$this->debug($buyer_email_body, 3);
 		
@@ -609,7 +622,7 @@ class PC_controller_pc_shop extends PC_controller {
 	
 	protected function _send_order_email_to_admin($is_paid = false) {
 		$email_body = $this->Render('order.email.admin');
-		
+
 		$this->debug('Email text for admin:', 3);
 		$this->debug($email_body, 3);
 		
@@ -744,6 +757,7 @@ class PC_controller_pc_shop extends PC_controller {
 		$this->_set_seo_for_product();
 		$this->Set_current_path($this->currentCategory['path']);
 		$this->site->Register_data('currentCategory', $this->currentCategory);
+		$this->site->Register_data('currentProduct', $this->currentProduct);
 		$this->currentProduct['page_type'] = 'pc_shop_product';
 		$this->site->Path_append($this->name, $this->currentProduct);
 		//$this->site->Use_component('js/hooks');

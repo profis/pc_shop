@@ -23,6 +23,7 @@ class PC_plugin_pc_shop_order_widget extends PC_plugin_pc_shop_widget {
 		);
 	}
 
+	/** @deprecated */
 	public function get_delivery_options() {
 		//return PC_shop_delivery_option_model::get_select_options();
 		$m = new PC_shop_delivery_option_model();
@@ -38,6 +39,7 @@ class PC_plugin_pc_shop_order_widget extends PC_plugin_pc_shop_widget {
 		));
 	}
 	
+	/** @deprecated */
 	public function get_payment_options() {
 		//return PC_shop_payment_option_model::get_select_options();
 		$m = new PC_shop_payment_option_model();
@@ -54,13 +56,14 @@ class PC_plugin_pc_shop_order_widget extends PC_plugin_pc_shop_widget {
 	}
 	
 	public function get_data() {
+		/** @var PC_shop_site $shop */
 		$shop = $this->core->Get_object('PC_shop_site');
 		$data = array(
 			'cart_data' => $shop->cart->Get($this->_config['default_order_data']),
 			'order_data' => $shop->orders->Get_preserved_order_data(),
 			'coupon_data' => $shop->cart->get_preserved_coupon_data(),
-			'delivery_options' => $this->get_delivery_options(),
-			'payment_options' => $this->get_payment_options()
+			'delivery_options' => $shop->getDeliveryOptions(),
+			'payment_options' => $shop->getPaymentOptions()
 		);
 		if ($data['coupon_data']) {
 			$data['cart_data']['coupon'] = $data['coupon_data']['code'];
