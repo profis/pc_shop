@@ -55,8 +55,8 @@ class PC_plugin_pc_shop_category_menu_widget extends PC_vmenu_widget {
 
 			$menu[$key]['productCount'] = isset($counters[$menu_item['id']]) ? $counters[$menu_item['id']] : 0;
 
-			if ($this->isActiveCategory($menu_item['id'])) {
-				$menu[$key]['_active'] = true;
+			$menu[$key]['_active'] = $active = $this->isActiveCategory($menu_item['id']);
+			if ($active || $level < v($this->_config['expandToLevel'], 1) ) {
 				if( $maxLevels < 1 || $level < $maxLevels ) {
 					$menu[$key]['_submenu'] = $this->shop->categories->Get(null, $menu_item['id'], null, $params);
 					$this->_build_menu($menu[$key]['_submenu'], $counters, $params_array, $maxLevels, $level + 1);
