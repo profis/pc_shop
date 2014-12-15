@@ -59,7 +59,7 @@ class PC_plugin_pc_shop_sort_products_widget extends PC_plugin_pc_shop_widget {
 			$menu_item = array(
 				'key' => $key,
 				'link' => PC_utils::getUrl($base_url, $order_vars),
-				'name' => $this->core->Get_plugin_variable('sort_by_' . $key, 'pc_shop')
+				'name' => lang('sort_by_' . $key),
 			);
 
 			if(
