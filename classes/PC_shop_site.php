@@ -2154,9 +2154,9 @@ class PC_shop_products_site extends PC_shop_products {
 		if( !empty($attributes) && is_array($attributes) ) {
 			foreach( $results as $result )
 				if( isset($result['items_left']) )
-					return intval($result['items_left']);
+					return $result['items_left'];
 		}
-		return intval($results[0]['quantity']);
+		return $results[0]['quantity'];
 	}
 
 	/**

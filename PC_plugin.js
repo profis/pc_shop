@@ -38,7 +38,10 @@ PC.utils.localize('mod.'+ Plugin.Name, {
 		properties: 'Properties',
 		external_id: 'External ID',
 		discount: 'Discount',
+		category: 'Category',
 		attributes: 'Attributes',
+		attribute: 'Attribute',
+		value: 'Value',
 		attributes_labels: {
 			'info_1': 'Image',
 			'info_2': '',
@@ -55,8 +58,10 @@ PC.utils.localize('mod.'+ Plugin.Name, {
 		manufacturer: 'Manufacturer',
 		mpn: 'Manufacturer product number (MPN)',
 		quantity: 'Quantity',
+		items_left: 'Quantity',
 		warranty: 'Warranty',
 		price: 'Price',
+		price_difference: 'Price difference',
 		short_description: 'Short description',
 		msg: {
 			error_products_inside: 'You can`t delete category that has items inside.',
@@ -133,7 +138,10 @@ PC.utils.localize('mod.'+ Plugin.Name, {
 		properties: 'Nustatymai',
 		external_id: 'Išorinis ID kodas',
 		discount: 'Nuolaida',
+		category: 'Kategorija',
 		attributes: 'Atributai',
+		attribute: 'Atributas',
+		value: 'Reikšmė',
 		attributes_labels: {
 			'info_1': 'Paveikslas',
 			'info_2': '',
@@ -150,8 +158,10 @@ PC.utils.localize('mod.'+ Plugin.Name, {
 		manufacturer: 'Gamintojas',
 		mpn: 'Gamintojo kodas (MPN)',
 		quantity: 'Kiekis',
+		items_left: 'Kiekis',
 		warranty: 'Garantija',
 		price: 'Kaina',
+		price_difference: 'Kainos skirtumas',
 		short_description: 'Trumpas aprašymas',
 		msg: {
 			error_products_inside: 'Jūs negalite ištrinti kategorijos, kurioje yra prekių.',
@@ -226,10 +236,13 @@ PC.utils.localize('mod.'+ Plugin.Name, {
 		add_attachment: 'Добавить файл',
 		unlink: 'Отсоединить',
 		info: 'Информация',
+		category: 'Категория',
 		properties: 'Свойства',
 		external_id: 'Внешний ID код',
 		discount: 'Скидка',
 		attributes: 'Атрибуты',
+		attribute: 'Атрибут',
+		value: 'Значение',
 		attributes_labels: {
 			'info_1': 'Изображение',
 			'info_2': '',
@@ -246,8 +259,10 @@ PC.utils.localize('mod.'+ Plugin.Name, {
 		manufacturer: 'Производитель',
 		mpn: 'Производственный код (MPN)',
 		quantity: 'Кол-во',
+		items_left: 'Кол-во',
 		warranty: 'Гарантия',
 		price: 'Цена',
+		price_difference: 'Разница цены',
 		short_description: 'Короткое описание',
 		msg: {
 			error_products_inside: 'Вы не можете удалить категорию, в которой есть товары',
@@ -996,8 +1011,8 @@ Plugin.attributes.ItemStore = new Ext.data.JsonStore({
 var attr_columns = [];
 pc_shop_foreach_attr_idx(function(idx, suffix) {
 	attr_columns.push(
-		{header: ('Attribute ' + suffix).trim(), dataIndex: 'attributeName' + suffix, width: 150},
-		{header: ('Value ' + suffix).trim(), dataIndex: 'displayValue' + suffix, id: 'pc_shop_item_attribute_value' + suffix + '_col', width: 200}
+		{header: (Plugin.ln.attribute + ' ' + suffix).trim(), dataIndex: 'attributeName' + suffix, width: 150},
+		{header: (Plugin.ln.value + ' ' + suffix).trim(), dataIndex: 'displayValue' + suffix, id: 'pc_shop_item_attribute_value' + suffix + '_col', width: 200}
 	);
 });
 
@@ -1005,10 +1020,10 @@ var hook_params = {};
 PC.hooks.Init('plugin/pc_shop/page/product/attribute_price', hook_params);
 if (!hook_params.disabled) {
 	attr_columns.push(
-		{header: 'Price', dataIndex: 'price'},
-		{header: 'Price difference', dataIndex: 'price_diff'},
-		{header: 'Discount', dataIndex: 'discount'},
-		{header: 'Quantity (items left)', dataIndex: 'items_left'},
+		{header: Plugin.ln.price, dataIndex: 'price'},
+		{header: Plugin.ln.price_difference, dataIndex: 'price_diff'},
+		{header: Plugin.ln.discount, dataIndex: 'discount'},
+		{header: Plugin.ln.items_left, dataIndex: 'items_left'},
 		{header: Plugin.ln.weight + ' (' + Plugin.ln.kilogramms + ')', dataIndex: 'weight'},
 		{header: Plugin.ln.volume + ' (' + Plugin.ln.cubic_meters + ')', dataIndex: 'volume'},
 		{header: Plugin.ln.length + ' (' + Plugin.ln.millimeters + ')', dataIndex: 'length'},
@@ -1154,10 +1169,13 @@ Plugin.attributes.Grid = {
 					ref: '_discount',
 					value: rec.data.discount
 				},
-				{	xtype: 'textfield',
+				{	xtype: 'numberfield',
 					fieldLabel: 'Quantity (items left)',
 					ref: '_items_left',
-					value: rec.data.items_left
+					value: rec.data.items_left,
+					allowBlank: true,
+					allowNegative: false,
+					allowDecimals: false
 				},
 				{	xtype: 'numberfield',
 					fieldLabel: Plugin.ln.weight + ' (' + Plugin.ln.kilogramms + ')',
@@ -1364,7 +1382,7 @@ Plugin.attributes.Grid = {
 		'-',
 		{	
 			xtype:'tbtext',
-			text: 'Category',
+			text: Plugin.ln.category,
 			style:'margin:0 2px;'
 		},
 		{	xtype: 'combo', mode: 'local',
@@ -1440,7 +1458,7 @@ Plugin.attributes.Grid = {
 		'-',
 		{	
 			xtype:'tbtext',
-			text: 'Attributes',
+			text: Plugin.ln.attributes,
 			style:'margin:0 2px;'
 		},
 		// Attribute selectors are inserted at this point later (position 7).
@@ -1686,7 +1704,7 @@ Plugin.view_factory = {
 				{ref: '_length', fieldLabel: Plugin.ln.length + ' (' + Plugin.ln.millimeters + ')', xtype: 'numberfield', allowBlank: true, allowNegative: false, allowDecimals: false},
 				{ref: '_width', fieldLabel: Plugin.ln.width + ' (' + Plugin.ln.millimeters + ')', xtype: 'numberfield', allowBlank: true, allowNegative: false, allowDecimals: false},
 				{ref: '_height', fieldLabel: Plugin.ln.height + ' (' + Plugin.ln.millimeters + ')', xtype: 'numberfield', allowBlank: true, allowNegative: false, allowDecimals: false},
-				{ref: '_quantity', fieldLabel: Plugin.ln.quantity, xtype: 'numberfield'},
+				{ref: '_quantity', fieldLabel: Plugin.ln.quantity, xtype: 'numberfield', allowBlank: true, allowNegative: false, allowDecimals: false},
 				{ref: '_warranty', fieldLabel: Plugin.ln.warranty, xtype: 'numberfield'},
 				{ref: '_price', fieldLabel: Plugin.ln.price + ' (' + PC.plugin.pc_shop.base_currency + ')', xtype: 'numberfield', id: 'pc_shop_price_in_base_currency'},
 				///*

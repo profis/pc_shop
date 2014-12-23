@@ -574,7 +574,7 @@ CREATE TABLE IF NOT EXISTS `{prefix}shop_products` (
   `manufacturer_id` smallint(5) unsigned NOT NULL,
   `mpn` varchar(255) COLLATE utf8_unicode_ci NOT NULL,
   `is_not_quantitive` TINYINT(1) NOT NULL DEFAULT 0,
-  `quantity` mediumint(8) unsigned NOT NULL,
+  `quantity` mediumint(8) unsigned NULL DEFAULT 0,
   `flags` smallint(5) unsigned NOT NULL,
   `warranty` tinyint(3) unsigned NOT NULL,
   `discount` decimal(10,2) unsigned DEFAULT NULL,
@@ -890,4 +890,4 @@ INSERT IGNORE INTO `{prefix}variables` (`vkey`, `controller`, `site`, `ln`, `val
 ('manufacturer', 'pc_shop', 0, 'en', 'Manufacturer'),
 ('manufacturer', 'pc_shop', 0, 'ru', 'Производитель');
 
-INSERT IGNORE INTO `{prefix}db_version` (`plugin`, `version`) VALUES('pc_shop', '1.8.4');
+INSERT IGNORE INTO `{prefix}db_version` (`plugin`, `version`) VALUES('pc_shop', '2.0.3');

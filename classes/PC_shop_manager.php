@@ -640,10 +640,14 @@ class PC_shop_products_manager extends PC_shop_products {
 		if (isset($data['attributes'])) $d['attributes'] = $data['attributes'];
 		if (isset($data['prices'])) $d['prices'] = $data['prices'];
 		$d['product'] = $this->db->fields->Parse('shop_products', $data, $params);
+		// print_pre($d['product']);
 		if ($params->errors->Count()) return false;
 		//main data
+		$nullable = array('quantity');
 		$updates = $qparams = array();
 		foreach ($d['product'] as $field=>&$value) {
+			if( in_array($field, $nullable) && $value === '' )
+				$value = null;
 			$updates[] = $field.'=?';
 			$qparams[] = $value;
 		}
