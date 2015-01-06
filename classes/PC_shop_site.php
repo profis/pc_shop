@@ -1137,6 +1137,8 @@ class PC_shop_categories_site extends PC_shop_categories {
 class PC_shop_products_site extends PC_shop_products {
 	
 	public function Get_link_by_id($id, $ln = '') {
+		if( !$ln )
+			$ln = $this->site->ln;
 		$product_data = $this->Get_item($id, 'category_id, route', $ln);
 		$category_link = '';
 		if (v($product_data['category_id'])) {
@@ -1153,6 +1155,8 @@ class PC_shop_products_site extends PC_shop_products {
 	}
 	
 	public function Get_full_link_by_id($id, $ln = '') {
+		if( !$ln )
+			$ln = $this->site->ln;
 		$product_data = $this->Get_item($id, 'category_id, route', $ln);
 		$category_link = '';
 		if (v($product_data['category_id'])) {
@@ -1167,11 +1171,10 @@ class PC_shop_products_site extends PC_shop_products {
 		return $url;
 	}
 	
-		/**
-	 * 
-	 * @param type $product_data
-	 * @param type $page_link
-	 * @return type
+	/**
+	 * @param array $product_data
+	 * @param string $page_link
+	 * @return string
 	 */
 	public function Get_link_from_data(&$product_data, $page_link = '') {
 		v($product_data['permalink']);
