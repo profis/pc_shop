@@ -678,16 +678,16 @@ class PC_shop_resources extends PC_base {
 				$category_flag_used = true;
 			}
 			$flagsCheck |= $flag;
-			$flag_clauses[] = $this->db->get_flag_query_condition($flag, $queryParams);
+			$flag_clauses[] = $this->db->get_flag_query_condition($flag, $queryParams, 'flags', 'r');
 		}
 		if (!$category_flag_used) {
-			$flag_clauses[] = $this->db->get_flag_query_condition(self::RF_IS_CATEGORY, $queryParams, 'flags', '', '!=');
+			$flag_clauses[] = $this->db->get_flag_query_condition(self::RF_IS_CATEGORY, $queryParams, 'flags', 'r', '!=');
 		}
 		$flag_clause = implode(' AND ', $flag_clauses);
 		//$queryParams = array();
 		//$flag_clause = "flags&{$flagsCheck}={$flagsCheck}";
 		
-		$query = $qry = "SELECT * FROM {$this->db_prefix}shop_resources WHERE $flag_clause ".(!is_null($id)?" AND resource_id=?":!is_null($itemId)?" and item_id=?":"")." ORDER BY flags&?, position".(!is_null($id)?" LIMIT 1":"");
+		$query = $qry = "SELECT r.* FROM {$this->db_prefix}shop_resources r INNER JOIN {$this->db_prefix}gallery_files g ON g.id=r.file_id WHERE $flag_clause ".(!is_null($id)?" AND r.resource_id=?":!is_null($itemId)?" and r.item_id=?":"")." ORDER BY r.flags&?, r.position".(!is_null($id)?" LIMIT 1":"");
 		$r = $this->prepare($query);
 		
 		if (!is_null($id)) $queryParams[] = $id;
