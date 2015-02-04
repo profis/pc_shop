@@ -3,7 +3,7 @@ var Plugin_pc_shop = Plugin;
 
 Plugin.Name = CurrentlyParsing;
 
-Plugin.productsPerPage = 20;
+Plugin.productsPerPage = pc_shop_PRODUCTS_PER_TREE_PAGE;
 Plugin.URL = PC.plugins.GetUrl(Plugin.Name);
 Plugin.api = {
 	Public: PC.global.BASE_URL + '/api/plugin/'+ Plugin.Name +'/',

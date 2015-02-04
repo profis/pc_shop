@@ -86,6 +86,8 @@ function pc_shop_install($controller) {
 	
 	$core->Set_config_if('max_coupon_percentage', '25', 'pc_shop');
 	
+	$core->Set_config_if('products_per_tree_page', '100', 'pc_shop');
+	
 	//Import currency list
 	require_once CMS_ROOT .  'admin/classes/PC_plugin_admin_api.php';
 	require_once CMS_ROOT .  'admin/classes/PC_plugin_crud_admin_api.php';
