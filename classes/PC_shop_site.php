@@ -2192,43 +2192,45 @@ class PC_shop_products_site extends PC_shop_products {
 		$result['info_3'] = null;
 
 		if( is_array($attributes) ) {
-			foreach( $product['combination_groups'] as $groupAttributes ) {
-				$groupId = implode(',', $groupAttributes);
-				if( isset($product['combinations'][$groupId]) ) {
-					$val = array();
-					foreach( $groupAttributes as $attrId )
-						$val[] = isset($attributes[$attrId]) ? $attributes[$attrId] : null;
-					$val = implode(',', $val);
-					if( isset($product['combinations'][$groupId][$val]) ) {
-						$comboData = &$product['combinations'][$groupId][$val];
-						if( $comboData['price'] > 0 ) {
-							$price = $this->price->get_price_in_user_currency($comboData['price']);
-							$discount = 0;
+			if( isset($product['combination_groups']) ) {
+				foreach ($product['combination_groups'] as $groupAttributes) {
+					$groupId = implode(',', $groupAttributes);
+					if (isset($product['combinations'][$groupId])) {
+						$val = array();
+						foreach ($groupAttributes as $attrId)
+							$val[] = isset($attributes[$attrId]) ? $attributes[$attrId] : null;
+						$val = implode(',', $val);
+						if (isset($product['combinations'][$groupId][$val])) {
+							$comboData = &$product['combinations'][$groupId][$val];
+							if ($comboData['price'] > 0) {
+								$price = $this->price->get_price_in_user_currency($comboData['price']);
+								$discount = 0;
+							}
+							if ($comboData['price_diff'] > 0)
+								$price += $this->price->get_price_in_user_currency($comboData['price_diff']);
+							if ($comboData['discount'] > 0)
+								$discount = $this->price->get_price_in_user_currency($comboData['discount']);
+
+							if (isset($comboData['items_left']))
+								$result['quantity'] = $comboData['items_left'];
+							if (isset($comboData['info_1']))
+								$result['info_1'] = $comboData['info_1'];
+							if (isset($comboData['info_2']))
+								$result['info_2'] = $comboData['info_2'];
+							if (isset($comboData['info_3']))
+								$result['info_3'] = $comboData['info_3'];
+
+							if ($comboData['weight'] > 0)
+								$result['weight'] = $comboData['weight'];
+							if ($comboData['volume'] > 0)
+								$result['volume'] = $comboData['volume'];
+							if ($comboData['width'] > 0)
+								$result['width'] = $comboData['width'];
+							if ($comboData['length'] > 0)
+								$result['length'] = $comboData['length'];
+							if ($comboData['height'] > 0)
+								$result['height'] = $comboData['height'];
 						}
-						if( $comboData['price_diff'] > 0 )
-							$price += $this->price->get_price_in_user_currency($comboData['price_diff']);
-						if( $comboData['discount'] > 0 )
-							$discount = $this->price->get_price_in_user_currency($comboData['discount']);
-
-						if( isset($comboData['items_left']) )
-							$result['quantity'] = $comboData['items_left'];
-						if( isset($comboData['info_1']) )
-							$result['info_1'] = $comboData['info_1'];
-						if( isset($comboData['info_2']) )
-							$result['info_2'] = $comboData['info_2'];
-						if( isset($comboData['info_3']) )
-							$result['info_3'] = $comboData['info_3'];
-
-						if( $comboData['weight'] > 0 )
-							$result['weight'] = $comboData['weight'];
-						if( $comboData['volume'] > 0 )
-							$result['volume'] = $comboData['volume'];
-						if( $comboData['width'] > 0 )
-							$result['width'] = $comboData['width'];
-						if( $comboData['length'] > 0 )
-							$result['length'] = $comboData['length'];
-						if( $comboData['height'] > 0 )
-							$result['height'] = $comboData['height'];
 					}
 				}
 			}

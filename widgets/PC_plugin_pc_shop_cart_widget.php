@@ -30,6 +30,7 @@ class PC_plugin_pc_shop_cart_widget extends PC_plugin_pc_shop_widget {
 			'coupon_data' => $shop->cart->get_preserved_coupon_data(),
 			'order_url' => $order_url,
 			'order_fast_url' => $order_fast_url,
+			'currency' => $shop->price->get_user_currency(),
 		);
 		return $data;
 	}

@@ -1,4 +1,12 @@
-<?php 
+<?php
+/**
+ * @var PC_plugin_pc_shop_product_widget $this
+ * @var string $tpl_group
+ * @var string $gallery_url
+ * @var array $item
+ * @var string $price
+ *
+ */
 $product_name = trim($this->product['custom_name']);
 if (empty($product_name)) {
 	$product_name = $this->product['name'];

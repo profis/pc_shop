@@ -4,6 +4,10 @@
  * @var string $tpl_group
  * @var array $cart_data
  * @var array $order_data
+ * @var array $coupon_data
+ * @var array $delivery_options
+ * @var array $payment_options
+ * @var string $currency
  */
 ?>
 <div id="product_order">

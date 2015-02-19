@@ -2137,6 +2137,20 @@ class PC_shop_orders extends PC_shop_order_model {
 		}
 		if (is_array($order_data)) {
 			$current_order_data = array_merge($current_order_data, $order_data);
+
+			if( isset($current_order_data['coupon']) ) {
+				if( empty($current_order_data['coupon']) ) {
+					$this->shop->cart->cancel_coupon();
+				}
+				else {
+					$coupon_model = $this->core->Get_object('PC_shop_coupon_model');
+					$coupon_data = $coupon_model->get_valid_coupon($current_order_data['coupon']);
+					if ($coupon_data)
+						$this->shop->cart->set_coupon_data($coupon_data);
+				}
+				unset($current_order_data['coupon']);
+			}
+
 			$_SESSION['pc_shop']['order'] = $current_order_data;
 		}
 		return $current_order_data;
@@ -2363,7 +2377,9 @@ class PC_shop_cart extends PC_base {
 		}
 		
 		$items_price = $data['totalPrice'];
-		
+
+		$amount_for_free_delivery = 0;
+
 		if ($delivery_option_data) {
 			$delivery_price = $price_model->get_price('delivery_' . $order_data['delivery_option']);
 			if (empty($delivery_price)) {
@@ -2373,7 +2389,6 @@ class PC_shop_cart extends PC_base {
 			if ($amount_for_free_delivery > 0 and $items_price >= $amount_for_free_delivery) {
 				$delivery_price = 0;
 			}
-			
 			
 			if (v($order_data['payment_option']) == PC_shop_payment_option_model::CASH) {
 				$cod_price = $price_model->get_price('cod_' . $order_data['delivery_option']);
@@ -2403,8 +2418,10 @@ class PC_shop_cart extends PC_base {
 			'logger' => $this,
 		);
 
-		if( $delivery_option_data )
-			$this->core->Init_callback($delivery_option_data['code'] . '.calculateDeliveryPrice', $eventArgs);
+		if( $delivery_option_data ) {
+			if( $amount_for_free_delivery <= 0 || $items_price < $amount_for_free_delivery )
+				$this->core->Init_callback($delivery_option_data['code'] . '.calculateDeliveryPrice', $eventArgs);
+		}
 
 		$this->core->Init_hooks('pc_shop/cart/calculate_prices', $eventArgs);
 

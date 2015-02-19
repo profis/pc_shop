@@ -114,13 +114,16 @@ var PC_shop_cart = {
 };
 
 $(document).ready(function(){
-	$('.btn.plus').click(function(){
+	$('.btn.plus').click(function(e){
+		e.preventDefault();
 		PC_shop_cart.update($(this), "plus");
 	});
-	$('.btn.minus').click(function(){
+	$('.btn.minus').click(function(e){
+		e.preventDefault();
 		PC_shop_cart.update($(this), "minus");
 	});
-	$('.del_from_cart').click(function(){
+	$('.del_from_cart').click(function(e){
+		e.preventDefault();
 		PC_shop_cart.update($(this), "remove");
 	});
 	$('.cart_quantity').change(function(){

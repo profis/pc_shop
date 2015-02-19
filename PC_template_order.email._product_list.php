@@ -100,7 +100,7 @@ if (v($this->order_data['cod_price'], 0) > 0) {
 
 if (v($this->order_data['discount'], 0) > 0) {
 ?>
-	<strong> <?php echo $this->Get_variable('coupon_discount');?></strong>: <?php echo $this->order_data['discount'];?> <?php echo $this->order_data['currency'];?><br />
+	<strong> <?php echo $this->Get_variable('discount');?></strong>: <?php echo -$this->order_data['discount'];?> <?php echo $this->order_data['currency'];?><br />
 <?php
 }
 

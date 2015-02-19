@@ -5,9 +5,11 @@ class PC_plugin_pc_shop_product_widget extends PC_plugin_pc_shop_widget {
 	public $plugin_name = 'pc_shop';
 
 	protected $_template_group = 'product';
-	
+
+	/** @var PC_shop_products_site */
 	public $shop_products_site;
-	
+
+	/** @var array */
 	public $product;
 	
 	public function Init($config = array(), $product = null, $shop_products_site = null) {

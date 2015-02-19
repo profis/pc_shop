@@ -35,17 +35,17 @@ $this->site->Add_script($this->cfg['directories']['media'] . '/form_validation.j
 	<div class="clear"></div>
 	
 	<?php 
-	if (!empty($delivery_options)) {
+	if (!empty($deliveryOptions)) {
 	?>
 	<div class="input_holder">
 		<label><?php echo $this->core->Get_plugin_variable('delivery', $this->plugin_name); ?>:<br /></label>
 		<?php 
 			$count = 0;
-			if (!isset($order_data["delivery_option"]) or !isset($delivery_options[$order_data["delivery_option"]])) {
-				$delivery_option_keys = array_keys($delivery_options);
+			if (!isset($order_data["delivery_option"]) or !isset($deliveryOptions[$order_data["delivery_option"]])) {
+				$delivery_option_keys = array_keys($deliveryOptions);
 				$order_data["delivery_option"] = $delivery_option_keys[0];
 			}
-			foreach ($delivery_options as $key => $option){
+			foreach ($deliveryOptions as $key => $option){
 				echo '<span><input type="radio" name="delivery_option" class="radio" id="delivery_option_'.$key.'" value="'.$key.'"'.($key == $order_data["delivery_option"]?' checked':'').'> <label class="for_radio"  for="delivery_option_'.$key.'">'.$option.'</label></span>';
 				$count++;
 			}

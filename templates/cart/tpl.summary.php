@@ -1,4 +1,14 @@
 <?php
+/**
+ * @var PC_plugin_pc_shop_cart_widget $this
+ * @var string $tpl_group
+ * @var string $order_url
+ * @var string $order_fast_url
+ * @var string $currency
+ * @var array $coupon_data
+ * @var array $order_data
+ * @var array $cart_data
+ */
 $currency = $this->price->get_user_currency();
 ?>
 <div class="row">
@@ -10,19 +20,19 @@ $currency = $this->price->get_user_currency();
 		<p class="text-right"><?php echo $this->core->Get_plugin_variable('items_price', $this->plugin_name) ?>:</p>
 	</div>
 	<div class="col-3 col-sm-3 col-lg-3">
-		<p class="text-right"><strong><span id="tprice"><?php echo number_format($cart_data["totalPrice"], 2, ",", "") ?></span> <?php echo $currency ?></strong></p>
+		<p class="text-right"><strong><span id="tprice"><?php echo number_format($cart_data["totalPrice"], 2, ",", " ") ?></span> <?php echo $currency ?></strong></p>
 	</div>
 	<div class="col-9 col-sm-9 col-lg-9">
 		<p class="text-right"><?php echo $this->core->Get_plugin_variable('delivery_price', $this->plugin_name) ?>:</p>
 	</div>
 	<div class="col-3 col-sm-3 col-lg-3">
-		<p class="text-right"><strong><span id="dprice"><?php echo number_format($cart_data["delivery_price"] + v($list["order_cod_price"], 0), 2, ",", "") ?></span> <?php echo $currency ?></strong></p>
+		<p class="text-right"><strong><span id="dprice"><?php echo number_format($cart_data["delivery_price"] + v($list["order_cod_price"], 0), 2, ",", " ") ?></span> <?php echo $currency ?></strong></p>
 	</div>
 	<div class="col-9 col-sm-9 col-lg-9">
 		<p class="lead text-right"><?php echo $this->core->Get_plugin_variable('cart_full_price', $this->plugin_name) ?>:</p>
 	</div>
 	<div class="col-3 col-sm-3 col-lg-3">
-		<p class="lead text-right"><span id="fprice"><?php echo number_format($cart_data["full_price"], 2, ",", "") ?></span> <?php echo $currency ?></p>
+		<p class="lead text-right"><span id="fprice"><?php echo number_format($cart_data["full_price"], 2, ",", " ") ?></span> <?php echo $currency ?></p>
 	</div>
 	<div class="col-xs-12">
 		<div class="btn-group pull-right">
@@ -31,7 +41,3 @@ $currency = $this->price->get_user_currency();
 		</div>
 	</div>
 </div>
-
-
-
-

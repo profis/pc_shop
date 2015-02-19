@@ -63,7 +63,8 @@ class PC_plugin_pc_shop_order_widget extends PC_plugin_pc_shop_widget {
 			'order_data' => $shop->orders->Get_preserved_order_data(),
 			'coupon_data' => $shop->cart->get_preserved_coupon_data(),
 			'delivery_options' => $shop->getDeliveryOptions(),
-			'payment_options' => $shop->getPaymentOptions()
+			'payment_options' => $shop->getPaymentOptions(),
+			'currency' => $shop->price->get_user_currency(),
 		);
 		if ($data['coupon_data']) {
 			$data['cart_data']['coupon'] = $data['coupon_data']['code'];

@@ -1,3 +1,18 @@
+<?php
+/**
+ * @var PC_plugin_pc_shop_products_widget $this
+ * @var PC_shop_products_site $shop_products_site
+ * @var string $tpl_group
+ * @var string $base_url
+ * @var PC_params $params
+ * @var array $items
+ * @var array $item
+ * @var string $image
+ * @var string $price
+ * @var float $discount
+ * @var float $percentage_discount
+ */
+?>
 <div class="col-6 col-xs-12">
 	<div class="thumbnail">
 		<img data-src="holder.js/300x200" alt="">

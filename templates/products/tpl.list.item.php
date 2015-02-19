@@ -1,4 +1,13 @@
 <?php
+/**
+ * @var PC_plugin_pc_shop_products_widget $this
+ * @var PC_shop_products_site $shop_products_site
+ * @var string $tpl_group
+ * @var string $base_url
+ * @var PC_params $params
+ * @var array $items
+ * @var array $item
+ */
 
 if (v($item["resources"]->list)){
 	$image = $this->core->Get_url("gallery").$item["resources"]->Get_main_image($this->_config['list_item_thumb_type']);
@@ -17,8 +26,3 @@ if (isset($_GET['rows'])) {
 else {
 	include $this->core->Get_tpl_path($tpl_group, 'tpl.list.item._box');
 }
-
-?>
-
-
-

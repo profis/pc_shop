@@ -96,28 +96,31 @@ class PC_shop_product_model extends PC_model {
 		//$cart_item['attributes_info'] = $this->shop->products->get_attributes_info($p, $cart_item['attributes']);
 		//print_pre($attributes);
 		//print_pre($this->price_attribute_refs);
-		if (is_array($attributes)) {
-			foreach( $data['price_combination_groups'] as $groupAttributes ) {
-				$groupId = implode(',', $groupAttributes);
-				if( isset($data['price_combinations'][$groupId]) ) {
-					$val = array();
-					foreach( $groupAttributes as $attrId )
-						$val[] = isset($attributes[$attrId]) ? $attributes[$attrId] : null;
-					$val = implode(',', $val);
-					if( isset($data['price_combinations'][$groupId][$val]) ) {
-						$comboPriceData = &$data['price_combinations'][$groupId][$val];
-						if( $comboPriceData['price'] > 0 ) {
-							$price = $this->price->get_price_in_user_currency($comboPriceData['price']);
-							$discount = 0;
+		if( is_array($attributes) ) {
+			if( isset($data['price_combination_groups']) ) {
+				foreach ($data['price_combination_groups'] as $groupAttributes) {
+					$groupId = implode(',', $groupAttributes);
+					if (isset($data['price_combinations'][$groupId])) {
+						$val = array();
+						foreach ($groupAttributes as $attrId)
+							$val[] = isset($attributes[$attrId]) ? $attributes[$attrId] : null;
+						$val = implode(',', $val);
+						if (isset($data['price_combinations'][$groupId][$val])) {
+							$comboPriceData = &$data['price_combinations'][$groupId][$val];
+							if ($comboPriceData['price'] > 0) {
+								$price = $this->price->get_price_in_user_currency($comboPriceData['price']);
+								$discount = 0;
+							}
+							if ($comboPriceData['price_diff'] > 0) {
+								$price += $this->price->get_price_in_user_currency($comboPriceData['price_diff']);
+							}
+							if ($comboPriceData['discount'] > 0)
+								$discount = $this->price->get_price_in_user_currency($comboPriceData['discount']);
 						}
-						if( $comboPriceData['price_diff'] > 0 ) {
-							$price += $this->price->get_price_in_user_currency($comboPriceData['price_diff']);
-						}
-						if( $comboPriceData['discount'] > 0 )
-							$discount = $this->price->get_price_in_user_currency($comboPriceData['discount']);
 					}
 				}
 			}
+
 			foreach ($attributes as $attribute_id => $attribute_value_id) {
 				if( !isset($data['attributes'][$attribute_id]) )
 					continue;

@@ -1,8 +1,13 @@
 <?php
 /**
  * @var PC_plugin_pc_shop_order_widget $this
- * @var array $payment_options
+ * @var string $tpl_group
+ * @var array $cart_data
  * @var array $order_data
+ * @var array $coupon_data
+ * @var array $delivery_options
+ * @var array $payment_options
+ * @var string $currency
  */
 $this->site->Add_script($this->cfg['directories']['media'] . '/form_validation.js');
 ?>
@@ -11,45 +16,45 @@ $this->site->Add_script($this->cfg['directories']['media'] . '/form_validation.j
 <div class="form-group">
 	<label for="order_name" class="col-lg-2 control-label"><?php echo $this->core->Get_plugin_variable('order_name', $this->plugin_name); ?><span>*</span></label>
 	<div class="col-lg-10">
-		<input type="text" name="order[name]" id="order_name" value="<?php echo $order_data["name"];?>" class="form-control" placeholder="<?php echo $this->core->Get_plugin_variable('order_name', $this->plugin_name); ?>">
+		<input type="text" name="order[name]" id="order_name" value="<?php echo htmlspecialchars(v($order_data["name"], '')); ?>" class="form-control" placeholder="<?php echo $this->core->Get_plugin_variable('order_name', $this->plugin_name); ?>">
 	</div>
 </div>
 
 <div class="form-group">
 	<label for="order_address" class="col-lg-2 control-label"><?php echo $this->core->Get_plugin_variable('order_address', $this->plugin_name); ?></label>
 	<div class="col-lg-10">
-		<input type="text" name="order[address]" id="order_address" value="<?php echo $order_data["address"];?>" class="form-control" placeholder="<?php echo $this->core->Get_plugin_variable('order_address', $this->plugin_name); ?>">
+		<input type="text" name="order[address]" id="order_address" value="<?php echo htmlspecialchars(v($order_data["address"], '')); ?>" class="form-control" placeholder="<?php echo $this->core->Get_plugin_variable('order_address', $this->plugin_name); ?>">
 	</div>
 </div>
 
 <div class="form-group">
 	<label for="order_email" class="col-lg-2 control-label"><?php echo $this->core->Get_plugin_variable('order_email', $this->plugin_name); ?><span>*</span></label>
 	<div class="col-lg-10">
-		<input type="email" name="order[email]" id="order_email" value="<?php echo $order_data["email"];?>" class="form-control" placeholder="<?php echo $this->core->Get_plugin_variable('order_email', $this->plugin_name); ?>">
+		<input type="email" name="order[email]" id="order_email" value="<?php echo htmlspecialchars(v($order_data["email"], '')); ?>" class="form-control" placeholder="<?php echo $this->core->Get_plugin_variable('order_email', $this->plugin_name); ?>">
 	</div>
 </div>
 
 <div class="form-group">
 	<label for="order_phone" class="col-lg-2 control-label"><?php echo $this->core->Get_plugin_variable('order_phone', $this->plugin_name); ?><span>*</span></label>
 	<div class="col-lg-10">
-		<input type="tel" name="order[phone]" id="order_phone" value="<?php echo $order_data["phone"];?>" class="form-control" placeholder="<?php echo $this->core->Get_plugin_variable('order_phone', $this->plugin_name); ?>">
+		<input type="tel" name="order[phone]" id="order_phone" value="<?php echo htmlspecialchars(v($order_data["phone"], '')); ?>" class="form-control" placeholder="<?php echo $this->core->Get_plugin_variable('order_phone', $this->plugin_name); ?>">
 	</div>
 </div>
 
 <div class="clear"></div>
 
 <?php
-if (!empty($delivery_options)) {
+if (!empty($deliveryOptions)) {
 ?>
 <div class="input_holder">
 	<label><?php echo $this->core->Get_plugin_variable('delivery', $this->plugin_name); ?>:<br /></label>
 	<?php
 		$count = 0;
-		if (!isset($order_data["delivery_option"]) or !isset($delivery_options[$order_data["delivery_option"]])) {
-			$delivery_option_keys = array_keys($delivery_options);
+		if (!isset($order_data["delivery_option"]) or !isset($deliveryOptions[$order_data["delivery_option"]])) {
+			$delivery_option_keys = array_keys($deliveryOptions);
 			$order_data["delivery_option"] = $delivery_option_keys[0];
 		}
-		foreach ($delivery_options as $key => $option){
+		foreach ($deliveryOptions as $key => $option){
 			echo '<span><input type="radio" name="order[delivery_option]" class="radio" id="delivery_option_'.$key.'" value="'.$key.'"'.($key == $order_data["delivery_option"]?' checked':'').' /> <label class="for_radio"  for="delivery_option_'.$key.'">'.$option.'</label></span>';
 			$count++;
 		}
@@ -62,7 +67,7 @@ if (!empty($delivery_options)) {
 ?>
 
 <div class="input_holder">
-	<label><?php echo $this->core->Get_plugin_variable('order_comment', $this->plugin_name); ?>:<br /><textarea name="order[comment]"><?php echo $order_data["comment"];?></textarea></label>
+	<label><?php echo $this->core->Get_plugin_variable('order_comment', $this->plugin_name); ?>:<br /><textarea name="order[comment]"><?php echo v($order_data["comment"]); ?></textarea></label>
 </div>
 
 <div class="clear"></div>

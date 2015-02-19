@@ -144,6 +144,9 @@ function process_api_for_order() {
 				$order = $shop->orders->Get_preserved_order_data();
 			}
 
+			if (isset($_POST['pc_shop_coupon']))
+				$order['coupon'] = $_POST['pc_shop_coupon'];
+
 			$deliveryOption = v($order['delivery_option']);
 			if( $deliveryOption && $deliveryOption == v($prevOrder['delivery_option']) ) {
 				if( isset($_REQUEST['delivery_form_data']) ) {
