@@ -2,16 +2,19 @@
 class PC_controller_pc_shop extends PC_controller {
 	public $currentProduct = null, $currentCategory = null;
 	
-	/**
-	 *
-	 * @var PC_shop_site
-	 */
-	protected $shop;
+	/** @var PC_shop_site */
+	protected $shop = null;
 	
 	protected $type = null;
 
 	/** @var PC_shop_payment_method */
 	public $payment_method = null;
+
+	/** @var PC_debug */
+	public $payment_logger = null;
+
+	/** @var array */
+	public $order_data = null;
 	
 	public function Init($do_not_bind_to_site = false) {
 		global $shop_controller;
