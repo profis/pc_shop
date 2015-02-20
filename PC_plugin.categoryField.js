@@ -22,6 +22,7 @@ PC.ux.categoryField = Ext.extend(Ext.form.CompositeField, {
 		config.items = [
 			{
 				xtype: 'hidden',
+				id: 'pc_shop_cf_category_id',
 				ref: '../_category_id',
 				value: value
 			},
@@ -35,7 +36,10 @@ PC.ux.categoryField = Ext.extend(Ext.form.CompositeField, {
 				items: PC.view_factory.get_shortcut_field({
 					id: 'pc_shop_import_products_category',
 					width: width,
-					value: value_text
+					value: value_text,
+					onResetClick: function() {
+						Ext.getCmp('pc_shop_cf_category_id').setRawValue('');
+					}
 				}, 
 				{
 					callback: Ext.createDelegate(function(value, lang, node_id){

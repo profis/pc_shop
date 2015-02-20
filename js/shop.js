@@ -81,7 +81,7 @@ var PC_shop_cart = {
 		$("#dprice, #cdprice, .dprice").text(PC_shop_cart.format(data.order_delivery_price));
 		$("#pprice").text(PC_shop_cart.format(data.order_cod_price));
 		$("#fprice, #cfprice").text(PC_shop_cart.format(data.order_full_price));
-		$("#discount_price").text(PC_shop_cart.format(data.total_discount)); // discount, total_discount or eligible_discount?
+		$("#discount_price").text(PC_shop_cart.format(-data.total_discount)); // discount, total_discount or eligible_discount?
 		$("#delivery_form").html(data.delivery_form).trigger('changed');
 
 		if( typeof(data.discounts) == 'object' )

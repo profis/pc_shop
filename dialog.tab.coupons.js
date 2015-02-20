@@ -41,7 +41,6 @@ PC.plugin.pc_shop.crud_coupons = Ext.extend(PC.ux.crud, {
 	
 	get_add_form_fields: function() {
 		return [
-			
 			{	_fld: 'code',
 				ref: '_code',
 				name: 'code',
@@ -123,8 +122,7 @@ PC.plugin.pc_shop.crud_coupons = Ext.extend(PC.ux.crud, {
 				value: '',
 				value_text: '',
 				allowBlank: true
-			}
-			,
+			},
 			
 			{	_fld: 'percentage_discount',
 				ref: '_percentage_discount',
@@ -142,6 +140,26 @@ PC.plugin.pc_shop.crud_coupons = Ext.extend(PC.ux.crud, {
 			
 	get_empty_edit_form_fields: function() {
 		var fields = PC.plugin.pc_shop.crud_coupons.superclass.get_empty_edit_form_fields.call(this);
+
+		var i;
+		var categoryText = '';
+		if( this.selected_id ) {
+			var items = this.store.data.items;
+			for( i in items ) {
+				if( items[i].id == this.selected_id ) {
+					categoryText = items[i].data.category_name;
+					break;
+				}
+			}
+		}
+
+		for( i in fields ) {
+			if( fields[i].name == 'category_id' ) {
+				fields[i].value_text = categoryText;
+				break;
+			}
+		}
+
 		fields.push({
 			_fld: 'prices_key',
 			ref: '_prices_key',
