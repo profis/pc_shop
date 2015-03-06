@@ -105,6 +105,8 @@ var PC_shop_cart = {
 				$nextStepBtn.removeClass('disabled');
 			}
 		}
+		
+		$(".mini-basket").trigger('cartchanged', data);
 	},
 
 	canContinueToNextStep: function() {
