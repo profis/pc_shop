@@ -79,7 +79,7 @@ function pc_shop_install($controller) {
 	//$core->Set_config('delivery_price', '', 'pc_shop');
 	//$core->Set_config('cod_price', '', 'pc_shop');
 	//$core->Set_config('amount_for_free_delivery', '', 'pc_shop');
-	$core->Set_config_if('currency', 'LTL', 'pc_shop');
+	$core->Set_config_if('currency', 'EUR', 'pc_shop');
 	$core->Set_config_if('new_order_email_admin', '', 'pc_shop');
 	
 	$core->Set_config_if('checkout_offer_to_register', '', 'pc_shop');

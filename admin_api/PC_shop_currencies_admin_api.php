@@ -33,10 +33,10 @@ class PC_shop_currencies_admin_api extends PC_shop_admin_api {
 		//Insert default titles for some currencies
 		$content_model = new PC_shop_currency_content_model();
 		$default_contents = array(
-			'LTL' => array(
-				'lt' => array('title' => 'Lt'),
-				'en' => array('title' => 'Lt'),
-				'ru' => array('title' => 'Лт'),
+			'EUR' => array(
+				'lt' => array('title' => '€'),
+				'en' => array('title' => '€'),
+				'ru' => array('title' => '€'),
 			)
 		);
 		
@@ -51,13 +51,6 @@ class PC_shop_currencies_admin_api extends PC_shop_admin_api {
 				
 			}
 		}
-		
-		
-		//Insert some ln currencies
-		$ln_currencies = array(
-			'ln' => array('LTL')
-		);
-		
 	}
 	
 	
