@@ -8,7 +8,7 @@ class PC_plugin_pc_shop_categories_widget extends PC_plugin_pc_shop_widget {
 	
 	public function Init($config = array()) {
 		parent::Init($config);
-		$this->_category_id = $this->_config['category']['id'];
+		$this->_category_id = isset($this->_config['category']['id']) ? $this->_config['category']['id'] : null;
 	}
 	
 	public function get_params() {
@@ -24,8 +24,8 @@ class PC_plugin_pc_shop_categories_widget extends PC_plugin_pc_shop_widget {
 		$params['parse'] = array(
 			//'description' => true,
 			//'attributes' => true,
-			//'recources' => true,
-			'recources' => 'first_img_only'
+			//'resources' => true,
+			'resources' => 'first_img_only'
 		);
 		$params['full_links'] = true;
 		return $params;
@@ -33,8 +33,7 @@ class PC_plugin_pc_shop_categories_widget extends PC_plugin_pc_shop_widget {
 	
 	public function get_data() {
 		$data = array();
-		
-		$this->shop = $this->core->Get_object("PC_shop_site");
+
 		$params = $this->get_params();
 		$data['categories']  = $this->shop->categories->Get(null, $this->_category_id, null, $params);
 		

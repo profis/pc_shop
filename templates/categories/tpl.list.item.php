@@ -1,8 +1,17 @@
 <?php
+/**
+ * @var PC_plugin_pc_shop_categories_widget $this
+ * @var string $tpl_group
+ * @var array $categories
+ */
 
-if (v($category["resources"]->list)){
-	$image = $this->core->Get_url("gallery").$category["resources"]->Get_main_image(v($this->_config['list_item_thumb_type'], 'small'));
-}else {
+/** @var PC_shop_item_resources $res */
+$res = isset($category["resources"]) ? $category["resources"] : null;
+
+if( $res && !empty($res->list) ) {
+	$image = $this->core->Get_url("gallery").$res->Get_main_image(v($this->_config['list_item_thumb_type'], 'small'));
+}
+else {
 	$image = $this->core->Get_theme_path().'img/no_photo_220x180.jpg';
 }
 ?>
