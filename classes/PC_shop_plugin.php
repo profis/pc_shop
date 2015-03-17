@@ -110,8 +110,6 @@ final class PC_shop_plugin extends PC_base {
 				'perPage'=> v($additional['perPage'], 3000)
 			);
 			$cParams = array('paging'=> &$paging);
-			$shop->categories->debug = true;
-			$shop->categories->set_instant_debug_to_file($this->cfg['path']['logs'] . 'tree/get_childs_for_tree.html');
 			$categories = $shop->categories->Get(null, $parentId, v($pid), $cParams);
 			$this->Parse_category_nodes($categories, $list, $additional);
 			
@@ -230,17 +228,7 @@ final class PC_shop_plugin extends PC_base {
 		return true;
 	}
 	public function Search_tree($params) {
-		if (v($params['logger'], false)) {
-			$this->absorb_debug_settings($params['logger']);
-		}
 		$params['hook_object'] = $this;
-		
-		$this->debug('Search_tree');
-		if (v($params['accessible_pages_concat_query']) and v($params['accessible_pages_concat_query_params'])) {
-			$this->debug('Accessible pages concat query:');
-			$this->debug_query($params['accessible_pages_concat_query'], $params['accessible_pages_concat_query_params']);
-		}
-		
 		
 		$search =& $params['search'];
 		$list =& $params['nodes'];
@@ -256,14 +244,10 @@ final class PC_shop_plugin extends PC_base {
 		$join_s = '';
 		
 		
-		$this->debug('Manage accessible pages:', 2);
 		if(v($params['accessible_pages_concat_query']) and v($params['accessible_pages_concat_query_params'])) {
 			$use_ranges = true;
 			$params['accessible_pages_concat_query'] .= ' and p.controller = ?';
 			$params['accessible_pages_concat_query_params'][] = 'pc_shop';
-
-			$this->debug('Real accessible pages concat query:', 3);
-			$this->debug_query($params['accessible_pages_concat_query'], $params['accessible_pages_concat_query_params'], 4);
 
 			$r = $this->db->prepare($params['accessible_pages_concat_query']);
 			$success = $r->execute($params['accessible_pages_concat_query_params']);
@@ -281,14 +265,11 @@ final class PC_shop_plugin extends PC_base {
 		}
 		
 		if ($accessible_page_sets) {
-			$this->debug('Search is restricted to accessible nodes only!', 1);
-			$this->debug('Manage accessible controller_nodes:', 2);
 			if (isset($accessible_page_sets['controller_nodes']) and isset($accessible_page_sets['controller_nodes']['pc_shop'])) {
 				$use_ranges = true;
 				foreach ($accessible_page_sets['controller_nodes']['pc_shop'] as $key => $id) {
 					$id_data = $this->ParseID($id);
 					if ($id_data and $id_data['type'] == 'category') {
-						$this->debug($id_data, 3);
 						$category_data = $shop->categories->Get_item($id_data['id']);
 						if ($category_data) {
 							$add_range = true;
@@ -311,17 +292,14 @@ final class PC_shop_plugin extends PC_base {
 		}
 		
 		if ($use_ranges) {
-			$this->debug('Ranges:', 2);
-			$this->debug($ranges);
 			foreach ($ranges as $range) {
 				$betweens[] = "(c.lft BETWEEN {$range['lft']} AND {$range['rgt']})";
 				//$query_params[] = $range['lft'];
 				//$query_params[] = $range['rgt'];
 			}
 			if (!empty($betweens)) {
-				$join_s .= ' LEFT JOIN pc_shop_categories c ON c.id = category_id ';
+				$join_s .= " LEFT JOIN{$this->db_prefix}shop_categories c ON c.id = category_id ";
 				$between_cond = '(' . implode(' OR ', $betweens) . ') AND ';
-				$this->debug('$between_cond: ' . $between_cond, 3);
 			}
 		}
 		
@@ -341,10 +319,10 @@ final class PC_shop_plugin extends PC_base {
 		//$r->bindParam('search', $searchStr);
 		$query_params['search'] = $searchStr;
 		
-		$this->debug('Search categories query:', 1);
-		$this->debug_query($query, $query_params, 2);
-		$s = $r->execute($query_params);
-		if ($s) if ($r->rowCount()) {
+		if( !$r->execute($query_params) )
+			throw new DbException($r->errorInfo(), $query, $query_params);
+
+		if ($r->rowCount()) {
 			$ids = array();
 			while ($id = $r->fetchColumn()) {
 				$ids[] = $id;
@@ -358,9 +336,9 @@ final class PC_shop_plugin extends PC_base {
 		//products
 		//search between contents: name, short_description, description, seo_title, seo_description, seo_keywords, route
 		
-		$between_join = ' LEFT JOIN pc_shop_products p ON p.id = pc.product_id';
+		$between_join = " LEFT JOIN {$this->db_prefix}shop_products p ON p.id = pc.product_id";
 		if (!empty($between_cond)) {
-			$between_join .= " LEFT JOIN pc_shop_categories c ON c.id = p.category_id ";
+			$between_join .= " LEFT JOIN {$this->db_prefix}shop_categories c ON c.id = p.category_id ";
 		}
 		
 		$products_query = "SELECT DISTINCT product_id FROM {$this->db_prefix}shop_product_contents pc"
@@ -380,11 +358,10 @@ final class PC_shop_plugin extends PC_base {
 		//$r->bindParam('search', $searchStr);
 		$products_query_params['search'] = $searchStr;
 		
-		$this->debug('Search products query:', 1);
-		$this->debug_query($products_query, $products_query_params, 2);
-		
-		$s = $r->execute($products_query_params);
-		if ($s) if ($r->rowCount()) {
+		if( !$r->execute($products_query_params) )
+			throw new DbException($r->errorInfo(), $products_query, $products_query_params);
+
+		if ($r->rowCount()) {
 			$ids = array();
 			while ($id = $r->fetchColumn()) {
 				$ids[] = $id;
@@ -406,10 +383,6 @@ final class PC_shop_plugin extends PC_base {
 			$id = $id_parts[1];
 			if ($type == 'category') {
 				$shop = $this->core->Get_object('PC_shop_site');
-				if (isset($params['instant_debug_to_file'])) {
-					$shop->categories->debug = true;
-					$shop->categories->set_instant_debug_to_file($params['instant_debug_to_file'], false, 5);
-				}
 				$params['url'] = $url = $shop->categories->Get_full_link_by_id($id, $ln);
 				if ($url) {
 					if (v($params['get_page_id'])) {
@@ -420,10 +393,6 @@ final class PC_shop_plugin extends PC_base {
 			}
 			elseif ($type == 'product') {
 				$shop = $this->core->Get_object('PC_shop_site');
-				if (isset($params['instant_debug_to_file'])) {
-					$shop->categories->debug = true;
-					$shop->categories->set_instant_debug_to_file($params['instant_debug_to_file'], false, 5);
-				}
 				$params['url'] = $url = $shop->products->Get_full_link_by_id($id, $ln);
 				if ($url) {
 					if (v($params['get_page_id'])) {
@@ -436,9 +405,6 @@ final class PC_shop_plugin extends PC_base {
 	}
 	
 	public function Get_request_from_permalink($params) {
-		if (v($params['logger'], false)) {
-			$this->absorb_debug_settings($params['logger']);
-		}
 		$params['hook_object'] = $this;
 		
 		v($params['request']);
@@ -451,13 +417,8 @@ final class PC_shop_plugin extends PC_base {
 			return;
 		}
 			
-		$this->debug("Get_request_from_permalink({$params['request']}, {$params['ln']})");
-		
 		$shop = $this->core->Get_object('PC_shop_site');
 		$shop_manager = $this->Get_shop();
-		
-		$shop->categories->absorb_debug_settings($this, 4);
-		$shop_manager->categories->absorb_debug_settings($this, 10);
 		
 		$category_id = $shop_manager->categories->Get_id_by_content('permalink', $params['request'], $params['ln']);
 		
@@ -472,15 +433,12 @@ final class PC_shop_plugin extends PC_base {
 			$category_data = $shop->categories->Get($category_id, null, null, $category_params);
 			if ($category_data) {
 				$shop->categories->Load_path($category_data);
-				$this->debug('Ln: '.$params['ln'].'; $category_data:', 2);
-				$this->debug($category_data, 2);
-				
+
 				$page_link = '';
 				if ($category_data['path'][0]['pid']) {
 					$page_link = $this->page->Get_page_link_by_id($category_data['path'][0]['pid'], $page_ln);
 				}
-				$this->debug("Page link: " . $page_link, 3);
-				
+
 				$last_path_item = $category_data['path'][count($category_data['path']) - 1];
 				$category_link = $last_path_item['link'];
 				if (v($last_path_item['real_link'])) {
@@ -489,8 +447,6 @@ final class PC_shop_plugin extends PC_base {
 				pc_remove_trailing_slash($page_url);
 				
 				$params['permalink_request'] = $page_link . '/' . $category_link;
-				
-				$this->debug("permalink_request is set to: " . $params['permalink_request'], 3);
 			}
 			
 		}
