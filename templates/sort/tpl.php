@@ -1,3 +1,14 @@
+<?php
+/**
+ * @var PC_plugin_pc_shop_sort_products_widget $this
+ * @var string $tpl_group
+ * @var string $base_url_full
+ * @var string $base_url_row_full
+ * @var bool $list_type_row
+ * @var array $sort_option
+ * @var array[] $menu
+ */
+?>
 <div id="visual" class="btn-group">
 	<a href="<?php echo $base_url_full ?>" class="btn btn-default <?php echo !$list_type_row?'active':'' ?>"><span class="glyphicon glyphicon-th"></span></a>
 	<a href="<?php echo $base_url_row_full ?>" class="btn btn-default <?php echo $list_type_row?'active':'' ?>"><span class="glyphicon glyphicon-th-list"></span></a>

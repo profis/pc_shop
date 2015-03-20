@@ -1,3 +1,12 @@
+<?php
+/**
+ * @var PC_plugin_pc_shop_order_history_widget $this
+ * @var string $tpl_group
+ * @var PC_params $params
+ * @var array[] $orders
+ * @var array $cart_data
+ */
+?>
 	<div id="cart_prices">
 		<div class="cart_price"><?php echo $this->core->Get_plugin_variable('items_price', $this->plugin_name) ?>: <span><span id="tprice"><?php echo number_format($cart_data["totalPrice"], 2, ",", "") ?></span> <?php echo $this->price->get_user_currency() ?></span></div>
 		<div class="clear"></div>

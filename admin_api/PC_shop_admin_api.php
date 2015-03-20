@@ -5,7 +5,10 @@ class PC_shop_category_access_exception extends PC_plugin_admin_api_access_excep
 class PC_shop_admin_api extends PC_plugin_crud_admin_api{
 	
 	public $permanent_category_log = true;
-	
+
+	/** @var PC_shop_manager */
+	public $shop;
+
 	/**
 	 * 
 	 */
@@ -16,19 +19,9 @@ class PC_shop_admin_api extends PC_plugin_crud_admin_api{
 	protected function _get_model() {
 		return false;
 	}
-	
-	protected function _prepare_log($logger = null) {
-		if ($this->permanent_category_log) {
-			if (is_null($logger)) {
-				if(!is_null($this->shop)) {
-					$logger = $this->shop->categories;
-				}
-			}
-			if (!is_null($logger)) {
-				$logger->debug = true;
-				$logger->set_instant_debug_to_file($this->cfg['path']['logs'] . 'shop_categories.html', true);
-			}
-		}
+
+	/** @deprecated */
+	protected function _prepare_log() {
 	}
 	
 	/**
@@ -55,7 +48,6 @@ class PC_shop_admin_api extends PC_plugin_crud_admin_api{
 	}
 	
 	protected function _get_category_name_path($id, $ln = '') {
-		$this->debug("_get_category_name_path($id)");
 		$link_select = ' concat('.$this->sql_parser->group_concat('link_cc.name', array('separator'=>' / ','order'=>array('by'=>'link_c.lft'))).") name_path";
 			
 		$link_join = " LEFT JOIN {$this->db_prefix}shop_categories link_c ON c.lft BETWEEN link_c.lft and link_c.rgt"
@@ -68,9 +60,6 @@ class PC_shop_admin_api extends PC_plugin_crud_admin_api{
 
 		$query_params[] = $ln;
 		$query_params[] = $id;
-		
-		$this->debug_query($query, $query_params, 1);
-		//echo $this->get_debug_string(true);
 		
 		$r = $this->prepare($query);
 		$s = $r->execute($query_params);

@@ -35,9 +35,6 @@ function process_api_for_cart($route = '') {
 	$shop = $core->Get_object('PC_shop_site');
 	/* @var $shop PC_shop_site */
 
-	$shop->cart->debug = true;
-	$shop->cart->set_instant_debug_to_file($cfg['path']['logs'] . 'pc_shop/cart_api.html', null, 5);
-
 	$sendCartState = false;
 	$ciid = null;
 	switch ($route) {
@@ -64,15 +61,6 @@ function process_api_for_cart($route = '') {
 		case 'remove':
 			$out['success'] = $shop->cart->Remove($ciid = $routes->Get(3), $routes->Get(4, 0));
 			$sendCartState = true;
-			break;
-		case 'debug':
-			echo 'session coupon:';
-			print_pre(v($_SESSION['pc_shop']['coupon']));
-			echo 'session cart:';
-			print_pre($_SESSION['pc_shop']['cart']);
-			echo 'shop cart get:';
-			print_pre($shop->cart->Get());
-			exit;
 			break;
 		default: $out['error'] = 'Invalid cart action';
 	}
@@ -119,10 +107,6 @@ function process_api_for_order() {
 	$shop = $core->Get_object('PC_shop_site');
 	/* @var $shop PC_shop_site */
 		
-
-	$shop->cart->debug = true;
-	$shop->cart->set_instant_debug_to_file($cfg['path']['logs'] . 'pc_shop/order_api.html', null, 5);
-
 	switch ($routes->Get(2)) {
 		case 'get':
 			$out['order'] = $shop->orders->Get_preserved_order_data();

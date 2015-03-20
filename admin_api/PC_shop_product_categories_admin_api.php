@@ -3,11 +3,8 @@
 class PC_shop_product_categories_admin_api extends PC_shop_admin_api {
 	
 	public function update() {
-		$this->debug($_POST);
 		$m = new PC_shop_product_category_model();
-		$m->absorb_debug_settings($this);
 		$data = json_decode($_POST['data'], true);
-		$this->debug($data);
 		$m->update($data, $_POST['id']);
 	}
 	
@@ -17,9 +14,7 @@ class PC_shop_product_categories_admin_api extends PC_shop_admin_api {
 			$this->product_id = intval($_POST['part_id']);
 		}
 		
-		$this->debug("get($this->product_id)");
-		
-		$query = "SELECT category_id FROM {$this->cfg['db']['prefix']}shop_product_categories 
+		$query = "SELECT category_id FROM {$this->cfg['db']['prefix']}shop_product_categories
 			WHERE product_id = ?";
 		$query_params = array($this->product_id);
 		
@@ -48,9 +43,7 @@ class PC_shop_product_categories_admin_api extends PC_shop_admin_api {
 	 */
 	public function save() {
 		$this->product_id = intval($_POST['product_id']);
-		$this->debug("Save");
 		$categories = json_decode($_POST['categories']);
-		$this->debug($categories, 1);
 		$fields = false;
 		$additional_field_keys = false;
 		$additional_field_keys_s = '';
@@ -59,26 +52,21 @@ class PC_shop_product_categories_admin_api extends PC_shop_admin_api {
 			$fields = json_decode($_POST['preserve_fields']);
 			if (is_array($fields)) {
 				$m = new PC_shop_product_category_model();
-				$m->absorb_debug_settings($this);
 				$field_values = $m->get_all(array(
 					'where' => array(
 						'product_id' => $this->product_id
 					),
 					'key' => 'category_id'
 				));
-				$this->debug($field_values);
 				if (count($field_values)) {
 					$array_keys = array_keys($field_values);
 					$additional_field_keys = array_intersect($fields, array_keys($field_values[$array_keys[0]]));
-					$this->debug('$additional_field_keys:', 3);
-					$this->debug($additional_field_keys, 4);
 					$additional_field_keys_s = ',' . implode(',', $additional_field_keys);
 					$additional_values_s = ',' . implode(',', array_fill(0, count($additional_field_keys), '?'));
 				}
 			}
 		}
-		$this->debug($fields, 1);
-		
+
 		if (!is_array($categories)) {
 			return;
 		}
@@ -86,8 +74,6 @@ class PC_shop_product_categories_admin_api extends PC_shop_admin_api {
 		$delete_query = "DELETE FROM {$this->cfg['db']['prefix']}shop_product_categories 
 			WHERE product_id = ?";
 		$delete_params = array($this->product_id);
-		
-		$this->debug_query($delete_query, $delete_params, 1);
 		
 		$r = $this->db->prepare($delete_query);
 		$s = $r->execute($delete_params);
@@ -110,19 +96,13 @@ class PC_shop_product_categories_admin_api extends PC_shop_admin_api {
 					$product_category = intval($id_data['id']);
 					$insert_params = array($product_category);
 					if ($additional_field_keys and isset($field_values[$product_category])) {
-						$this->debug(array_flip($additional_field_keys));
-						$this->debug($field_values[$product_category]);
 						$add_fields = array_intersect_key($field_values[$product_category], array_flip($additional_field_keys));
-						$this->debug($add_fields);
 						$insert_params = array_merge($insert_params, array_values($add_fields));
-						$this->debug_query($insert_query_2, $insert_params, 1);
 						$s = $r_2->execute($insert_params);
 					}
 					else {
-						$this->debug_query($insert_query, $insert_params, 1);
 						$s = $r->execute($insert_params);
 					}
-					
 				}
 			}
 		}		
@@ -131,10 +111,8 @@ class PC_shop_product_categories_admin_api extends PC_shop_admin_api {
 	
 	public function delete() {
 		$this->product_id = intval($_POST['product_id']);
-		$this->debug("delete");
 		$categories = json_decode($_POST['categories']);
-		$this->debug($categories, 1);
-		
+
 		if (!is_array($categories)) {
 			return;
 		}
@@ -144,8 +122,6 @@ class PC_shop_product_categories_admin_api extends PC_shop_admin_api {
 			WHERE product_id = ? AND category_id " . $this->sql_parser->in($categories);
 		$delete_params[] = $this->product_id;
 		$delete_params = array_merge($delete_params, $categories);
-		
-		$this->debug_query($delete_query, $delete_params, 1);
 		
 		$r = $this->db->prepare($delete_query);
 		$s = $r->execute($delete_params);

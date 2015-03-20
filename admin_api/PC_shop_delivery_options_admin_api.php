@@ -2,12 +2,6 @@
 
 class PC_shop_delivery_options_admin_api extends PC_shop_admin_api {
 
-	/**
-	 *
-	 * @var PC_shop_manager 
-	 */
-	protected $shop;
-	
 	protected $_default_order = 'position';
 	
 	protected $_content_fields = array(
@@ -30,8 +24,7 @@ class PC_shop_delivery_options_admin_api extends PC_shop_admin_api {
 	protected function _after_get_() {
 		require_once PLUGINS_ROOT . DS .  'pc_shop/admin_api/PC_shop_prices_admin_api.php';
 		$prices_api = new PC_shop_prices_admin_api();
-		$prices_api->absorb_debug_settings($this);
-		
+
 		foreach ($this->_out['list'] as $key => $delivery_option) {
 			//print_pre($delivery_option);
 			$_POST['pkey'] = $prices_api->pkey = 'delivery_option_' . $delivery_option['code'] . '_delivery_price';

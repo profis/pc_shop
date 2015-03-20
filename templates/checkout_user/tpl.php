@@ -1,4 +1,10 @@
-
+<?php
+/**
+ * @var PC_plugin_pc_shop_checkout_user_widget $this
+ * @var string $tpl_group
+ * @var string $order_url
+ */
+?>
 <div>
 	<?php echo $this->Get_variable('go_to_order_anon') ?>
 		<a href="<?php echo  $order_url  ?>" class="btn btn-success"><?php echo $this->core->Get_plugin_variable('go_to_order', $this->plugin_name) ?></a>

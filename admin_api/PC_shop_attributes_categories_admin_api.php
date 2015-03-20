@@ -27,8 +27,6 @@ class PC_shop_attributes_categories_admin_api extends PC_shop_admin_api {
 	}
 	
 	protected function _after_get() {
-		$this->debug('_after_get()');
-		
 		$model = $this->core->Get_object('PC_shop_attributes_category_model');
 		
 		$attribute_categories = $model->get_all(array(
@@ -57,8 +55,7 @@ class PC_shop_attributes_categories_admin_api extends PC_shop_admin_api {
 		);
 		$params = array('paging' => &$paging);
 		$attr_category_model = $this->core->Get_object('PC_shop_attribute_category_model');
-		$attr_category_model->absorb_debug_settings($this);
-		
+
 		$this->_out['list'] = $attr_category_model->get_all(array(
 			'content' => array(
 				'select' => 'ct.name'

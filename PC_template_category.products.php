@@ -1,4 +1,7 @@
 <?php
+/**
+ * @var PC_controller_pc_shop $this
+ */
 $filter_widget = new PC_plugin_pc_shop_category_products_filter_widget(array(
 	'category' => $this->currentCategory
 ));

@@ -8,13 +8,7 @@ class PC_shop_category_products_admin_api extends PC_shop_admin_api {
 	 * @var int
 	 */
 	public $category_id;
-	
-	/**
-	 *
-	 * @var PC_shop_manager 
-	 */
-	protected $shop;
-	
+
 	//protected $_default_order = 'position';
 	
 	protected function _get_model() {

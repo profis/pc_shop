@@ -1,3 +1,10 @@
+<?php
+/**
+ * @var PC_plugin_pc_shop_currency_selector_widget $this
+ * @var string $tpl_group
+ * @var array[] $currencies
+ */
+?>
 <div id="currency-selector">
 	<div class="dropdown">
 		<label><?php echo $this->core->Get_plugin_variable('currency', $this->plugin_name)?>:</label>

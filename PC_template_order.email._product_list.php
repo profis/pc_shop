@@ -1,6 +1,8 @@
- <?php
-	//print_pre($this->order_data);
- ?>
+<?php
+/**
+ * @var PC_controller_pc_shop $this
+ */
+?>
 <br /> <?php echo $this->Get_variable('order_id');?>: <strong><?php echo $this->order_data['id'];?></strong><br /><br />
 
 

@@ -1,5 +1,7 @@
 <?php
 
+use \Profis\Db\DbException;
+
 class PC_shop_import_products_admin_api extends PC_shop_admin_api {
 	
 	const MISSING_PRODUCTS_STRATEGY_DELETE = 'delete';
@@ -39,10 +41,7 @@ class PC_shop_import_products_admin_api extends PC_shop_admin_api {
 	}
 	
 	protected function _read_products_from_file() {
-		$this->debug('_get_products_from_file(' . $this->_file);
 		$ext = pathinfo($this->_file_name, PATHINFO_EXTENSION);
-		$this->debug('extension is: ' . $ext, 1);
-		$this->increase_debug_offset(2);
 		switch ($ext) {
 			case 'xml':
 				return $this->_read_products_from_xml_file();
@@ -62,8 +61,6 @@ class PC_shop_import_products_admin_api extends PC_shop_admin_api {
 	}
 	
 	protected function _read_products_from_xml_file() {
-		$this->debug('_read_products_from_xml_file');
-		
 		//$xml = new SimpleXMLElement();
 		$xml = simplexml_load_file($this->_file);
 		
@@ -79,30 +76,20 @@ class PC_shop_import_products_admin_api extends PC_shop_admin_api {
 	}
 	
 	protected function _read_products_from_excel_file() {
-		$this->debug('_read_products_from_excel_file');
 		require_once $this->cfg['path']['libs'] . 'xls_reader/PC_shop_excel_reader.php';
 		$excel_reader = new PC_shop_excel_reader();
 		if (isset($this->cfg['pc_shop']['import_min_columns'])) {
 			$excel_reader->min_columns = $this->cfg['pc_shop']['import_min_columns'];
 		}
-		$excel_reader->absorb_debug_settings($this);
-		
-		$data = array();
-		$parse_params = array('file' => $this->_file, 'data' => & $parse_data);
+
+		$parse_data = array();
+		$parse_params = array('file' => $this->_file, 'data' => &$parse_data);
 		$parsed = $excel_reader->parse($parse_params);
-		
-		$this->debug('$parsed: ' . $parsed, 2);
-		
-		
 		
 		$data = array();
 			
 		if ($parsed) {
-			//$this->debug('Parse data: ', 2);
-			//$this->debug($parse_data, 3);
 			foreach ($parse_data as $sheet) {
-				$this->debug('$sheet: ', 2);
-				$this->debug($sheet, 3);
 				foreach ($sheet['items'] as $item) {
 					$d = array();
 					foreach ($item as $key => $value) {
@@ -116,8 +103,6 @@ class PC_shop_import_products_admin_api extends PC_shop_admin_api {
 	}
 	
 	protected function _read_products_from_array(&$items) {
-		$this->debug('_read_products_from_array');
-		
 		$data = array();
 		foreach ($items as $item) {
 			$d = array();
@@ -254,8 +239,6 @@ class PC_shop_import_products_admin_api extends PC_shop_admin_api {
 			);
 		}
 		$this->_id_fields_flipped = array_flip($this->_id_fields);
-		$this->debug('Fields associations:');
-		$this->debug($this->_associations, 1);
 	}
 	
 	/**
@@ -274,17 +257,12 @@ class PC_shop_import_products_admin_api extends PC_shop_admin_api {
 	 * 
 	 */
 	protected function _get_products_from_file() {
-		$this->debug('_get_products_from_file');
-		$this->increase_debug_offset(2);
 		$this->_field_names = array();
 		$this->_load_fields_associations($this->product_import_method);
 		
 		$this->_out['data'] = $this->_read_products_from_file();
 		$this->_out['columns'] = $this->_get_columns();
 		$this->_out['success'] = true;
-		
-		$this->debug('$this->_field_names:', 1);
-		$this->debug($this->_field_names, 2);
 	}
 	
 	/**
@@ -295,15 +273,9 @@ class PC_shop_import_products_admin_api extends PC_shop_admin_api {
 	 */
 	public function default_action() {
 		@ini_set('max_execution_time', 300);
-		$this->debug('mbstring.func_overload:');
-		$this->debug(ini_get('mbstring.func_overload'), 1);
 		@ini_set('mbstring.func_overload', 0);
-		$this->debug('mbstring.func_overload:');
-		$this->debug(ini_get('mbstring.func_overload'), 1);
 		set_time_limit(300);
-		$this->debug('Default action');
-		$this->debug($_POST);
-		
+
 		$this->product_import_method = v($_POST['product_import_method']);
 		
 		$this->_import_set_arguments();
@@ -316,14 +288,9 @@ class PC_shop_import_products_admin_api extends PC_shop_admin_api {
 		$this->_file = $_FILES['file']['tmp_name'];
 		$this->_file_name = $_FILES['file']['name'];
 		
-		$this->debug('$_FILES[file]', 1);
-		$this->debug($_FILES['file'], 1);
-		
-		$this->increase_debug_offset(2);
 		$this->_get_products_from_file();
-		
 	}
-	
+
 	/**
 	 * Method for performing actual import.
 	 * Method expects $_POST variables:
@@ -338,12 +305,7 @@ class PC_shop_import_products_admin_api extends PC_shop_admin_api {
 		@ini_set('max_execution_time', 300);
 		set_time_limit(300);
 		$_POST['missing_products_strategy'] = 'delete';
-		$this->debug('Confirm  action');
-		//$this->debug('$_POST', 1);
-		//$this->debug($_POST, 2);
-			
-		
-		//$this->debug = false;
+
 		$this->product_import_method = v($_POST['product_import_method']);
 		
 		$this->category_id = false;
@@ -354,7 +316,6 @@ class PC_shop_import_products_admin_api extends PC_shop_admin_api {
 			$id_data = PC_shop_plugin::ParseID(v($controller_data['id']));
 			if ($id_data and v($id_data['type']) == 'category') {
 				$this->category_id = $id_data['id'];
-				$this->debug('Category id: ' . $this->category_id, 1);
 			}
 		}
 				
@@ -368,10 +329,7 @@ class PC_shop_import_products_admin_api extends PC_shop_admin_api {
 		$this->missing_products_strategy = $_POST['missing_products_strategy'];
 		
 		$this->shop = $this->core->Get_object('PC_shop_manager');
-		//$this->shop->products->debug = /*$this->shop->attributes->debug = */ $this->debug;
-		//$this->shop->products->absorb_debug_settings($this, 5);
-		//$this->shop->attributes->absorb_debug_settings($this, 10);
-		
+
 		$category_data = false;
 		
 		if ($this->category_id) {
@@ -388,9 +346,6 @@ class PC_shop_import_products_admin_api extends PC_shop_admin_api {
 			*/
 		}
 		
-		$this->debug('Category data:', 1);
-		$this->debug($category_data, 2);
-		
 		$this->_load_fields_associations($this->product_import_method);
 		
 		if (!is_array($this->products )) {
@@ -405,9 +360,6 @@ class PC_shop_import_products_admin_api extends PC_shop_admin_api {
 			return;
 		}
 		
-		//$this->debug('products:', 3);
-		//$this->debug($this->products, 3);
-		
 		$this->_attr_model = new PC_shop_attribute_model();
 		$this->_attr_value_model = new PC_shop_attribute_value_model();
 		
@@ -415,7 +367,7 @@ class PC_shop_import_products_admin_api extends PC_shop_admin_api {
 		$this->_attr_category_item_model->set_category_attribute_scope();
 		
 		$this->_manufacturer_model = new PC_shop_manufacturer_model();
-		
+
 		$this->_field_names = array();
 		$items_imported = 0;
 		$items_inserted = 0;
@@ -425,9 +377,8 @@ class PC_shop_import_products_admin_api extends PC_shop_admin_api {
 		$items_not_inserted = 0;
 		$updated_products_ids = array();
 		$not_updated_products_ids = array();
+
 		foreach ($this->products as $key => $product) {
-			$this->debug('<hr />', 4);
-			$this->debug('product array key: ' . $key, 5);
 			if (!empty($this->_additional_product_data)) {
 				$product = array_merge($this->_additional_product_data, $product);
 			}
@@ -442,14 +393,7 @@ class PC_shop_import_products_admin_api extends PC_shop_admin_api {
 				$category_id = $this->category_id;
 			}
 				
-			$this->debug('Tried to detect product id: ', 4);
-			$this->debug($product_id, 5);
-			
 			if ($product_id == -1) {
-				$this->debug('Queries for category detection: ', 7);
-				$this->debug($logs, 7);
-			
-				$this->debug('Will skip, coz no way to detect product id: ', 4);
 				$items_unidentifyable++;
 				continue;
 			}
@@ -463,19 +407,15 @@ class PC_shop_import_products_admin_api extends PC_shop_admin_api {
 			foreach ($product as $product_property => $product_property_value) {
 				if (!isset($this->_field_names[$product_property])) {
 					$this->_remember_field($product_property);
-					//$this->debug('Field_names:', 3);
-					//$this->debug($this->_field_names, 4);
 				}
 				if ($product_id and isset($this->_id_fields_flipped[$product_property])) {
 					continue;
 				}
 				$field_name_data = $this->_field_names[$product_property];
 				if (!$product_id and isset($this->_import_only_on['update']) and in_array($product_property, $this->_import_only_on['update'])) {
-					$this->debug(':( this property is for update only', 8);
 					continue;
 				}
 				if ($product_id and isset($this->_import_only_on['insert']) and in_array($product_property, $this->_import_only_on['insert'])) {
-					$this->debug(':( this property is for insert only', 8);
 					continue;
 				}
 				
@@ -521,20 +461,11 @@ class PC_shop_import_products_admin_api extends PC_shop_admin_api {
 			
 			$missing_id_fields = array_diff_key($this->_id_fields_flipped, $product);
 			if (!empty($missing_id_fields)) {
-				$this->debug($this->_id_fields_flipped, 6);
-				$this->debug(':( Product has missing id keys ' . implode(',', array_keys($this->_id_fields_flipped)), 4);
 				$items_skipped++;
 				continue;
 			}
 			
-			$this->debug('Fields, contents and attributes:', 3);
-			$this->debug($fields, 4); $this->debug($contents, 4); $this->debug($attributes, 4);
-			
-			$this->debug('$category_attributes and $category_attribute_values:', 3);
-			$this->debug($category_attributes, 4); $this->debug($category_attribute_values, 4);
-			
 			if ($product_id) {
-				$this->debug('Updating product data for existing product with id ' .$product_id, 5);
 				$new_product_data = $fields;
 				$new_product_data['state'] = PC_shop_product_model::STATE_IMPORTING;
 				$new_product_data['import_method'] = $this->product_import_method;
@@ -543,43 +474,32 @@ class PC_shop_import_products_admin_api extends PC_shop_admin_api {
 				$edited = $this->shop->products->Edit($product_id, $new_product_data, $edit_params);
 				if ($edited) {
 					$items_updated++;
-					$this->debug(' :) Product was updated with an id ' . $product_id, 5);
 					$updated_products_ids[] = $product_id;
 				}
 				else {
-					$this->debug(' :( Product could not be edited. Errors:', 5);
-					$this->debug($edit_params->errors->Get_all(), 6);
 					$not_updated_products_ids[] = $product_id;
 				}
 			}
 			elseif ($category_id) {
-				$this->debug('Creating an empty product ', 5);
 				$new_product_data = $fields;
 				$new_product_data['state'] = PC_shop_product_model::STATE_IMPORTING;
 				$new_product_data['import_method'] = $this->product_import_method;
 				$new_product_data['contents'] = $contents;
-				//$this->debug('New product dara', 5);
-				//$this->debug($new_product_data, 6);
 				$create_params = array();
 				$product_id = $this->shop->products->Create($category_id, 0, $new_product_data, $create_params);
 				if ($product_id) {
-					$this->debug(' :) New product was created with an id ' . $product_id, 5);
 					$items_inserted++;
 				}
 				else {
-					$this->debug(' :( Product could not be created. Errors:', 5);
-					$this->debug($create_params->errors->Get_all(), 6);
 					$items_not_inserted++;
 				}
 			}
 			else {
-				$this->debug(':( Skipping coz no product id (for updating) and no category_id (for iserting) was detected ', 5);
 				$items_skipped++;
 			}
 			if ($product_id) {
-				//$this->shop->attributes->Remove_from_item(null, $product_id);
+				$this->shop->attributes->Remove_from_item(null, $product_id);
 				foreach ($attributes as $ln => $attributes_for_language) {
-					$this->debug("Attributes for language " . $ln, 3);
 					foreach ($attributes_for_language as $attribute_key => $attribute_value) {
 						$attribute_id = $this->_attr_model->get_one(array(
 							'where' => array(
@@ -592,7 +512,6 @@ class PC_shop_import_products_admin_api extends PC_shop_admin_api {
 							$attribute_id = $this->shop->attributes->get_id_from_content('name', $attribute_key, $ln);
 						}
 						if ($attribute_id) {
-							$this->debug("Id of atribute '$attribute_key' is: " . $attribute_id, 4);
 							if (false and $ln == 'value_id') {
 								$this->shop->attributes->Assign_or_edit_for_item($product_id, $attribute_id, PC_shop_attributes::ITEM_IS_PRODUCT, $attribute_value);
 							}
@@ -635,12 +554,6 @@ class PC_shop_import_products_admin_api extends PC_shop_admin_api {
 		
 		$this->_out['unidentifyable'] = $items_unidentifyable;
 		$this->_out['not_inserted'] = $items_not_inserted;
-		
-		$this->debug('$this->_field_names:', 2);
-		$this->debug($this->_field_names, 3);
-		
-		$this->debug($this->shop->products->get_debug_string(), 3);
-		$this->debug($this->shop->attributes->get_debug_string(), 3);
 	}
 		
 	public function import($import_method, $category_id, $file, $missing_products_strategy = PC_shop_import_products_admin_api::MISSING_PRODUCTS_STRATEGY_DELETE) {
@@ -651,7 +564,6 @@ class PC_shop_import_products_admin_api extends PC_shop_admin_api {
 		$this->_file = $this->_file_name = $file;
 		
 		
-		$this->increase_debug_offset(2);
 		$this->_get_products_from_file();
 		
 		$_POST['category_id'] = $category_id;
@@ -663,8 +575,6 @@ class PC_shop_import_products_admin_api extends PC_shop_admin_api {
 	}
 	
 	protected function _apply_missing_products_strategy() {
-		$this->debug("_apply_missing_products_strategy()");
-		
 		$missing_products_scope_cond = $this->_import_products_scope_cond;
 		$missing_products_scope_params = $this->_import_products_scope_params;
 		
@@ -686,15 +596,12 @@ class PC_shop_import_products_admin_api extends PC_shop_admin_api {
 	}
 	
 	protected function _restore_products_state() {
-		$this->debug("_restore_products_state()");
 		$query = "UPDATE {$this->db_prefix}shop_products SET state = " . PC_shop_product_model::STATE_DEFAULT . " WHERE 1 = 1" . $this->_import_products_scope_cond;
 		$r = $this->prepare($query);
-		$this->debug_query($query, $this->_import_products_scope_params, 1);
 		$s = $r->execute($this->_import_products_scope_params);
 		
 		if ($s) {
 			$affected = $r->rowCount();
-			$this->debug($affected . ' product(s) were restored to default state', 2);
 		}
 	}
 	
@@ -708,7 +615,6 @@ class PC_shop_import_products_admin_api extends PC_shop_admin_api {
 	
 
 	protected function _get_product_id_from_product_import_data(&$data, &$category_id = false, &$logs = array()) {
-		$this->debug("_get_product_id_from_product_import_data()");
 		$logs = array();
 		$category_id = false;
 		$scope = PC_model::create_scope();
@@ -718,8 +624,7 @@ class PC_shop_import_products_admin_api extends PC_shop_admin_api {
 				continue;
 			}
 			$field_name_data = $this->_get_field_name_data($id_field);
-			$this->debug('Field name data of ' . $id_field, 1);
-			$this->debug($field_name_data, 2);
+			// print_pre($field_name_data);
 			switch ($field_name_data['type']) {
 				case 'field':
 					$scope['where']['t.' . $field_name_data['name']] = $data[$id_field];
@@ -749,8 +654,6 @@ class PC_shop_import_products_admin_api extends PC_shop_admin_api {
 						$attr_scope['where']['attribute_id'] = $attribute_id;
 						$attr_scope['where']['value'] = $data[$id_field];
 						$attr_scope['value'] = 'item_id';
-						$this->debug('$attr_scope:', 2);
-						$this->debug($attr_scope, 3);
 						$category_ids = $this->_attr_category_item_model->get_all($attr_scope);
 						$category_ids_arrays[] = $category_ids;
 						$attr_scope['query_only'] = true;
@@ -788,8 +691,6 @@ class PC_shop_import_products_admin_api extends PC_shop_admin_api {
 						$attr_scope['where']['attribute_id'] = $attribute_id;
 						$attr_scope['where']['value_id'] = $value_id;
 						$attr_scope['value'] = 'item_id';
-						$this->debug('$attr_scope:', 2);
-						$this->debug($attr_scope, 3);
 						$category_ids = $this->_attr_category_item_model->get_all($attr_scope);
 						$category_ids_arrays[] = $category_ids;
 						$attr_scope['query_only'] = true;
@@ -799,12 +700,16 @@ class PC_shop_import_products_admin_api extends PC_shop_admin_api {
 					}
 					$logs[] = $my_log;
 					break;	
-					
+
+				case 'manufacturer':
+					$scope['where']['t.manufacturer_id'] = $this->_manufacturer_model->get_id_from_field('name', $data[$id_field]);
+					break;
+
 				default:
 					break;
 			}
 		}
-		
+
 		if (empty($scope['where'])) {
 			return -1;
 		}
@@ -829,14 +734,8 @@ class PC_shop_import_products_admin_api extends PC_shop_admin_api {
 		
 		$scope['value'] = 'id';
 		
-		$this->debug('product_scope:', 2);
-		$this->debug($scope, 3);
-				
 		$product_ids = $this->shop->products->get_all($scope);
-		
-		$this->debug('$product_ids:', 2);
-		$this->debug($product_ids, 3);
-		
+
 		if (count($product_ids) == 1) {
 			return $product_ids[0];
 		}
@@ -875,16 +774,12 @@ class PC_shop_import_products_admin_api extends PC_shop_admin_api {
 			AND $flags_cond";
 
 		$r = $this->db->prepare($query);
-		$this->debug_query($query, $query_params);
 		if ($s = $r->execute($query_params)) {
 			$this->_out['success'] = true;
 			$this->_out['deleted_attributes'] = $r->rowCount();
 			$query_2_params = array($category_id);
 
 			$delete_query = "DELETE FROM {$this->cfg['db']['prefix']}shop_products WHERE category_id=?";
-
-			$this->debug('Delete all products in this category:');
-			$this->debug_query($delete_query, $query_2_params);
 
 			$r_hide = $this->db->prepare($delete_query);
 			$s_hide = $r_hide->execute($query_2_params);

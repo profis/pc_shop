@@ -647,12 +647,6 @@ class PC_shop_categories_site extends PC_shop_categories {
 
 		$s = $r->execute($queryParams);
 
-		$executed_query = $this->get_debug_query_string($query, $queryParams);
-
-		if (v($params->echo_query)) {
-			echo $executed_query;
-		}
-
 		if (!$s) return false;
 		
 		if ($params->Has_paging()) {
@@ -714,9 +708,6 @@ class PC_shop_categories_site extends PC_shop_categories {
 			
 			//$this->categories_with_resources = explode(',', $cats_with_resources);
 		}
-		
-		$this->parse_logger = new PC_debug();
-		$this->parse_logger->debug = true;
 		
 		if ($this->parse_params and is_array($this->parse_params) and isset($this->parse_params['recources'])) {
 			$this->parse_params['resources'] = $this->parse_params['recources'];
@@ -906,8 +897,7 @@ class PC_shop_categories_site extends PC_shop_categories {
 			$parse_resources = false;
 		}
 		if ($parse_resources) {
-			$d['resources'] = new PC_shop_item_resources($d['id'], true, false, $this->parse_logger);
-			//unset($d['resources']->logger);
+			$d['resources'] = new PC_shop_item_resources($d['id'], true, false);
 		}
 		
 	}
@@ -1169,7 +1159,6 @@ class PC_shop_products_site extends PC_shop_products {
 				$top_categories_params['query_params'][] = $this_category_id;
 			}
 			//print_pre($top_categories_params);
-			$this->shop->categories->absorb_debug_settings($this);
 			$top_categories = $this->shop->categories->get_one($top_categories_params);
 			//$params['categories'] =  $top_categories;
 			$params['categories'] = array(
@@ -1560,10 +1549,6 @@ class PC_shop_products_site extends PC_shop_products {
 		else {
 			$r = $this->prepare($query);
 			$s = $r->execute($queryParams);
-
-			if (v($params->echo_query)) {
-				echo $this->get_debug_query_string($query, $queryParams);
-			}
 
 			if (!$s)
 				throw new DbException($r->errorInfo(), $query, $queryParams);
@@ -1959,7 +1944,6 @@ class PC_shop_products_site extends PC_shop_products {
 		$parse_resources = $this->parse_params === false || v($this->parse_params['resources']);
 		if ($parse_resources) {
 			$d['resources'] = new PC_shop_item_resources($d['id']);
-			//unset($d['resources']->logger);
 		}
 		
 		if (isset($d['product_prices'])) {

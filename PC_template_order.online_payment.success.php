@@ -1,3 +1,8 @@
+<?php
+/**
+ * @var PC_controller_pc_shop $this
+ */
+?>
 <div id="order_success">
 	<div class="ln_1"><span><div></div><?php
 		

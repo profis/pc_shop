@@ -45,13 +45,10 @@ class PC_shop_category_model extends PC_model {
 					),
 				1
 			);
-			$this->debug('category data:', 3);
-			$this->debug($category_data, 3);
 		}
 		if (!$category_data) {
 			return false;
 		}
-		$this->debug("get_top_parent_id({$category_data['id']})");
 		$top_parent_id = false;
 		
 		$query = "SELECT id FROM {$this->db_prefix}{$this->_table} t
@@ -60,9 +57,7 @@ class PC_shop_category_model extends PC_model {
 			LIMIT 1";
 		
 		$query_params = array($category_data[$this->_table_lft_col], $category_data[$this->_table_rgt_col]);
-		
-		$this->debug_query($query, $query_params, 1);
-		
+
 		$r = $this->prepare($query);
 		$s = $r->execute($query_params);
 		
@@ -117,18 +112,15 @@ class PC_shop_category_model extends PC_model {
 	/**
 	 * 
 	 * @param array $category_data
-	 * return Array of parents' id's
+	 * @return array of parents' id's
 	 * Parents are sorted from top level to bottom level
 	 */
 	public function get_all_parents(&$category_data) {
-		$this->debug("Get_all_parents({$category_data['id']})");
 		$query = "SELECT id FROM {$this->db_prefix}shop_categories c
 			WHERE c.lft < ? and c.rgt > ?
 			ORDER by c.lft";
 		
 		$query_params = array($category_data['lft'], $category_data['rgt']);
-		
-		$this->debug_query($query, $query_params, 1);
 		
 		$r = $this->prepare($query);
 		$s = $r->execute($query_params);

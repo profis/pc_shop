@@ -3,12 +3,6 @@
 class PC_shop_orders_admin_api extends PC_shop_admin_api {
 
 	/**
-	 *
-	 * @var PC_shop_manager 
-	 */
-	protected $shop;
-	
-	/**
 	 * Plugin access is being checked
 	 */
 	protected function _before_action() {
@@ -54,7 +48,6 @@ class PC_shop_orders_admin_api extends PC_shop_admin_api {
 	}
 	
 	protected function _adjust_search_by_search_phrase($search_phrase, &$params) {
-		$this->debug("_adjust_search_by_search_phrase($search_phrase)");
 		//---
 		if (!empty($search_phrase)) {
 			$text_fields = array('o.name', 'o.email', 'o.address', 'o.phone', 'o.comment', 'o.data');
@@ -67,12 +60,10 @@ class PC_shop_orders_admin_api extends PC_shop_admin_api {
 				$params['where'][] = '(' . implode(' OR ', $or_where) . ')';
 			}
 		};
-		$this->debug($params, 4);
 	}
 	
 	public function get() {
 		$g_p = array_merge($_GET, $_POST);
-		$this->debug($g_p);
 		$start = (int) v($g_p['start']);
 		$limit = (int) v($g_p['limit']);
 		if ($start < 0)
@@ -136,7 +127,6 @@ class PC_shop_orders_admin_api extends PC_shop_admin_api {
 		
 		
 		//print_pre($params);
-		$this->shop->orders->absorb_debug_settings($this);
 		$this->_adjust_order_params($params);
 		$this->_out['list'] = $this->shop->orders->Get(null, $params);
 		$this->_out['total'] = $paging->Get_total();
@@ -149,28 +139,21 @@ class PC_shop_orders_admin_api extends PC_shop_admin_api {
 	}
 
 	public function edit_() {
-		$this->debug('edit()');
-		$this->debug($_POST);
-		
 		$data = json_decode(v($_POST['changes'], '{}'), true);
 		if (isset($data['is_paid_icon'])) {
 			$data['is_paid'] = $data['is_paid_icon'];
 		}
-		$this->debug($data, 1);
-		
+
 		$fields = array('is_paid', 'status');
 		//$fields = array('is_paid', 'status', 'payment_option_id', 'delivery_option_id');
 		
 		$data = PC_utils::filterArray($fields, $data);
-		$this->debug('Filtered:', 1);
-		$this->debug($data, 1);
-		
+
 		if (empty($data)) {
 			return;
 		}
 		
 		$order_model = $this->core->Get_object('PC_shop_order_model');
-		$order_model->absorb_debug_settings($this, 3);
 		$order_model->update($data, array(
 			'where' => array(
 				'id = ?',
@@ -182,11 +165,7 @@ class PC_shop_orders_admin_api extends PC_shop_admin_api {
 	}
 	
 	public function delete() {
-		$this->debug('delete()');
-		$this->debug($_POST);
 		$ids = json_decode(v($_POST['ids'], '{}'), true);
-		$this->debug($ids);
-		$this->shop->orders->absorb_debug_settings($this);
 		foreach ($ids as  $id) {
 			$this->shop->orders->Delete($id);
 		}

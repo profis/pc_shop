@@ -21,7 +21,6 @@ class PC_shop_import_admin_api extends PC_shop_admin_api {
 				$categoryId = v($_POST['categoryId']);
 				$this->_check_category_access($categoryId);
 				$ln = v($_POST['ln'], 'ru');
-				$this->debug('$categoryId: ' . $categoryId);
 				$this->shop = $this->core->Get_object('PC_shop_manager');
 				$category = $this->shop->categories->Get($categoryId);
 				if (!$category) {
@@ -45,9 +44,6 @@ class PC_shop_import_admin_api extends PC_shop_admin_api {
 				
 				$total_hidden = $r->rowCount();
 				
-				$this->debug('Hidding all products in this category ' . $categoryId . "; $total_hidden were hidden");
-				$this->debug_query($query, $query_params);
-
 				//prepare statements
 				$publish_query = "UPDATE {$this->cfg['db']['prefix']}shop_products SET flags=flags|? WHERE id=?";
 				$rPublish = $this->db->prepare($publish_query);
@@ -59,9 +55,6 @@ class PC_shop_import_admin_api extends PC_shop_admin_api {
 				$rProductAttributes = $this->db->prepare($query_2);
 				$query_params_2 = array(PC_shop_attributes::ITEM_IS_PRODUCT, PC_shop_attributes::ITEM_IS_PRODUCT, $categoryId);
 				$s = $rProductAttributes->execute($query_params_2);
-				
-				$this->debug('Attribute query: ');
-				$this->debug_query($query_2, $query_params_2);
 				
 				if (!$s) {
 					$this->_out['error'] = 'Error while selecting item attributes';
@@ -82,33 +75,24 @@ class PC_shop_import_admin_api extends PC_shop_admin_api {
 					$itemAttrMap[$dd['productId']]['attrIds'][] = $dd['attrId'];
 					$itemAttrMap[$dd['productId']]['itemAttrIds'][] = $dd['itemAttrId'];
 				}
-				$this->debug('$itemAttrMap: ');
-				$this->debug($itemAttrMap);
 				unset($dd);
 				//update items
-				$this->debug('Number of itemt: ' . count($d));
-				$this->shop->products->debug = $this->shop->attributes->debug = $this->debug;
 				$items_imported = 0;
 				$items_inserted = 0;
 				$items_updated = 0;
 				foreach ($d as $item) {
 					if (!is_array($item['fields'])) {
-						$this->debug(':( Item has no fields', 1);
 						continue;
 					}
 					if (!count($item['fields'])) {
-						$this->debug(':( Item has 0 fields', 1);
 						continue;
 					}
 					$id = array_shift($item['fields']);
 					$product_id = $this->shop->products->Exists_in_content('name', $id, $ln, $categoryId);
 					if (!$product_id) {
-						$this->debug(":( Product with virtual id $id does not exist in category $categoryId", 1);
 						continue;
 					}
-					$this->debug('Real product id: ' . $product_id, 1);
 					//insert/update attributes
-					$this->debug("Proccessing attributes for item $id", 1);
 					$total_attributes = 0;
 					$total_edited_attributes = 0;
 					$total_assigned_attributes = 0;
@@ -118,19 +102,11 @@ class PC_shop_import_admin_api extends PC_shop_admin_api {
 						$total_attributes++;
 						$updateMode = false;
 						if (isset($itemAttrMap[$product_id])) {
-							$this->debug("Searching attrId:$attrId in itemAttrMap[product_id:$product_id]['attrIds']", 5);
 							$itemAttrId = array_search($attrId, $itemAttrMap[$product_id]['attrIds']);
 							if ($itemAttrId !== false) { //{ if (in_array($attrId, $itemAttrMap[$id])) {
-								$this->debug(":) itemAttrId:$itemAttrId was found", 7);
 								$itemAttrId = $itemAttrMap[$product_id]['itemAttrIds'][$itemAttrId];
 								$updateMode = true;
 							}
-							else {
-								$this->debug(":( not found", 7);
-							}
-						}
-						else {
-							$this->debug(":( $attrId is not set in itemAttrMap", 6);
 						}
 						if ($updateMode) {
 							//echo "Update\n";
@@ -146,16 +122,10 @@ class PC_shop_import_admin_api extends PC_shop_admin_api {
 						}
 					}
 					
-					$this->debug("$total_attributes attributes ($total_edited_attributes edited, $total_assigned_attributes assigned)", 2);
-					$this->debug('Edited: ['. PC_debug::array_to_string($edited_attributes, '  ') .']', 3);
-					$this->debug('Assigned: ['. PC_debug::array_to_string($assigned_attributes, '  ') .']', 3);
-					
 					//publish product
 					$publish_query_params = array(PC_shop_products::PF_PUBLISHED, $product_id);
 					$rPublish->execute($publish_query_params);
-					$this->debug('Publishing query:', 3);
 					$items_imported++;
-					$this->debug_query($publish_query, $publish_query_params, 3);
 				}
 				
 				
@@ -163,25 +133,13 @@ class PC_shop_import_admin_api extends PC_shop_admin_api {
 					$this->_out['success'] = true;
 					$this->_out['data'] = array();
 					$hook_object = false;
-					$this->debug('Init_hooks(plugin/pc_shop/save/product');
 					$this->core->Init_hooks('plugin/pc_shop/save/product', array(
 						'success'=> &$this->_out['success'],
 						'category' => $categoryId,
 						'out'=> &$this->_out,
 						'hook_object' => &$hook_object,
-						'logger' => $this,
 					));
-					if ($hook_object and $hook_object instanceof PC_debug) {
-						$this->debug('Debug from hook object:', 1);
-						$this->debug($hook_object->get_debug_string(), 2);
-					}
 				}
-				$this->file_put_debug('logs/pc_shop_admin_api_save_product.html');
-				
-				$this->debug('Debug from products:', 2);
-				$this->debug($this->shop->products->get_debug_string(), 2);
-				$this->debug('Debug from attributes:', 2);
-				$this->debug($this->shop->attributes->get_debug_string(), 2);
 				$this->_out['success'] = true;
 				$this->_out['imported'] = $items_imported;
 				//$this->_out['inserted'] = $items_inserted;
@@ -192,97 +150,93 @@ class PC_shop_import_admin_api extends PC_shop_admin_api {
 	}
 	
 	public function initialize_object() {
-			$this->debug('initialize-object');
-				$id = v($_POST['id']);
-				$this->_check_category_access($id);
-				$this->shop = $this->core->Get_object('PC_shop_manager');
-				$category = $this->shop->categories->Get($id);
-				if ($category) {
-					//count items in category
-					$totalItems = $this->shop->products->Count($id);
-					if ($totalItems === 0) {
-						$this->site->Identify();
-						$params = array('includeName'=> true);
-						$category['attributes'] = $this->shop->attributes->Get_for_item($id, PC_shop_attributes::ITEM_IS_CATEGORY, $params);
-						if ($category['attributes'] !== false) {
-							$this->_out['success'] = true;
-							if (count($category['attributes'])) {
-								$sections = array();
-								foreach ($category['attributes'] as $attr) {
-									if (preg_match("#^Секция ([1-9]+)$#", $attr['name'], $m)) {
-										$sections[$m[1]] = $attr['value'];
-									}
-								}
-								//ksort($sections);
-								$totalFlats = 0;
-								$flat_int_number = 0;
-								$all_flats = array();
-								foreach ($sections as $a => $section_value) {
-									$section_custom_columns = array();
-									if (strpos($section_value, '[')) {
-										list($section_data_1, $section_data_2) = explode('[', $section_value);
-										$section_data_1 = trim($section_data_1);
-										$section_data_2 = trim($section_data_2, ']');
-										$section_data_2 = trim($section_data_2);
-										$section_custom_columns = PC_utils::string_to_array($section_data_2);
-										
-										$section_value = $section_data_1;
-									}
-									$this->debug("section_custom_columns: ", 1);
-									$this->debug($section_custom_columns, 1);
-									
-									$sectionData = explode('/', $section_value);
-									if (!$sectionData) break;
-									//echo 'Section '.$a.': '; print_pre($sectionData);
-									for ($index_floor = 1; $index_floor <= $sectionData[0]; $index_floor++) {
-										for ($index_col = 1; $index_col <= $sectionData[1]; $index_col++) {
-											$custom_part = '';
-											if (!isset($section_custom_columns[$index_col])) {
-												$flat_int_number++;
-											}
-											else {
-												$custom_part = $section_custom_columns[$index_col];
-											}
-											$all_flats[] = $flat_int_number . $custom_part;
-										}
-									}
-									$totalFlats += $sectionData[0] * $sectionData[1];
-								}
-								/*
-								for ($a=1; isset($sections[$a]); $a++) {
-									$sectionData = explode('/', $sections[$a]);
-									if (!$sectionData) break;
-									//echo 'Section '.$a.': '; print_pre($sectionData);
-									$totalFlats += $sectionData[0] * $sectionData[1];
-								}
-								*/
-								$this->debug("totalFlats: " . $totalFlats, 1);
-								/*
-								for ($a=1; $a<=$totalFlats; $a++) {
-									$params = array();
-									$data =  array('category_id'=> $id, 'contents'=> array(), 'published'=> false);
-									$data['contents'][$this->site->ln] = array('name'=> $a);
-									$this->shop->products->Create($id, $a, $data, $params);
-								}
-								*/
-							   foreach ($all_flats as $pos => $a) {
-									$params = array();
-									$data =  array('category_id'=> $id, 'contents'=> array(), 'published'=> false);
-									$data['contents'][$this->site->ln] = array('name'=> $a);
-									$this->shop->products->Create($id, $pos + 1, $data, $params);
-								}
-								
-								$this->_out['success'] = true;
-								$this->_out['productsCount'] = $this->shop->products->Count($id);
+		$id = v($_POST['id']);
+		$this->_check_category_access($id);
+		$this->shop = $this->core->Get_object('PC_shop_manager');
+		$category = $this->shop->categories->Get($id);
+		if ($category) {
+			//count items in category
+			$totalItems = $this->shop->products->Count($id);
+			if ($totalItems === 0) {
+				$this->site->Identify();
+				$params = array('includeName'=> true);
+				$category['attributes'] = $this->shop->attributes->Get_for_item($id, PC_shop_attributes::ITEM_IS_CATEGORY, $params);
+				if ($category['attributes'] !== false) {
+					$this->_out['success'] = true;
+					if (count($category['attributes'])) {
+						$sections = array();
+						foreach ($category['attributes'] as $attr) {
+							if (preg_match("#^Секция ([1-9]+)$#", $attr['name'], $m)) {
+								$sections[$m[1]] = $attr['value'];
 							}
 						}
-						else $this->_out['error'] = 'Cannot get category attributes';
+						//ksort($sections);
+						$totalFlats = 0;
+						$flat_int_number = 0;
+						$all_flats = array();
+						foreach ($sections as $a => $section_value) {
+							$section_custom_columns = array();
+							if (strpos($section_value, '[')) {
+								list($section_data_1, $section_data_2) = explode('[', $section_value);
+								$section_data_1 = trim($section_data_1);
+								$section_data_2 = trim($section_data_2, ']');
+								$section_data_2 = trim($section_data_2);
+								$section_custom_columns = PC_utils::string_to_array($section_data_2);
+
+								$section_value = $section_data_1;
+							}
+
+							$sectionData = explode('/', $section_value);
+							if (!$sectionData) break;
+							//echo 'Section '.$a.': '; print_pre($sectionData);
+							for ($index_floor = 1; $index_floor <= $sectionData[0]; $index_floor++) {
+								for ($index_col = 1; $index_col <= $sectionData[1]; $index_col++) {
+									$custom_part = '';
+									if (!isset($section_custom_columns[$index_col])) {
+										$flat_int_number++;
+									}
+									else {
+										$custom_part = $section_custom_columns[$index_col];
+									}
+									$all_flats[] = $flat_int_number . $custom_part;
+								}
+							}
+							$totalFlats += $sectionData[0] * $sectionData[1];
+						}
+						/*
+						for ($a=1; isset($sections[$a]); $a++) {
+							$sectionData = explode('/', $sections[$a]);
+							if (!$sectionData) break;
+							//echo 'Section '.$a.': '; print_pre($sectionData);
+							$totalFlats += $sectionData[0] * $sectionData[1];
+						}
+						*/
+						/*
+						for ($a=1; $a<=$totalFlats; $a++) {
+							$params = array();
+							$data =  array('category_id'=> $id, 'contents'=> array(), 'published'=> false);
+							$data['contents'][$this->site->ln] = array('name'=> $a);
+							$this->shop->products->Create($id, $a, $data, $params);
+						}
+						*/
+					   foreach ($all_flats as $pos => $a) {
+							$params = array();
+							$data =  array('category_id'=> $id, 'contents'=> array(), 'published'=> false);
+							$data['contents'][$this->site->ln] = array('name'=> $a);
+							$this->shop->products->Create($id, $pos + 1, $data, $params);
+						}
+
+						$this->_out['success'] = true;
+						$this->_out['productsCount'] = $this->shop->products->Count($id);
 					}
-					else if ($totalItems === false) {
-						$this->_out['error'] = 'Database error';
-					}
-					else $this->_out['error'] = 'There`s some items inside that category.';
 				}
+				else $this->_out['error'] = 'Cannot get category attributes';
+			}
+			else if ($totalItems === false) {
+				$this->_out['error'] = 'Database error';
+			}
+			else $this->_out['error'] = 'There`s some items inside that category.';
+		}
 	}
 	
 	public function delete_products_attributes() {
@@ -290,7 +244,6 @@ class PC_shop_import_admin_api extends PC_shop_admin_api {
 				//import parsed data
 				$categoryId = v($_POST['id']);
 				$this->_check_category_access($categoryId);
-				$this->debug('Delete attributes of products of category with id  ' . $categoryId);
 
 				$query_params = array();
 				$query_params[] = $categoryId;
@@ -303,7 +256,6 @@ class PC_shop_import_admin_api extends PC_shop_admin_api {
 					and $flags_cond";
 				
 				$r = $this->db->prepare($query);
-				$this->debug_query($query, $query_params);
 				if ($s = $r->execute($query_params)) {
 					$this->_out['success'] = true;
 					$this->_out['deleted_attributes'] = $r->rowCount();
@@ -316,9 +268,6 @@ class PC_shop_import_admin_api extends PC_shop_admin_api {
 
 					$delete_query = "DELETE FROM {$this->cfg['db']['prefix']}shop_products WHERE category_id=?";
 
-					$this->debug('Delete all products in this category:');
-					$this->debug_query($delete_query, $query_2_params);
-
 					$r_hide = $this->db->prepare($delete_query);
 					$s_hide = $r_hide->execute($query_2_params);
 					if ($s_hide) {
@@ -329,18 +278,12 @@ class PC_shop_import_admin_api extends PC_shop_admin_api {
 						$this->_out['success'] = true;
 						$this->_out['data'] = array();
 						$hook_object = false;
-						$this->debug('Init_hooks(plugin/pc_shop/save/product');
 						$this->core->Init_hooks('plugin/pc_shop/save/product', array(
 							'success'=> &$this->_out['success'],
 							'category' => $categoryId,
 							'out'=> &$this->_out,
 							'hook_object' => &$hook_object,
-							'logger' => $this,
 						));
-						if ($hook_object and $hook_object instanceof PC_debug) {
-							$this->debug('Debug from hook object:', 1);
-							$this->debug($hook_object->get_debug_string(), 2);
-						}
 					}
 					
 				}
@@ -354,9 +297,6 @@ class PC_shop_import_admin_api extends PC_shop_admin_api {
 				$this->_check_category_access($categoryId);
 				$ln = v($this->routes->Get(4), 'en');
 				
-				$this->debug_level = 2;
-				$this->debug('Exporting products of category with id  ' . $categoryId);
-
 				$shopSite = $this->core->Get_object('PC_shop_site');
 				$this->site->Identify();
 				$query = "SELECT p.id productId, a.attribute_id attrId, a.id itemAttrId, a.value aValue 
@@ -370,9 +310,6 @@ class PC_shop_import_admin_api extends PC_shop_admin_api {
 				$query_params = array(PC_shop_attributes::ITEM_IS_PRODUCT, PC_shop_attributes::ITEM_IS_PRODUCT, $categoryId);
 				$s = $rProductAttributes->execute($query_params);
 				
-				$this->debug('Attribute query: ');
-				$this->debug_query($query, $query_params);
-				
 				$itemAttrMap = array();
 				
 				$products_attributes = array();
@@ -380,10 +317,7 @@ class PC_shop_import_admin_api extends PC_shop_admin_api {
 					if (!isset($products_attributes[$dd['productId']])) $products_attributes[$dd['productId']] = array();
 					$products_attributes[$dd['productId']][ $dd['attrId']] = $dd['aValue'];
 				}
-				
-				$this->debug('$products_attributes', 3);
-				$this->debug($products_attributes, 3);
-				
+
 				$attributes_names = array();
 				$products_attributes_for_export = array();
 				
@@ -431,7 +365,6 @@ class PC_shop_import_admin_api extends PC_shop_admin_api {
 					$params_attr_names = array($ln);
 
 					$r_attr_names = $this->db->prepare($query_attr_names);
-					$this->debug_query($query_attr_names, $params_attr_names);
 					$s_attr_names = $r_attr_names->execute($params_attr_names);
 
 					$bron_key = false;
@@ -451,15 +384,6 @@ class PC_shop_import_admin_api extends PC_shop_admin_api {
 
 
 					$attributes_names = array_merge(array_keys($pre_values), $attributes_names);
-
-					
-
-					//$this->debug('$pre_values');
-					//$this->debug($pre_values);
-
-					//$this->debug('$category_data');
-					//$this->debug($category_data);
-
 
 					$pre_values = array_values($pre_values);
 					foreach ($products_attributes as $key => $product_data) {
@@ -493,31 +417,16 @@ class PC_shop_import_admin_api extends PC_shop_admin_api {
 					$products_attributes_for_export[] = array_values($pre_values);
 				}
 				
-				$this->debug('$attributes_names');
-				$this->debug($attributes_names);
-				
-				$this->debug('$products_attributes_for_export ids');
-				$this->debug($products_attributes_for_export);
-				
 				require_once $this->cfg['path']['admin'] . 'classes/Excel_builder.php';
 				$excel_builder = new Excel_builder(sanitize_file_name($category_data['name']) . '_' . $category_data['id'], $this->cfg['path']['libs'] . 'xlsxstreamwriter-1.0.0/');
-				$excel_builder->absorb_debug_settings($this);
-				
+
 				$excel_builder->make('Лист1', $attributes_names, $products_attributes_for_export);
 				
 				$excel_builder->output();
-				
-				
-				$this->debug($excel_builder->get_debug_string());
-				
-				$this->file_put_debug('logs/pc_shop_export.html');
 				exit;
 	}
 	
 	protected function _import_set_debug() {
-		$this->debug = true;
-		$this->set_instant_debug_to_file($this->cfg['path']['logs'] . 'pc_shop_parse_excel_file.html');
-		$this->debug('only parse and return data:');
 	}
 	
 	protected function _import_set_arguments() {
@@ -560,7 +469,6 @@ class PC_shop_import_admin_api extends PC_shop_admin_api {
 			$this->_out['success'] = true;
 			$this->_out['data'] = array();
 			$hook_object = false;
-			$this->debug('Init_hooks(plugin/pc_shop/import/parse');
 			$this->core->Init_hooks('plugin/pc_shop/import/parse', array(
 				//'file'=> dirname(__FILE__)."/Брехово.xls",
 				'file'=> $_FILES['file']['tmp_name'],
@@ -570,12 +478,7 @@ class PC_shop_import_admin_api extends PC_shop_admin_api {
 				'ln' => $this->ln,
 				'out'=> &$this->_out,
 				'hook_object' => &$hook_object,
-				'logger' => $this,
 			));
-			if ($hook_object and $hook_object instanceof PC_debug) {
-				$this->debug('Debug from hook object:', 1);
-				$this->debug($hook_object->get_debug_string(), 2);
-			}
 		}
 		else {
 			$this->_out['error'] = 'No default parsing method is currently implemented. You must have separate plugin that does';
@@ -584,8 +487,6 @@ class PC_shop_import_admin_api extends PC_shop_admin_api {
 	
 	
 	public function default_action() {
-		$this->_import_set_debug();
-		
 		$this->_import_set_arguments();
 		$this->_check_category_access($this->categoryId);
 		$this->_import_adjust_arguments();

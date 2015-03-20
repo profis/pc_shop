@@ -1,24 +1,5 @@
 <?php
 class PC_shop_manager extends PC_shop {
-	
-	/**
-	 *
-	 * @var PC_shop_categories_manager
-	 */
-	public $categories;
-	
-	/**
-	 *
-	 * @var PC_shop_products_manager
-	 */
-	public $products; 
-	
-	/**
-	 *
-	 * @var PC_shop_resources_manager
-	 */
-	public $resources;
-	
 	public function Create_manufacturer($code, $name) {
 		$r = $this->prepare("INSERT INTO {$this->db_prefix}shop_manufacturers (code,name) VALUES(?,?)");
 		$s = $r->execute(array($code, $name));
@@ -43,7 +24,6 @@ class PC_shop_categories_manager extends PC_shop_categories {
 	 * Method returns false or id of newly created category
 	 */
 	public function Create($parentId=0, $pid=null, $position=0, $data, &$params=array()) {
-		$this->debug("Create(parentID: $parentId, pid: $pid, position: $position");
 		$this->core->Init_params($params);
 		$d = array();
 		if (isset($data['contents'])) {
@@ -74,7 +54,6 @@ class PC_shop_categories_manager extends PC_shop_categories {
 		$params->Set('data', $d['category']);
 		
 		$tree = $this->core->Get_object('PC_database_tree');
-		$tree->absorb_debug_settings($this);
 		//main data
 		$id = $tree->Insert('shop_categories', $parentId, $position, $d['category'], $params);
 		if ($id) {
@@ -107,15 +86,11 @@ class PC_shop_categories_manager extends PC_shop_categories {
 		return $id;
 	}
 	public function Edit($categoryId, $data, &$params = array()) {
-		$this->debug("Edit($categoryId)");
-		$this->debug($data);
 		$orig_params = $params;
 		$rename_only = v($orig_params['rename_only']);
 		$this->core->Init_params($params);
 		
 		$old_category = $this->get_data($categoryId);
-		$this->debug('old_category:', 1);
-		$this->debug($old_category, 1);
 		$new_parent_id = v($data['parent_id'], $old_category['parent_id']);
 		$new_pid = v($data['pid'], $old_category['pid']);
 		
@@ -205,13 +180,11 @@ class PC_shop_categories_manager extends PC_shop_categories {
 			if ($doUpdate) {
 				$query = "UPDATE {$this->db_prefix}shop_category_contents SET ".implode(',', array_values($updates))." WHERE category_id=? and ln=?";
 				$r = $this->prepare($query);
-				$this->debug_query($query, $qparams, 3);
 				$s = $r->execute($qparams);
 				continue;
 			}
 			$query = "INSERT INTO {$this->db_prefix}shop_category_contents (".implode(',', $updateFields).",category_id,ln) VALUES(".implode(',', array_fill(0, count($qparams), '?')).")";
 			$r = $this->prepare($query);
-			$this->debug_query($query, $qparams, 3);
 			$s = $r->execute($qparams);
 			continue;
 		}
@@ -222,8 +195,6 @@ class PC_shop_categories_manager extends PC_shop_categories {
 		return true;
 	}
 	public function Get($id=null, $parentId=null, $pid=null, &$params=array()) {
-		$this->debug(" Get($id, $parentId, $pid)");
-		$this->debug($params);
 		$this->core->Init_params($params);
 		$query = "SELECT ".($params->Has_paging()?'SQL_CALC_FOUND_ROWS ':'')."* FROM {$this->db_prefix}shop_categories ".(!is_null($id)?'WHERE id'.(is_array($id)?' '.$this->sql_parser->in($id):'=? ORDER BY lft LIMIT 1'):((!is_null($parentId))?'WHERE '.($parentId != 0 ? 'parent_id=?': '1 = 1').(!is_null($pid)?' and pid=?':''):'').($params->Has_paging()?" ORDER BY lft LIMIT {$params->paging->Get_offset()},{$params->paging->Get_limit()}":''));
 		$r_category = $this->prepare($query);
@@ -241,7 +212,6 @@ class PC_shop_categories_manager extends PC_shop_categories {
 			}
 			if (!is_null($pid)) $queryParams[] = $pid;
 		}
-		$this->debug_query($query, $queryParams);
 		$s = $r_category->execute($queryParams);
 		if (!$s) return false;
 		if ($params->Has_paging()) {
@@ -262,24 +232,19 @@ class PC_shop_categories_manager extends PC_shop_categories {
 		return (!is_null($id) && !is_array($id) && count($categories)?$categories[0]:$categories);
 	}
 	public function Delete_category($id, &$params=array()) {
-		$this->debug("Delete($id, ");
-		$this->debug($params);
 		$this->core->Init_params($params);
 		//check if exists and get left value
 		$this->deleted_category_data = $c = $this->Get($id);
 		if (!$c) {
-			$this->debug(':( Category not found', 1);
 			return !$params->errors->Add('doesnt_exist', 'Category was not found');
 		}
 		if ($this->shop->products->Count($id)) {
-			$this->debug(':( Category has products', 1);
 			return !$params->errors->Add('products_inside', 'This category has products inside');
 		}
 		//main data
 		$query = "DELETE FROM {$this->db_prefix}shop_categories WHERE id=?";
 		$rCategory = $this->prepare($query);
 		$query_params = array($id);
-		$this->debug_query($query, $query_params, 1);
 		$s = $rCategory->execute($query_params);
 		if (!$s) return !$params->errors->Add('delete_category', '');
 		//contents
@@ -287,7 +252,6 @@ class PC_shop_categories_manager extends PC_shop_categories {
 		$rContents->execute(array($id));
 		
 		$product_model = new PC_shop_product_model();
-		$product_model->absorb_debug_settings($this);
 		$product_ids = $product_model->get_all(array(
 			'select' => 't.id',
 			'where' => array(
@@ -299,17 +263,13 @@ class PC_shop_categories_manager extends PC_shop_categories {
 			'join' => "LEFT JOIN {$this->db_prefix}shop_categories pc ON pc.id = t.category_id",
 			'value' => 'id'
 		));
-		$this->debug('Inner products:', 2);
-		$this->debug($product_ids, 3);
-		
-		$this->shop->products->absorb_debug_settings($this);
+
 		foreach ($product_ids as $product_id) {
 			$this->shop->products->Delete($product_id);
 		}
 		
 		if (!v($params->do_not_delete_tree_gap)) {
 			$tree = $this->core->Get_object("PC_database_tree");
-			$tree->absorb_debug_settings($this);
 			$tree->Delete_gap('shop_categories', $c['lft']-1, ($c['rgt']-$c['lft']+1));
 		}
 		
@@ -319,9 +279,6 @@ class PC_shop_categories_manager extends PC_shop_categories {
 	}
 	
 	public function Update_dynamic_attribute_due_products($category_id, $dynamic_attribute_data) {
-		$this->debug("Update_dynamic_attribute_due_products(for category $category_id)");
-		$this->debug($dynamic_attribute_data);
-		
 		$attribute_id = false;
 		$search = $this->shop->attributes->Find($dynamic_attribute_data['category_attribute_name'], true);
 		if ($search) {
@@ -330,19 +287,15 @@ class PC_shop_categories_manager extends PC_shop_categories {
 		}
 		else {
 			$attCreateParams = array('is_custom'=> true);
-			$this->debug('Creating attribute', 2);
 			$attribute_id = $this->shop->attributes->Create(true, array(
 				$dynamic_attribute_data['ln'] => $dynamic_attribute_data['category_attribute_name']
 			), $attCreateParams);
 		}
 		
 		if (!$attribute_id) {
-			$this->debug(' :( Could not find category attribute for ' . $dynamic_attribute_data['category_attribute_name']);
 			return false;
 		}
-		
-		$this->debug("Attribute id: $attribute_id", 1);
-		
+
 		$product_attribute_id = false;
 		$product_attributes = $this->shop->attributes->Find($dynamic_attribute_data['product_attribute_name'], false);
 		if ($product_attributes) {
@@ -351,7 +304,6 @@ class PC_shop_categories_manager extends PC_shop_categories {
 		}
 		
 		if (!$product_attribute_id) {
-			$this->debug(' :( Could not find product attribute for ' . $dynamic_attribute_data['product_attribute_name']);
 			return false;
 		}
 		
@@ -382,42 +334,25 @@ class PC_shop_categories_manager extends PC_shop_categories {
 		}
 		
 		
-		$this->shop->attributes->absorb_debug_settings($this, 2);
-		
 		$dynamic_data = $this->shop->attributes->Get_aggregate_data_for_category_products($product_attribute_id, $category_id, $select, $where_s);
-		$this->debug('$dynamic_data:', 1);
-		$this->debug($dynamic_data, 2);
-		
+
 		$this->shop->attributes->Assign_or_edit_for_item($category_id, $attribute_id, PC_shop_attributes::ITEM_IS_CATEGORY, null, $dynamic_data);
 		
 		//$this->shop->attributes->Edit_for_item($id, $valueId=null, $value=null) {
-		
-		$this->debug('Debug from shop->attributes', 3);
-		$this->debug($this->shop->attributes->get_debug_string(), 4);
-		$this->shop->attributes->clear_debug_string();
 	}
 	
 	public function Update_dynamic_attribute($category_id, &$dynamic_attribute_data) {
-		$this->debug("Update_dynamic_attribute(for category $category_id)");
-		
 		$attribute_id = $this->shop->attributes->get_id_from_ref($dynamic_attribute_data['dynamic_attribute_ref']);
 		
 		if (!$attribute_id) {
-			$this->debug(' :( Could not find category attribute for ' . $dynamic_attribute_data['dynamic_attribute_ref']);
 			return false;
 		}
-		$this->debug("Attribute id: $attribute_id", 1);
-		
+
 		$dynamic_data = $this->Get_dynamic_data($category_id, $dynamic_attribute_data);
 		if ($dynamic_data === false) {
-			$this->debug(':( dynamic_data is false:', 1);
 			return false;
 		}
 		$this->shop->attributes->Assign_or_edit_for_item($category_id, $attribute_id, PC_shop_attributes::ITEM_IS_CATEGORY, null, $dynamic_data);
-	
-		$this->debug('Debug from shop->attributes', 3);
-		$this->debug($this->shop->attributes->get_debug_string(), 4);
-		$this->shop->attributes->clear_debug_string();
 	}
 	
 	/**
@@ -427,22 +362,14 @@ class PC_shop_categories_manager extends PC_shop_categories {
 	 * @param int $into_id Category id to be copied into
 	 */
 	public function Copy($id, $into_id) {
-		$this->debug("Copy($id, $into_id)");
-		
 		$category_data = $this->Get($id);
-		$this->debug('category_data:', 1);
-		$this->debug($category_data, 2);
-		
+
 		$category_data['resources'] = array();
 		$category_data['resources']['add'] = $this->shop->resources->Get(null, $id, PC_shop_resources_manager::RF_IS_CATEGORY);
-		$this->debug('resources:', 1);
-		$this->debug($category_data['resources']['add'], 2);
-		
+
 		$category_data['attributes'] = array();
 		$category_data['attributes']['save'] = $this->shop->attributes->Get_for_item($id, PC_shop_attributes::ITEM_IS_CATEGORY);
-		$this->debug('attributes:', 1);
-		$this->debug($category_data['attributes']['save'], 2);
-		
+
 		$params = array();
 		$new_category_id = $this->Create($into_id, 0, null, $category_data, $params);
 		if (!$new_category_id) {
@@ -450,21 +377,14 @@ class PC_shop_categories_manager extends PC_shop_categories {
 		}
 		
 		$products = $this->shop->products->Get(null, $id);
-		
-		$this->debug('Products:', 1);
-		$this->debug($products, 2);
-		
+
 		foreach ($products as $product) {
 			$product['resources'] = array();
 			$product['resources']['add'] = $this->shop->resources->Get(null, $product['id'], PC_shop_resources_manager::RF_DEFAULT);
-			$this->debug('product resources:', 1);
-			$this->debug($product['resources']['add'], 2);
-			
+
 			$product['attributes'] = array();
 			$product['attributes']['save'] = $this->shop->attributes->Get_for_item($product['id'], PC_shop_attributes::ITEM_IS_PRODUCT);
-			$this->debug('product attributes:', 4);
-			$this->debug($product['attributes']['save'], 5);
-			
+
 			$create_product_params = array();
 			$this->shop->products->Create($new_category_id, 0, $product, $create_product_params);
 		}
@@ -482,8 +402,6 @@ class PC_shop_categories_manager extends PC_shop_categories {
 			//'query_only' => true
 		));
 		
-		$this->debug('Categories:', 1);
-		$this->debug($categories, 2);
 		foreach ($categories as $category) {
 			$this->Copy($category['id'], $new_category_id);
 		}
@@ -504,7 +422,6 @@ class PC_shop_products_manager extends PC_shop_products {
 	 * @return boolean
 	 */
 	public function Create($categoryId, $position=0, $data, &$params=array()) {
-		$this->debug('Create');
 		$this->core->Init_params($params);
 		if (!$this->shop->categories->Exists($categoryId)) {
 			$params->errors->Add('category', 'Category was not found');
@@ -517,7 +434,6 @@ class PC_shop_products_manager extends PC_shop_products {
 		$this->core->Init_hooks('plugin/pc_shop/product/create', array(
 			'data'=> &$data,
 			'category_id' => $categoryId,
-			'logger' => &$this,
 			'shop' => &$this->shop
 		));
 		
@@ -557,7 +473,6 @@ class PC_shop_products_manager extends PC_shop_products {
 			else if ($position > 1 or $position == 0) $position = 1;
 		}
 		$query = "UPDATE {$this->db_prefix}shop_products SET position=position+1 WHERE category_id=? and position>=?";
-		$this->debug_query($query, array($categoryId, $position));
 		$r = $this->prepare($query);
 		$s = $r->execute(array($categoryId, $position));
 		if (!$s) {
@@ -574,8 +489,6 @@ class PC_shop_products_manager extends PC_shop_products {
 		}
 		$query_params = array_merge(array($auth_user_id, $categoryId), array_values($d['product']));
 		$query = "INSERT INTO {$this->db_prefix}shop_products (auth_user_id,category_id,".implode(',', array_keys($d['product'])).") VALUES(?,?,".implode(',', array_fill(0, count($d['product']), '?')).")";
-		$this->debug_query($query, $query_params);
-		$this->debug(array_merge(array($auth_user_id, $categoryId), array_values($d['product'])));
 		$r = $this->prepare($query);
 		$s = $r->execute($query_params);
 		if (!$s) {
@@ -597,7 +510,6 @@ class PC_shop_products_manager extends PC_shop_products {
 			}
 		}
 		//resources
-		$this->debug($d, 2);
 		if (isset($d['resources'])) if (is_array($d['resources'])) $this->shop->resources->Update($id, null, $d['resources']);
 		//attributes
 		if (isset($d['attributes'])) if (is_array($d['attributes'])) $this->shop->attributes->Save_for_item($id, PC_shop_attributes::ITEM_IS_PRODUCT, $d['attributes'], true);
@@ -605,13 +517,9 @@ class PC_shop_products_manager extends PC_shop_products {
 		return $id;
 	}
 	public function Edit($productId, $data, &$params) {
-		$this->debug("Edit($productId)");
 		$this->core->Init_params($params);
 		$old_product = $this->get_data($productId);
-		$this->debug('old product:', 1);
-		$this->debug($old_product, 1);
 		$categoryId = v($data['category_id'], $old_product['category_id']);
-		$this->debug('Category id: ' . $categoryId, 1);
 		if (isset($data['hot']) and $data['hot']  and (!isset($old_product['hot_from']) or is_null($old_product['hot_from']))) {
 			$data['hot_from'] = time();
 		}
@@ -623,7 +531,6 @@ class PC_shop_products_manager extends PC_shop_products {
 			'data'=> &$data,
 			'product_id' => $productId,
 			'category_id' => $categoryId,
-			'logger' => &$this,
 			'shop' => &$this->shop
 		));
 		
@@ -653,9 +560,6 @@ class PC_shop_products_manager extends PC_shop_products {
 		}
 		unset($field, $value);
 		$qparams[] = $productId;
-		$this->debug('New product data:', 1);
-		$this->debug($updates, 1);
-		$this->debug($qparams, 1);
 		$r = $this->prepare("UPDATE {$this->db_prefix}shop_products SET ".implode(',', array_values($updates))." WHERE id=?");
 		$s = $r->execute($qparams);
 		//print_pre($d);
@@ -697,8 +601,6 @@ class PC_shop_products_manager extends PC_shop_products {
 					$cdata['permalink'] = Sanitize('permalink', $cdata['permalink']);
 				}
 			}
-			$this->debug('Content data:', 3);
-			$this->debug($cdata, 4);
 			$updates = $qparams = $updateFields = array();
 			foreach ($cdata as $field=>&$value) {
 				$updates[] = $field.'=?';
@@ -726,7 +628,6 @@ class PC_shop_products_manager extends PC_shop_products {
 		
 		if (isset($d['prices']) and is_array($d['prices'])) {
 			$product_price_model = new PC_shop_product_price_model();
-			$product_price_model->absorb_debug_settings($this);
 			foreach ($d['prices'] as $key => $product_price_data) {
 				if (!empty($product_price_data['id'])) {
 					$pp_id = $product_price_data['id'];
@@ -739,7 +640,6 @@ class PC_shop_products_manager extends PC_shop_products {
 					$product_price_model->insert($product_price_data);
 				}
 			}
-			$this->debug($product_price_model->get_debug_string(), 3);
 		}
 		
 		
@@ -810,8 +710,6 @@ class PC_shop_products_manager extends PC_shop_products {
 	}
 	
 	public function delete_all($scope_cond = '', $scope_params = array()) {
-		$this->debug("delete_all($scope_cond)");
-		
 		//Delete products' attributes
 		$query_params = $scope_params;
 		
@@ -826,11 +724,9 @@ class PC_shop_products_manager extends PC_shop_products {
 			AND $product_attributes_cond";
 
 		$r = $this->db->prepare($query);
-		$this->debug_query($query, $query_params, 1);
 		$s = $r->execute($query_params);
 		if ($s) {
 			$affected = $r->rowCount();
-			$this->debug($affected . ' attributes were deleted', 2);
 		}
 		
 		
@@ -844,11 +740,9 @@ class PC_shop_products_manager extends PC_shop_products {
 			)";
 
 		$r = $this->db->prepare($query);
-		$this->debug_query($query, $query_params, 1);
 		$s = $r->execute($query_params);
 		if ($s) {
 			$affected = $r->rowCount();
-			$this->debug($affected . ' products contents were deleted', 2);
 		}
 		
 		//Delete products' categories (many-many)
@@ -861,11 +755,9 @@ class PC_shop_products_manager extends PC_shop_products {
 			)";
 
 		$r = $this->db->prepare($query);
-		$this->debug_query($query, $query_params, 1);
 		$s = $r->execute($query_params);
 		if ($s) {
 			$affected = $r->rowCount();
-			$this->debug($affected . ' products categories were deleted', 2);
 		}
 		
 		
@@ -875,11 +767,9 @@ class PC_shop_products_manager extends PC_shop_products {
 				WHERE 1 = 1 $scope_cond";
 
 		$r = $this->db->prepare($query);
-		$this->debug_query($query, $query_params, 1);
 		$s = $r->execute($query_params);
 		if ($s) {
 			while($d = $r->fetch()) {
-				$this->debug('Deleting resources for ' . $d['id'], 3);
 				$this->shop->resources->Delete(null, $d['id'], false);
 			}
 		}
@@ -891,17 +781,13 @@ class PC_shop_products_manager extends PC_shop_products {
 				WHERE 1 = 1 $scope_cond";
 
 		$r = $this->db->prepare($query);
-		$this->debug_query($query, $query_params, 1);
 		$s = $r->execute($query_params);
 		if ($s) {
 			$affected = $r->rowCount();
-			$this->debug($affected . ' products were deleted', 2);
 		}
 	}
 	
 	public function hide_all($scope_cond = '', $scope_params = array()) {
-		$this->debug("hide_all($scope_cond)");
-		
 		$query_params = array();
 		$query_params[] = PC_shop_products::PF_PUBLISHED;
 		
@@ -912,12 +798,10 @@ class PC_shop_products_manager extends PC_shop_products {
 		
 		$query_params = array_merge($query_params, $scope_params);
 		
-		$this->debug_query($query, $query_params, 1);
 		$s = $r->execute($query_params);
 
 		if ($s) {
 			$total_hidden = $r->rowCount();
-			$this->debug($total_hidden . ' product(s) were hidden', 2);
 		}
 		
 	}
@@ -925,13 +809,11 @@ class PC_shop_products_manager extends PC_shop_products {
 	
 	
 	public function Move($id, $categoryId, $position=0) {
-		$this->debug("Move(id: $id, category_id: $categoryId, position: $position)");
 		if ($position == 0) {
 			$query = "SELECT max(position) FROM {$this->db_prefix}shop_products WHERE category_id=?";
 			$r = $this->prepare($query);
 			$query_params = array($categoryId);
 			$s = $r->execute($query_params);
-			$this->debug_query($query,$query_params, 1);
 			if (!$s) return false;
 			$pos = $r->fetchColumn();
 		}
@@ -942,13 +824,10 @@ class PC_shop_products_manager extends PC_shop_products {
 			$query = "SELECT position FROM {$this->db_prefix}shop_products WHERE id=? and category_id=? LIMIT 1";
 			$r = $this->prepare($query);
 			$query_params = array($position, $categoryId);
-			$this->debug_query($query,$query_params, 1);
 			$s = $r->execute($query_params);
 			if (!$s) return false;
 			$pos = $r->fetchColumn()+1;
 		}
-		$this->debug('pos:', 2);
-		$this->debug($pos, 3);
 		//delete old position
 		$this->prepare("UPDATE {$this->db_prefix}shop_products SET position=position-1 WHERE id=? and position>?")->execute(array($id, $pos));
 		//create gap
@@ -958,8 +837,6 @@ class PC_shop_products_manager extends PC_shop_products {
 			if (!$s) return false;
 		}
 		$data = $this->get_data($id, array('content' => array('select' => 'route'), 'ln' => false));
-		$this->debug('Data:', 1);
-		$this->debug($data, 2);
 		$new_data = array(
 			'category_id' => $categoryId,
 			'position' => $pos
@@ -974,8 +851,6 @@ class PC_shop_products_manager extends PC_shop_products {
 				$new_contents[$ln]['route'] = $unique_route;
 			}
 		}
-		$this->debug('new_contents:', 1);
-		$this->debug($new_contents, 2);
 		$new_data['_content'] = $new_contents;
 		$this->update($new_data, $id);
 		/*
@@ -1003,7 +878,6 @@ class PC_shop_products_manager extends PC_shop_products {
 }
 class PC_shop_resources_manager extends PC_shop_resources {
 	public function Add($itemId, $fileId, $isCategory=false, $isAttachment=false, $flags=array()) {
-		$this->debug("Add($itemId, $fileId, $isCategory=false, $isAttachment)");
 		$flagsCheck = 0x0;
 		if ($isCategory) $flagsCheck |= self::RF_IS_CATEGORY;
 		if ($isAttachment) $flagsCheck |= self::RF_IS_ATTACHMENT;
@@ -1023,7 +897,6 @@ class PC_shop_resources_manager extends PC_shop_resources {
 		$query = "INSERT IGNORE INTO {$this->db_prefix}shop_resources (item_id,file_id,flags,position) VALUES(?,?,?,?)";
 		$r = $this->prepare($query);
 		$query_params = array($itemId, $fileId, $flagsCheck, $position);
-		$this->debug_query($query, $query_params, 1);
 		$s = $r->execute($query_params);
 		if ($s) {
 			$id = $this->db->lastInsertId($this->sql_parser->Get_sequence('shop_resources'));
@@ -1053,7 +926,6 @@ class PC_shop_resources_manager extends PC_shop_resources {
 		return $s;
 	}
 	public function Update($itemId, $flags=array(), $data) {
-		$this->debug("Update($itemId)");
 		//add new resources
 		if (isset($data['add'])) if (count($data['add']))
 		foreach ($data['add'] as $res) {

@@ -3,7 +3,6 @@
 class PC_shop_product_products_admin_api extends PC_shop_admin_api {
 	
 	public function get($product_id, $ln = 'lt') {
-		$this->debug($_POST);
 		if (empty($ln)) {
 			$ln = 'lt';
 		}
@@ -13,10 +12,8 @@ class PC_shop_product_products_admin_api extends PC_shop_admin_api {
 		if (isset($_POST['ln'])) {
 			$ln = $_POST['ln'];
 		}
-		$this->debug("for_part($product_id, $ln)");
-		
+
 		$product_model = new PC_shop_product_model();
-		$product_model->absorb_debug_settings($this);
 		$related_products = $product_model->get_related_product_ids($product_id);
 		
 		if (v($this->routes->Get(4)) == 'for_page_tree') {
@@ -28,9 +25,6 @@ class PC_shop_product_products_admin_api extends PC_shop_admin_api {
 			$this->_out['success'] = true;
 			return;
 		};
-		
-		$this->debug('Related product ids:', 3);
-		$this->debug($related_products, 3);
 		
 		$products = array();
 		
@@ -46,9 +40,6 @@ class PC_shop_product_products_admin_api extends PC_shop_admin_api {
 			$products[$key]['full_name'] = $this->_get_category_name_path($d['category_id'], $ln) . ' - ' . $d['name'];
 		}
 		
-		$this->debug('Related products:', 3);
-		$this->debug($products, 3);
-
 		$autos = array();
 		$this->_out['data'] = $products;
 		
@@ -60,10 +51,8 @@ class PC_shop_product_products_admin_api extends PC_shop_admin_api {
 	 */
 	public function save() {
 		$this->product_id = intval($_POST['product_id']);
-		$this->debug("Save");
 		$products = json_decode($_POST['products']);
-		$this->debug($products, 1);
-		
+
 		if (!is_array($products)) {
 			return;
 		}
@@ -71,9 +60,7 @@ class PC_shop_product_products_admin_api extends PC_shop_admin_api {
 		$delete_query = "DELETE FROM {$this->cfg['db']['prefix']}shop_product_products 
 			WHERE product_id = ? OR product_id_2 = ?";
 		$delete_params = array($this->product_id, $this->product_id);
-		
-		$this->debug_query($delete_query, $delete_params, 1);
-		
+
 		$r = $this->db->prepare($delete_query);
 		$s = $r->execute($delete_params);
 		
@@ -83,10 +70,8 @@ class PC_shop_product_products_admin_api extends PC_shop_admin_api {
 		
 		foreach ($products as $product) {
 			$controller_data = $this->page->get_controller_data_from_id($product);
-			$this->debug($controller_data, 5);
 			if ($controller_data and v($controller_data['plugin']) == 'pc_shop') {
 				$id_data = PC_shop_plugin::ParseID(v($controller_data['id']));
-				$this->debug($id_data, 7);
 				if ($id_data and v($id_data['type']) == 'product') {
 					$product_product = intval($id_data['id']);
 					if ($product_product != $this->product_id) {
@@ -101,10 +86,8 @@ class PC_shop_product_products_admin_api extends PC_shop_admin_api {
 	
 	public function delete() {
 		$this->product_id = intval($_POST['product_id']);
-		$this->debug("delete");
 		$products = json_decode($_POST['products']);
-		$this->debug($products, 1);
-		
+
 		if (!is_array($products)) {
 			return;
 		}
@@ -123,8 +106,6 @@ class PC_shop_product_products_admin_api extends PC_shop_admin_api {
 		
 		$delete_params[] = $this->product_id;
 		$delete_params = array_merge($delete_params, $products);
-		
-		$this->debug_query($delete_query, $delete_params, 1);
 		
 		$r = $this->db->prepare($delete_query);
 		$s = $r->execute($delete_params);

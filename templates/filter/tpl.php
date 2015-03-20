@@ -1,3 +1,11 @@
+<?php
+/**
+ * @var PC_plugin_pc_shop_checkout_user_widget $this
+ * @var string $tpl_group
+ * @var string $base_url
+ * @var array[] $filters
+ */
+?>
 <form action="<?php echo $base_url ?>">
 <div id="product_filter">
 <?php 

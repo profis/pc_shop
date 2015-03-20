@@ -124,7 +124,6 @@ abstract class PC_shop_payment_method extends PC_base {
 	
 	
 	protected function _is_payment_successful() {
-		$this->debug('_is_payment_successful()');
 		if (!$this->_get_response_payment_status()) {
 			throw new Exception("Payment hasn't been accepted yet");
 		}
@@ -165,7 +164,6 @@ abstract class PC_shop_payment_method extends PC_base {
 		if ($currency != $order_currency) {
 			throw new Exception('Bad currency: ' . $currency);
 		}
-		$this->debug('_is_payment_successful(): returning true', 1);
 		return true;
 	}
 	

@@ -4,8 +4,7 @@ class PC_shop_attribute_categories_admin_api extends PC_shop_admin_api {
 
 	public function get_for_combo() {
 		$attr_category_model = $this->core->Get_object('PC_shop_attribute_category_model');
-		$attr_category_model->absorb_debug_settings($this);
-		
+
 		$this->_out = $attr_category_model->get_all(array(
 			'select' => 't.id',
 			'content' => array(
@@ -22,8 +21,7 @@ class PC_shop_attribute_categories_admin_api extends PC_shop_admin_api {
 		
 		if (isset($_GET['attributes']) and is_array($this->_out)) {
 			$attributes_category_model = $this->core->Get_object('PC_shop_attributes_category_model');
-			$attributes_category_model->absorb_debug_settings($this);
-		
+
 			foreach ($this->_out as $key => $value) {
 				$this->_out[$key]['attributes'] = $attributes_category_model->get_all(array(
 					'where' => array(
@@ -45,8 +43,7 @@ class PC_shop_attribute_categories_admin_api extends PC_shop_admin_api {
 		);
 		$params = array('paging' => &$paging);
 		$attr_category_model = $this->core->Get_object('PC_shop_attribute_category_model');
-		$attr_category_model->absorb_debug_settings($this);
-		
+
 		$this->_out['list'] = $attr_category_model->get_all(array(
 			'content' => array(
 				'select' => 'ct.name'
@@ -58,11 +55,8 @@ class PC_shop_attribute_categories_admin_api extends PC_shop_admin_api {
 	
 	public function create() {
 		$attr_category_model = $this->core->Get_object('PC_shop_attribute_category_model');
-		$attr_category_model->absorb_debug_settings($this);
-		
+
 		$data = json_decode(v($_POST['data'], '{}'), true);
-		
-		$this->debug($data);
 		
 		$content = array();
 		
@@ -84,16 +78,13 @@ class PC_shop_attribute_categories_admin_api extends PC_shop_admin_api {
 	}
 	
 	public function delete() {
-		$this->debug('delete()');
 		if (!isset($_POST['ids']) or empty($_POST['ids'])) {
 			return;
 		}
 		$ids = json_decode(v($_POST['ids'], '{}'), true);
-		$this->debug($ids);
-		
+
 		$attr_category_model = $this->core->Get_object('PC_shop_attribute_category_model');
-		$attr_category_model->absorb_debug_settings($this);
-		
+
 		$deleted = $attr_category_model->delete(array(
 			'where' => array(
 				'id' => $ids
@@ -106,12 +97,8 @@ class PC_shop_attribute_categories_admin_api extends PC_shop_admin_api {
 	}
 	
 	public function edit() {
-		$this->debug('edit()');
-		
 		$data = json_decode(v($_POST['data'], '{}'), true);
-		
-		$this->debug($data);
-		
+
 		$content = array();
 		
 		if (isset($data['names'])) {
@@ -126,8 +113,7 @@ class PC_shop_attribute_categories_admin_api extends PC_shop_admin_api {
 		$new_data['_content'] = $content;
 		
 		$attr_category_model = $this->core->Get_object('PC_shop_attribute_category_model');
-		$attr_category_model->absorb_debug_settings($this);
-		
+
 		$params = array(
 			'where' => array(
 				'id' => intval($_POST['id'])

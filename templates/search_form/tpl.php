@@ -1,3 +1,11 @@
+<?php
+/**
+ * @var PC_plugin_pc_shop_search_form_widget $this
+ * @var string $tpl_group
+ * @var string $search_url
+ * @var string[] $search_values
+ */
+?>
 <div id="search_bar">
 	<form action="<?php echo $search_url ?>" method="_get">
 		<div class="input over input-append fl">

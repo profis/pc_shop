@@ -1,4 +1,7 @@
 <?php
+/**
+ * @var PC_controller_pc_shop $this
+ */
 $orderSubmitted = $this->site->Get_data('createOrderSubmitted');
 $orderResult = $this->site->Get_data('createOrderResult');
 $orderParams = $this->site->Get_data('createOrderParams');

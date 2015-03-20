@@ -239,7 +239,6 @@ Plugin_pc_shop_product_price_matrix_crud = Ext.extend(PC.ux.LocalCrud, {
 			
 			
 			this.grid.reconfigure(store, new Ext.grid.ColumnModel(columns));
-			debugger;
 			//store.loadData(data);
 			store.loadData({list: data});
 		}

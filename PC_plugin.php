@@ -101,30 +101,16 @@ $this->auth->permissions->Register($this->currentlyParsing, 'categories', 'PC_sh
 
 
 function pc_shop_after_change_config_currency($params) {
-	$logger = new PC_debug();
-	if (isset($params['logger'])) {
-		$logger-> absorb_debug_settings($params['logger']);
-		
-	}
-	$logger->debug("pc_shop_after_change_config_currency({$params['value']})");
 	require_once CMS_ROOT .  'admin/classes/PC_plugin_admin_api.php';
 	require_once CMS_ROOT .  'admin/classes/PC_plugin_crud_admin_api.php';
 	require_once PLUGINS_ROOT . DS .  'pc_shop/admin_api/PC_shop_admin_api.php';
 	require_once PLUGINS_ROOT . DS .  'pc_shop/admin_api/PC_shop_currency_rates_admin_api.php';
 	
 	$rates_api = new PC_shop_currency_rates_admin_api();
-	if (isset($params['logger'])) {
-		$rates_api-> absorb_debug_settings($params['logger']);
-	}
 	$rates_api->import();
 	$output = $rates_api->get_output();
-	$logger->debug('Rates api output:');
-	$logger->debug($output);
 	if ($output['success'] and isset($output['data']) and !empty($output['data'])) {
 		$model = $rates_api->get_model();
-		if (isset($params['logger'])) {
-			$model-> absorb_debug_settings($params['logger']);
-		}
 		$model->delete();
 		$_POST['data'] = $output['data'];
 		$rates_api->sync();

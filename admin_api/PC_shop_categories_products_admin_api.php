@@ -35,28 +35,21 @@ class PC_shop_categories_products_admin_api extends PC_shop_admin_api {
 				'value' => 'id'
 			));
 		}
-		$this->debug('Initing hook pc_shop_categories_products/adjust_search');
 		$this->core->Init_hooks('pc_shop_categories_products/adjust_search', array(
-			'logger' => $this,
 			'params'=> &$params,
 			'category_id' => $this->category_id
 		));
 	}
 	
 	protected function _after_get() {
-		$this->debug('_after_get()');
 		$model = $this->core->Get_object('PC_shop_category_product_model');
-		$model->absorb_debug_settings($model);
 		$category_products = $model->get_all(array(
 			'where' => array(
 				'category_id' => $this->category_id,
 			),
 			'key' => 'product_id'
 		));
-		
-		$this->debug('$category_products:', 2);
-		$this->debug($category_products, 3);
-		
+
 		//print_pre($attribute_categories);
 		foreach ($this->_out['list'] as $key => $value) {
 			$this->_out['list'][$key]['product_id'] = $this->_out['list'][$key]['id'];

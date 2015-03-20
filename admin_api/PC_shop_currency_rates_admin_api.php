@@ -4,7 +4,6 @@ class PC_shop_currency_rates_admin_api extends PC_shop_admin_api {
 	
 	protected function _get_model() {
 		$model = $this->core->Get_object('PC_shop_currency_rate_model');
-		$model->absorb_debug_settings($this);
 		return $model;
 	}
 	
@@ -55,9 +54,7 @@ class PC_shop_currency_rates_admin_api extends PC_shop_admin_api {
 			'join' => array("LEFT JOIN {$this->db_prefix}shop_currencies sc ON sc.id = t.c_id"),
 			'select' => 't.*, sc.code'
 		));
-		$this->debug('$rated_currency_codes:', 1);
-		$this->debug($rated_currency_codes, 2);
-			
+
 		$file = 'http://www.ecb.europa.eu/stats/eurofxref/eurofxref-daily.xml';
 		$xml = @simplexml_load_file($file);
 		
@@ -80,9 +77,6 @@ class PC_shop_currency_rates_admin_api extends PC_shop_admin_api {
 				$data[$currency_code] = $d;
 			}
 		}
-		
-		$this->debug('rates from  provider:', 1);
-		$this->debug($data, 2);
 		
 		$exchange_currency = 'EUR';
 		

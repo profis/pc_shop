@@ -1,13 +1,6 @@
 <?php
 
 class PC_shop_payment_options_admin_api extends PC_shop_admin_api {
-
-	/**
-	 *
-	 * @var PC_shop_manager 
-	 */
-	protected $shop;
-	
 	protected $_default_order = 'position';
 	
 	protected $_content_fields = array(

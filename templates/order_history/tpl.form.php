@@ -1,4 +1,14 @@
 <?php
+/**
+ * @var PC_plugin_pc_shop_order_history_widget $this
+ * @var string $tpl_group
+ * @var PC_params $params
+ * @var array[] $orders
+ * @var array $cart_data
+ * @var array $order_data
+ * @var array $payment_options
+ * @var array $deliveryOptions
+ */
 $this->site->Add_script($this->cfg['directories']['media'] . '/form_validation.js');
 ?>
 <form method="post" id="order_form" action="" class="form-horizontal" role="form">

@@ -10,9 +10,6 @@ class PC_controller_pc_shop extends PC_controller {
 	/** @var PC_shop_payment_method */
 	public $payment_method = null;
 
-	/** @var PC_debug */
-	public $payment_logger = null;
-
 	/** @var array */
 	public $order_data = null;
 	
@@ -26,22 +23,6 @@ class PC_controller_pc_shop extends PC_controller {
 	public function Process($params) {
 		//available page types: category/product/register/activate/cart/order/ order/fast
 		//fast-order must enter this data: address, recipient, email (for order data to send)
-		$this->payment_logger = new PC_debug();
-		$this->payment_logger->debug = true;
-		$this->payment_logger->debug_forced = true;
-		$this->payment_logger->set_instant_debug_to_file($this->cfg['path']['logs'] . 'pc_shop/payments.html', false, 500);
-		$this->payment_logger->debug('ip: ' . pc_ip());		
-		
-		if (isset($_GET['debug'])) {
-			$this->debug = true;
-			$this->set_instant_debug_to_file($this->cfg['path']['logs'] . 'pc_shop/controller_log.html', false, 5);
-			$this->shop->orders->debug = $this->shop->attributes->debug = $this->shop->products->debug = $this->shop->categories->debug = $this->debug;
-		}
-		$this->click('Controller process started');
-		
-		$this->logger = new PC_debug();
-		$this->logger->absorb_debug_settings($this);
-		
 		$pluginName = basename(dirname(__FILE__));
 		$this->site->Add_script('plugins/' . $pluginName . '/js/number.format.min.js');
 		$this->site->Add_script('plugins/' . $pluginName . '/js/shop.js');
@@ -76,24 +57,14 @@ class PC_controller_pc_shop extends PC_controller {
 				pc_remove_trailing_slash($route_path);
 			}
 
-			$this->debug('last:');
-			$this->debug($last_route);
-			$this->debug('path:');
-			$this->debug($route_path);
 			$params = array('filter'=> array('pc.route'=> $last_route));
 			$params['manufacturer'] = true;
 			$products = $this->shop->products->Get(null, null, $params);
 			$product_action = false;
-			$this->click('Tried to fetch products');
-			$this->debug('Products data:');
-			$this->debug($products);
 			if ($products) {
-				$this->debug('Products where found:');
 				$d = false;
 				foreach ($products as $key => $product) {
-					$this->debug('   $product[link]:' . $product['link']);
 					if ($product['link'] == $route_path) {
-						$this->debug('BINGO!');
 						$d = $product;
 						break;
 					}
@@ -103,29 +74,23 @@ class PC_controller_pc_shop extends PC_controller {
 					$this->currentProduct = $d;
 					$this->currentCategory = $this->shop->categories->Get($d['category_id']);
 					$this->shop->categories->Load_path($this->currentCategory, $this->site->loaded_page['route']);
-					$this->debug('$this->currentCategory:');
-					$this->debug($this->currentCategory);
 					if ($this->site->Is_opened($this->currentCategory['path'][0]['pid'])) {
 						$product_action = true;
 						$this->product_action($d['id']);
 					}
 					else {
-						$this->debug('404');
 						$this->_before_action_finish();
 						$this->core->Do_action('show_error', 404);
 					}
 				}
 				else {
 					//invalid product path
-					//$this->debug('invalid product path');
 					//$this->_before_action_finish();
 					//$this->core->Do_action('show_error', 404);
 				}
 			}
 			if (!$product_action) {
-				$this->debug('Products were not found. Looking for gategories');
 				$category_id = $this->_detect_category($this->last_route, $route_path);
-				$this->click('Category was detected');
 				if ($category_id) {
 					$this->category_action($category_id);
 				}
@@ -136,8 +101,7 @@ class PC_controller_pc_shop extends PC_controller {
 		}
 		else {
 			//$this->core->Do_action('show_error', 404);
-			$this->shop->products->set_new_debug($this->debug);
-			
+
 			if ($this->Is_search()) {
 				$this->type = 'search';
 				$this->Render('search');
@@ -162,21 +126,15 @@ class PC_controller_pc_shop extends PC_controller {
 	 * @return boolean
 	 */
 	protected function _detect_category($last_route, $route_path) {
-		$this->debug("_detect_category(last_route: $last_route, route_path: $route_path) [current page is ]" . $this->page->get_id());
 		$categories = $this->shop->categories->Get_id_by_content('route', $last_route, $this->site->ln, false);
-		$this->debug('Categories by route ' . $last_route . ':', 1);
-		$this->debug($categories, 2);
 		$category_id = false;
 		if ($categories) {
 			foreach ($categories as $cat_id) {
 				$page_id = $this->shop->categories->Get_page_id($cat_id);
-				$this->debug('category page is ' . $page_id, 2);
 				if ($page_id == $this->page->get_id()) {
 					$native_link = true;
 					$cat_route_path = $this->shop->categories->Get_link_by_id($cat_id, $this->site->ln, $some_page_id, $native_link);
-					$this->debug('category route path is ' . $cat_route_path, 3);
 					if ($cat_route_path == $route_path) {
-						$this->debug(':) category detected ' . $cat_id, 4);
 						return $cat_id;
 					}
 				}
@@ -248,8 +206,6 @@ class PC_controller_pc_shop extends PC_controller {
 		if (isset($this->order_data) and isset($this->order_data['payment_option'])) {
 			$code = $this->order_data['payment_option'];
 		}
-		$this->payment_logger->debug('code:' . $code, 2);
-		//$payment_option_model->absorb_debug_settings($this->payment_logger);
 		return $payment_option_model->get_one(array(
 			'where' => array(
 				'code' => $code,
@@ -263,31 +219,20 @@ class PC_controller_pc_shop extends PC_controller {
 		if ($payment_option_data) {
 			$class_name = 'PC_shop_' . $payment_option_data['code'] . '_payment_method';
 			$payment_method_class_path = $this->cfg['path']['plugins'] . 'pc_shop_payment_' . $payment_option_data['code'] . '/' . $class_name . '.php';
-			$this->debug($payment_method_class_path);
 			if (file_exists($payment_method_class_path)) {
-				$this->debug('Creating payment method object', 3);
 				require_once $this->cfg['path']['plugins'] . 'pc_shop/classes/PC_shop_payment_method.php';
 				require_once $payment_method_class_path;
 				$this->payment_method = $this->core->Get_object($class_name, array($payment_option_data, v($this->order_data, array()), $this->shop));
-				$this->payment_method->absorb_debug_settings($this->payment_logger);
 				return $this->payment_method;
 			}
-			else {
-				$this->debug(':( payment method file does not exist', 3);
-			}
-		}
-		else {
-			$this->debug(':( Could not get payment option data', 3);
 		}
 		return false;
 	}
 	
 	protected function _make_payment() {
-		$this->debug('controller:_make_payment()');
 		$content = '';
 		if ($this->_get_payment_method_object()) {
 			$content = $this->payment_method->make_online_payment();
-			$this->debug('controller:onlined payment made ' . $this->payment_method->file);
 		}
 		else {
 			$this->ordered_action();
@@ -300,10 +245,8 @@ class PC_controller_pc_shop extends PC_controller {
 	}
 	
 	protected function _order_online_payment_accept() {
-		$this->payment_logger->debug('Accept()');
 		if ($this->_get_payment_method_object()) {
 			$result = $this->payment_method->accept();
-			$this->payment_logger->debug("accept result: " . $result, 1);
 			switch ($result) {
 				case PC_shop_payment_method::STATUS_SUCCESS:
 				case PC_shop_payment_method::STATUS_ALREADY_PURCHASED:	
@@ -334,7 +277,6 @@ class PC_controller_pc_shop extends PC_controller {
 	}
 	
 	protected function _order_online_payment_callback() {
-		$this->payment_logger->debug('Callback()');
 		if ($this->_get_payment_method_object()) {
 			$result = $this->payment_method->callback();
 			if ($result) {
@@ -343,9 +285,6 @@ class PC_controller_pc_shop extends PC_controller {
 				$this->_order_set_is_paid();
 				$this->_inform_about_order(true);
 			}
-		}
-		else {
-			$this->payment_logger->debug(':( could not get payment method object', 3);
 		}
 		exit;
 	}
@@ -388,12 +327,10 @@ class PC_controller_pc_shop extends PC_controller {
 	}
 	
 	protected function _order_set_is_paid() {
-		$this->payment_logger->debug('Setting is_paid for order ' . $this->order_id, 2);
 		$this->shop->orders->Set_is_paid($this->order_id);
 	}
 	
 	protected function _insert_order() {
-		$this->debug("_insert_order()");
 		$this->site->Register_data('createOrderSubmitted', true);
 		$this->shop->orders->Preserve_order_data();
 		$data = $this->shop->orders->Get_preserved_order_data();
@@ -411,8 +348,6 @@ class PC_controller_pc_shop extends PC_controller {
 			$data = array_merge($data, $_POST['order_data']);
 		}
 		//$data = pc_sanitize_value($data, 'strip_tags');
-		$this->debug('Additional data:', 1);
-		$this->debug($data, 1);
 		$clear_cart = true;
 		$user_id = null;
 		/** @var PC_user $site_users */
@@ -459,7 +394,6 @@ class PC_controller_pc_shop extends PC_controller {
 			return;
 		}
 		$content = '';		
-		$this->debug('order_action()');
 
 		//if ($this->routes->Get(3) == 'fast') {
 			$this->site->Set_url_suffix_callback(
@@ -481,7 +415,6 @@ class PC_controller_pc_shop extends PC_controller {
 							'order_id'=> $this->order_id,
 							'order_data' => &$this->order_data,
 							'other_data' => &$this->other_data,
-							'logger' => &$this
 						));
 					}
 					$content = $this->_make_payment();
@@ -564,7 +497,6 @@ class PC_controller_pc_shop extends PC_controller {
 	}
 	
 	public function ordered_action() {
-		$this->debug("ordered_action()");
 		$this->action_rendered = true;
 
 		if (!v($this->order_id)) {
@@ -581,9 +513,6 @@ class PC_controller_pc_shop extends PC_controller {
 			return;
 		}
 			
-		$this->debug("order data:", 2);
-		$this->debug($this->order_data, 2);
-		
 		$this->_inform_about_order();
 		
 		$this->Render('ordered');
@@ -591,7 +520,6 @@ class PC_controller_pc_shop extends PC_controller {
 	}
 	
 	protected function _inform_about_order($is_paid = false) {
-		$this->payment_logger->debug('Sending emails about order', 2);
 		$this->_tpl_is_paid = $is_paid;
 		$this->_send_order_email_to_buyer($is_paid);
 		$this->_send_order_email_to_admin($is_paid);
@@ -600,13 +528,6 @@ class PC_controller_pc_shop extends PC_controller {
 	protected function _send_order_email_to_buyer($is_paid = false) {
 		$buyer_email_body = $this->Render('order.email.buyer');
 
-		$this->debug('Email text for buyer:', 3);
-		$this->debug($buyer_email_body, 3);
-		
-		$this->payment_logger->debug('Email text for buyer:', 3);
-		$this->payment_logger->debug($this->order_data['email'], 4);
-		$this->payment_logger->debug($buyer_email_body, 4);
-		
 		$subject = '';
 		if ($is_paid) {
 			$subject = $this->Get_variable('new_paid_order_email_subject_to_buyer');
@@ -626,13 +547,6 @@ class PC_controller_pc_shop extends PC_controller {
 	protected function _send_order_email_to_admin($is_paid = false) {
 		$email_body = $this->Render('order.email.admin');
 
-		$this->debug('Email text for admin:', 3);
-		$this->debug($email_body, 3);
-		
-		$this->payment_logger->debug('Email text for admin:', 3);
-		$this->payment_logger->debug($this->cfg['pc_shop']['new_order_email_admin'], 4);
-		$this->payment_logger->debug($email_body, 4);
-		
 		$subject = '';
 		if ($is_paid) {
 			$subject = $this->Get_variable('new_paid_order_email_subject_to_admin');
@@ -650,21 +564,17 @@ class PC_controller_pc_shop extends PC_controller {
 	}
 	
 	public function category_action($id) {
-		$this->debug("category_action($id)");
 		$c_params = array(
 			'load_path' => true,
 			'page_link' => $this->site->loaded_page['route']
 		);
-		$this->shop->categories->debug = true;
 		$category_data = $this->shop->categories->Get($id, null, null, $c_params);
-		$this->click('$category_data were fetched');
 		if (!$category_data) {
 			$this->core->Do_action('show_error', 404);
 		}
 	
 		if (!empty($category_data['permalink']) and strpos($_SERVER['REQUEST_URI'], $category_data['permalink'])=== false) {
 			$redirect_link = $this->shop->categories->Get_link_from_data($category_data);
-			$this->debug("Redirecting to permalink {$category_data['permalink']}: $redirect_link", 5);
 			$this->core->Redirect_local($redirect_link, 301);
 		}
 
@@ -674,12 +584,6 @@ class PC_controller_pc_shop extends PC_controller {
 		
 		$this->type = 'category';
 		
-		$this->debug("Rendering category", 3);
-		$this->debug("Debug from this->shop->categories", 5);
-		$debug_from_categories_inside_action = $this->shop->categories->get_debug_string();
-		
-		
-		$this->debug($category_data, 4);
 		$this->currentCategory = $category_data;
 		$this->site->Register_data('currentCategory', $this->currentCategory);
 		$this->currentCategoryLink = $this->currentCategory['full_link'] = $this->shop->categories->Get_link_from_data($category_data, $this->site->loaded_page['route']);
@@ -689,15 +593,7 @@ class PC_controller_pc_shop extends PC_controller {
 			'Get_link_by_id', 
 			array($this->currentCategory['id'])
 		);
-		$this->shop->categories->set_new_debug(true);
 		$this->Render('category');
-		
-		$debug_from_categories_inside_template = $this->shop->categories->get_debug_string();
-		$this->debug('debug_from_categories_inside_action:', 6);
-		$this->debug($debug_from_categories_inside_action, 6);
-		$this->debug('debug_from_categories_inside_template:', 6);
-		$this->debug($debug_from_categories_inside_template, 6);
-		$this->debug($this->shop->categories->get_exec_times_summary(), 7);
 	}
 	
 	protected function _set_seo_for_category() {
@@ -771,28 +667,9 @@ class PC_controller_pc_shop extends PC_controller {
 			array($this->currentProduct['id'])
 		);
 		$this->Render('product');
-		$this->debug('Rendered product');
-		
 	}
 	
 	protected function _before_action_finish() {
-		$this->click('Action is finished');
-		$this->debug('shop->categories debug:');
-		$this->debug($this->shop->categories->get_debug_string(), 2);
-		$this->debug($this->shop->categories->get_exec_times_summary(), 2);
-		$this->debug('shop->products debug:');
-		$this->debug($this->shop->products->get_debug_string(), 2);
-		$this->debug($this->shop->products->get_exec_times_summary(), 2);
-		
-		$this->debug('shop->attributes debug:');
-		$this->debug($this->shop->attributes->get_debug_string(), 2);
-		
-		$this->debug('shop->orders debug:');
-		$this->debug($this->shop->orders->get_debug_string(), 2);
-		
-		$this->debug($this->logger->get_exec_times_summary(), 1);
-		$this->debug($this->get_exec_times_summary());
-		$this->file_put_debug($this->cfg['path']['logs'] . 'pc_shop_controller_log.html');
 	}
 	
 	public function Set_current_path($path) {

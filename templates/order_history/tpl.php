@@ -1,5 +1,11 @@
 <?php
-
+/**
+ * @var PC_plugin_pc_shop_order_history_widget $this
+ * @var string $tpl_group
+ * @var PC_params $params
+ * @var array[] $orders
+ * @var array $cart_data
+ */
 global $site_users;
 if ($site_users and $site_users->Is_logged_in()) {
 	//$user_id = $site_users->GetID();

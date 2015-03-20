@@ -1,4 +1,12 @@
-
+<?php
+/**
+ * @var PC_plugin_pc_shop_checkout_user_widget $this
+ * @var string $tpl_group
+ * @var string $cart_url
+ * @var bool $highlight_cart
+ * @var array $cart_data
+ */
+?>
 <!-- CART -->
 <div id="mini_cart" class="panel panel-default side_block <?php echo $highlight_cart?'highlight_cart':''; ?>">
 	<div class="panel-heading"><?php echo $this->core->Get_plugin_variable('cart', $this->plugin_name) ?> <span class="badge pull-right"><?php echo $cart_data["totalQuantity"] ?></span></div>

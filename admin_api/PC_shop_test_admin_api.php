@@ -4,7 +4,6 @@ class PC_shop_test_admin_api extends PC_shop_admin_api {
 	
 	public function all_page_categories_children() {
 		$page_model = new PC_page_model();
-		$page_model->absorb_debug_settings($this);
 		$page_data = $page_model->get_all(array(
 			'content' => true,
 			'ln' => 'lt',
@@ -16,7 +15,6 @@ class PC_shop_test_admin_api extends PC_shop_admin_api {
 		));
 		$page_data['link'] = $this->page->Get_page_link_from_data($page_data);
 		$shop = $this->core->Get_object('PC_shop_site');
-		$shop->categories->absorb_debug_settings($this);
 		$page_id = $this->page->Get_page_id_by_reference('automobiliai');
 		$params = array(
 			'all_children' => array(
@@ -29,14 +27,12 @@ class PC_shop_test_admin_api extends PC_shop_admin_api {
 	
 	public function search() {
 		$shop = $this->core->Get_object('PC_shop_site');
-		$shop->products->absorb_debug_settings($this);
-		
+
 		$attr_id_for_country = $shop->attributes->get_id_from_ref('keliones_salis');
 		//$countries = $shop->attributes->Get_values($attr_id_for_country);
 		
 		$attr_value_model = new PC_shop_attribute_value_model();
-		$attr_value_model->absorb_debug_settings($this);
-		
+
 		$countries = $attr_value_model->get_all(array(
 			'content' => array(
 				'select' => 'ct.value'

@@ -34,11 +34,6 @@ class PC_shop_ln_currencies_admin_api extends PC_shop_admin_api {
 	}
 	
 	protected function _after_insert() {
-		$this->debug('After insert');
-		$this->debug($this->_out, 2);
-		if ($this->_out['success']) {
-			
-		}
 	}
 	
 	public function test() {

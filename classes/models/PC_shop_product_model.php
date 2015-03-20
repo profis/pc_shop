@@ -26,8 +26,7 @@ class PC_shop_product_model extends PC_model {
 	protected function _adjust_page_scope(&$params, $page_id) {
 		
 		$category_model = $this->core->Get_object('PC_shop_category_model');
-		$category_model->absorb_debug_settings($this);
-		
+
 		$page_categories_params = array(
 					'select' => 't.id, t.lft, t.rgt',
 					'where' => array(),
@@ -227,8 +226,6 @@ class PC_shop_product_model extends PC_model {
 			WHERE $where_s 
 			";
 			
-		$this->debug_query($query, $query_params, 1);
-		
 		$r = $this->prepare($query);
 		$s = $r->execute($query_params);
 		

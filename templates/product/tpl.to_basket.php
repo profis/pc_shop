@@ -1,6 +1,15 @@
-
-<?php 
-
+<?php
+/**
+ * @var PC_plugin_pc_shop_product_widget $this
+ * @var string $tpl_group
+ * @var string $gallery_url
+ * @var array $product_variants
+ * @var array $product_variant
+ * @var array $item
+ * @var string $price
+ * @var string $discount
+ * @var string $percentage_discount
+ */
 
 if ($item['quantity'] > 0){  ?>
 	<form method="POST" action="">

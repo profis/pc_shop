@@ -1,3 +1,8 @@
+<?php
+/**
+ * @var PC_controller_pc_shop $this
+ */
+?>
 <script type="text/javascript">
 	$(function(){
 		$('[name="_registerType"]').change(function(val){

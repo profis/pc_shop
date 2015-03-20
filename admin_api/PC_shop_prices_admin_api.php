@@ -54,7 +54,6 @@ class PC_shop_prices_admin_api extends PC_shop_admin_api {
 	}
 	
 	protected function _after_get() {
-		$this->debug('_after_get()');
 		$product_price_in_base_currency = 0;
 		
 		$currency_ids_with_custom_prices = array();
@@ -64,8 +63,6 @@ class PC_shop_prices_admin_api extends PC_shop_admin_api {
 				$product_price_in_base_currency = $value['price'];
 			}
 		}
-		$this->debug('$currency_ids_with_custom_prices', 2);
-		$this->debug($currency_ids_with_custom_prices, 3);
 		if (!v($this->selected_currencies)) {
 			$ln_currency_model = new PC_shop_ln_currency_model();
 			$this->selected_currencies = $ln_currency_model->get_all(array(

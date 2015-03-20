@@ -1,14 +1,6 @@
 <?php
 
 class PC_shop_attributes_admin_api extends PC_shop_admin_api {
-
-	/**
-	 *
-	 * @var PC_shop_manager 
-	 */
-	protected $shop;
-
-	
 	protected function _get_model() {
 		return $this->core->Get_object('PC_shop_attribute_model');
 	}
@@ -45,7 +37,6 @@ class PC_shop_attributes_admin_api extends PC_shop_admin_api {
 
 	public function getWithValues() {
 		$params = array('includeValues' => true);
-		$this->shop->attributes->absorb_debug_settings($this);
 		$this->_out = $this->shop->attributes->Get(null, $params);
 	}
 
@@ -64,26 +55,19 @@ class PC_shop_attributes_admin_api extends PC_shop_admin_api {
 			return;
 		}
 		$params = array();
-		$this->shop->attributes->debug = $this->debug;
 		$this->_out = $this->shop->attributes->Get_for_item($itemId, $type, $params);
-		$this->debug('Debug from shop->attributes:');
-		$this->debug($this->shop->attributes->get_debug_string(), 1);
 	}
 
 	public function delete() {
-		$this->debug('delete');
-		$this->debug($_POST);
 		if (!isset($_POST['id'])) {
 			$this->_out['error'] = 'Invalid ID specified';
 			return;
 		}
 		$params = array();
-		$this->shop->attributes->debug = true;
 		$this->_out['success'] = $this->shop->attributes->Delete($_POST['id'], $params);
 		if (!$this->_out['success']) {
 			$this->_out['error'] = $params->errors->Get();
 		}
-		$this->debug($this->shop->attributes->get_debug_string());
 	}
 
 	public function create() {
@@ -108,14 +92,12 @@ class PC_shop_attributes_admin_api extends PC_shop_admin_api {
 			'ref' => v($_POST['ref']),
 			'category_id' => v($_POST['category_id'])
 		);
-		$this->shop->attributes->absorb_debug_settings($this);
 		$this->_out['success'] = $this->shop->attributes->Edit($id, $data, $params);
 		if (!$this->_out['success'])
 			$this->_out['error'] = $params->errors->Get();
 	}
 
 	public function getSuggestions() {
-		$this->shop->attributes->absorb_debug_settings($this);
 		$this->_out = $this->shop->attributes->Get_suggestions(v($_POST['attributeId']), 20);
 	}
 

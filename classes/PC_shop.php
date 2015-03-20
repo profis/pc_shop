@@ -241,7 +241,6 @@ class PC_shop_categories extends PC_shop_category_model {
 	 * otherwise array categories ids will be returned
 	 */
 	public function Get_id_by_content($name, $value, &$ln = null, $limit = 1) {
-		$this->debug("Get_id_by_content(name: $name, value: $value, ln: $ln");
 		$queryParams = array();
 		$queryParams[] = $value;
 		
@@ -267,17 +266,12 @@ class PC_shop_categories extends PC_shop_category_model {
 		 $join_c 
 		 WHERE $name = ? $where_ln" . $flag_s . $limit_s;
 		$r_category = $this->prepare($query);
-		$this->debug_query($query, $queryParams, 1);
-		
-		
-		
+
 		$s = $r_category->execute($queryParams);
 		if (!$s) return false;
 
 		if ($limit == 1) {
 			if ($d = $r_category->fetch()) {
-				$this->debug('Data fetched:', 2);
-				$this->debug($d, 2);
 				$ln = $d['ln'];
 				return $d['category_id'];
 			}
@@ -371,8 +365,6 @@ class PC_shop_categories extends PC_shop_category_model {
 			WHERE $where_s";
 		$r_categories = $this->prepare($query);
 
-		$this->debug_query($query, $query_params, 1);
-		
 		$s = $r_categories->execute($query_params);
 		if (!$s) return false;
 
@@ -384,17 +376,11 @@ class PC_shop_categories extends PC_shop_category_model {
 	}
 	
 	public function Get_dynamic_data($category_id, &$dynamic_attribute_data) {
-		$this->debug("Get_dynamic_data(for category $category_id)");
-		$this->debug($dynamic_attribute_data);
-		
-			$sub_item_attribute_id = $this->shop->attributes->get_id_from_ref($dynamic_attribute_data['sub_item_attribute_ref']);
+		$sub_item_attribute_id = $this->shop->attributes->get_id_from_ref($dynamic_attribute_data['sub_item_attribute_ref']);
 		if (!$sub_item_attribute_id) {
-			$this->debug(' :( Could not find sub item attribute for ' . $dynamic_attribute_data['sub_item_attribute_ref']);
 			return false;
 		}
-		
-		$this->debug("Sub item attribute id: $sub_item_attribute_id", 1);
-		
+
 		$select = '';
 		$fetch_all = false;
 		$where_s = v($dynamic_attribute_data['where'], '');
@@ -425,8 +411,6 @@ class PC_shop_categories extends PC_shop_category_model {
 		}
 		
 		
-		$this->shop->attributes->absorb_debug_settings($this, 2);
-		
 		$dynamic_data = false;
 
 		switch ($dynamic_attribute_data['sub_item_type']) {
@@ -443,13 +427,9 @@ class PC_shop_categories extends PC_shop_category_model {
 		}
 
 		if ($dynamic_data === false) {
-			$this->debug(':( dynamic_data is false:', 1);
 			return false;
 		}
-                
-		$this->debug('$dynamic_data:', 1);
-		$this->debug($dynamic_data, 2);
-		
+
 		if (is_array($dynamic_data) and $dynamic_attribute_data['type'] == 'set_union') {
 			$union = array();
 			foreach ($dynamic_data as $key => $value) {
@@ -458,14 +438,9 @@ class PC_shop_categories extends PC_shop_category_model {
 			}
 			sort($union);
 			$dynamic_data = implode(',', $union);
-			
-			$this->debug('$dynamic_data imploded:', 1);
-			$this->debug($dynamic_data, 2);
-			
 		}
 		
 		if (is_array($dynamic_data)) {
-			$this->debug(':( dynamic_data is an array:', 1);
 			return false;
 		}
 		return $dynamic_data;
@@ -515,7 +490,6 @@ class PC_shop_products extends PC_shop_product_model {
 	}
 	
 	public function Exists_in_content($col, $value, $lang, $category_id = '') {
-		$this->debug("Exists_in_content($col, $value, $lang, category: $category_id)");
 		$where = '';
 		$params = array();
 		$params[] = $value; 
@@ -528,23 +502,18 @@ class PC_shop_products extends PC_shop_product_model {
 			JOIN {$this->db_prefix}shop_product_contents c ON c.product_id=p.id AND c.ln = '$lang' 
 			WHERE " . $col . " = ? " . $where . "
 			LIMIT 1";
-		$this->debug_query($query, $params, 1);
 		$r = $this->prepare($query);
 		$s = $r->execute($params);
 		if (!$s) {
-			$this->debug('  unsuccessful query');
 			return false;
 		}
 		
 		if ($product_id = $r->fetchColumn()) {
-			$this->debug(':) exists: ' . $product_id, 2);
 			return $product_id;
 		}
-		$this->debug(':( does not exist', 2);
 		return false;
 		/*
 		$row_count = $r->rowCount();
-		$this->debug('  row_count: ' . $row_count);
 		return (bool)$row_count;
 		*/
 	}
@@ -565,24 +534,17 @@ class PC_shop_products extends PC_shop_product_model {
 		return (int)$r->fetchColumn();
 	}
 	public function Encode_flags(&$data, $createMode=true) {
-		$this->debug('Encode_flags');
 		if (!isset($data['flags'])) {
 			if ($createMode) $data['flags'] = self::PF_DEFAULT;
 			//else $data['flags'] = self::PF_UPDATE;
 		}
 		foreach ($this->flagsMap as $field=>$flag) {
-			$this->debug("checking flag $field", 1);
 			if (isset($data[$field])) {
 				if ((bool)$data[$field]) $data['flags'] |= $flag; //activate
 				else $data['flags'] &= ~$flag;
 				unset($data[$field]);
 			}
-			else {
-				$this->debug(":) data[$field] is not set", 2);
-			}
 		}
-		$this->debug('data after Encode_flags:', 3);
-		$this->debug($data, 4);
 		return true;
 	}
 	public function Decode_flags(&$data) {
@@ -660,7 +622,6 @@ class PC_shop_resources extends PC_base {
 		$this->shop = $shop;
 	}
 	public function Get($id=null, $itemId=null, $flags=self::RF_AL_PUBLIC) {
-		$this->debug("Get($id, $itemId, $flags");
 		if (!is_array($flags)) {
 			$flags = array($flags);
 		}
@@ -693,8 +654,6 @@ class PC_shop_resources extends PC_base {
 		if (!is_null($id)) $queryParams[] = $id;
 		elseif (!is_null($itemId)) $queryParams[] = $itemId;
 		$queryParams[] = PC_shop_resources::RF_IS_ATTACHMENT;
-		//echo $this->get_debug_query_string($query, $queryParams);
-		$this->debug_query($query, $queryParams, 1);
 		$s = $r->execute($queryParams);
 		if (!$s) return false;
 		
@@ -745,25 +704,14 @@ class PC_shop_item_resources{
 	
 	public static $item_resources = array();
 	public static $item_files = array();
-	
-	/**
-	 *
-	 * @var PC_debug
-	 */
-	//public $logger;
-	public function __construct($itemId, $isCategory=false, $checkIfExists=false, $logger = null) {
-		if (is_null($logger)) {
-			$logger = new PC_debug();
-		}
-		////$this->logger = $logger;
-		////$this->logger->click('start');
+
+	public function __construct($itemId, $isCategory=false, $checkIfExists=false) {
 		if ($checkIfExists) {
 			$r = $this->prepare("SELECT id FROM {$this->db_prefix}shop_".$this->Get_table($isCategory)." WHERE id=?");
 			$s = $r->execute(array($itemId));
 			if (!$s) return false;
 			if (!$r->rowCount()) return false;
 		}
-		//$this->logger->click('select', 'select_for_check_if_exists');
 		$this->itemId = (int)$itemId;
 		$this->isCategory = (bool)$isCategory;
 		$this->Load();
@@ -799,30 +747,19 @@ class PC_shop_item_resources{
 			$query_params = array($this->itemId, $flags, $flags);
 			$s = $r->execute($query_params);
 
-			//$this->logger->debug('Load query returned results: ' . $r->rowCount());
-			//$this->logger->debug_query($query, $query_params);
-
-			//$this->logger->click('load_select', 'load_resources_query');
 			if (!$s) return false;
 			
 			while ($d = $r->fetch()) {
-				//$this->logger->click('fetche_res', 'resource_where_fetched');
 				$item_resources[] = $d;
 			}
 		}
 		
-		
 		$list = array();
 		$ids = array();
-		
-		
-		
-		
-		
+
 		foreach ($item_resources as $d) {
 			$ids[] = $d['file_id'];
 			PC_shop_resources::Decode_flags($d);
-			//$this->logger->click('flag_decode', 'flags were decoded');
 			$list[] = $d;
 		}
 		
@@ -831,15 +768,12 @@ class PC_shop_item_resources{
 			return $this->list;
 		}
 		
-		//$this->logger->debug('ids:');
-		//$this->logger->debug($ids);
 		if (isset(self::$item_files[$this->itemId])) {
 			$files = self::$item_files[$this->itemId];
 		}
 		else {
-			$files = $gallery->Get_file_by_id($ids);//, //$this->logger);
+			$files = $gallery->Get_file_by_id($ids);
 		}
-		//$this->logger->click('Get_file_by_id', 'Get_file_by_id');
 		foreach ($files as $file) {
 			foreach ($list as &$res) {
 				if ($res['file_id'] == $file['id']) {
@@ -913,7 +847,6 @@ class PC_shop_attributes extends PC_shop_attribute_model {
 		return true;
 	}
 	public function ParseSQLResult(&$d) {
-		//$this->debug('ParseSQLResult('.$d.')');
 		$attribs = array();
 		$multiple_attributes = array();
 		if (!empty($d) && $d != '▓') {
@@ -923,14 +856,11 @@ class PC_shop_attributes extends PC_shop_attribute_model {
 				$attrData = array();
 				$attr = explode('░', $attr);
 				//print_pre($attr);
-				//$this->debug($attr);
 				$name = '';
 				foreach ($attr as $k => $v) {
-					//$this->debug($v, 3);
 					$n_array = explode(PC_sql_parser::SP3, $v, 2);
 					if (count($n_array) > 1) {
 						$name = $n_array[0];
-						//$this->debug("name: $name", 4);
 						continue;
 					}
 					if (!empty($name)) {
@@ -949,7 +879,6 @@ class PC_shop_attributes extends PC_shop_attribute_model {
 				}
 				//print_pre($attrData);
 						
-				//$this->debug($attrData, 5);
 				if (!empty($key)) {
 					if (isset($attribs[$key])) {
 						$check_key = $key;
@@ -1045,7 +974,6 @@ class PC_shop_attributes extends PC_shop_attribute_model {
 	 * @return boolean
 	 */
 	public function Get($id=null, &$params=array()) { //main
-		$this->debug("Get($id)");
 		$this->core->Init_params($params);
 		$where = $queryParams = array();
 		$returnOne = false;
@@ -1090,8 +1018,6 @@ class PC_shop_attributes extends PC_shop_attribute_model {
 		.(count($where)?' WHERE '.implode(' and ', $where):''). " GROUP BY a.id" . $order .v($limit ,'');
 		
 			
-		$this->debug_query($query, $queryParams);
-		
 		$r = $this->prepare($query);
 		$s = $r->execute($queryParams);
 		if (!$s) return !$params->errors->Add('database', '');
@@ -1173,7 +1099,6 @@ class PC_shop_attributes extends PC_shop_attribute_model {
 		v($data['names']);
 		if (is_array($data['names'])) if (count($data['names'])) {
 			$attribute_content_model = new PC_shop_attribute_content_model();
-			$attribute_content_model->absorb_debug_settings($this);
 			$query = "UPDATE {$this->db_prefix}shop_attribute_contents SET name=? WHERE attribute_id=? and ln=?";
 			$rContents = $this->prepare($query);
 			foreach ($data['names'] as $ln=>$name) {
@@ -1192,7 +1117,6 @@ class PC_shop_attributes extends PC_shop_attribute_model {
 					$attribute_content_model->insert($update_data, array(), array('ignore' => true));
 				}
 				//$query_params = array($name, $id, $ln);
-				//$this->debug_query($query, $query_params, 2);
 				//$rContents->execute($query_params);
 			}
 		}
@@ -1230,26 +1154,21 @@ class PC_shop_attributes extends PC_shop_attribute_model {
 	 */
 	public function Delete($params = array()) { //manager
 		$id = $params;
-		$this->debug("Delete($id)");
 		$query_delete_attribute = "DELETE FROM {$this->db_prefix}shop_attributes WHERE id=?";
 		$r = $this->prepare($query_delete_attribute);
 		$params_delete_attribute = array($id);
-		$this->debug_query($query_delete_attribute, $params_delete_attribute, 1);
 		$s = $r->execute($params_delete_attribute);
 		if (!$s) return false;
 		
 		$query_delete_attribute_contents = "DELETE FROM {$this->db_prefix}shop_attribute_contents WHERE attribute_id=?";
 		$r = $this->prepare($query_delete_attribute_contents);
 		$params_delete_attribute_contents = array($id);
-		$this->debug_query($query_delete_attribute_contents, $params_delete_attribute_contents, 1);
 		$r->execute($params_delete_attribute_contents);
 		
 		$query_select_values = "SELECT id FROM {$this->db_prefix}shop_attribute_values WHERE attribute_id=?";
 		$params_select_values = array($id);
 		$r = $this->prepare($query_select_values);
-		$this->debug_query($query_select_values, $params_select_values, 1);
 		$s = $r->execute($params_select_values);
-		$this->increase_debug_offset(2);
 		if ($s) {
 			$valueIds = array();
 			while ($d = $r->fetchColumn()) {
@@ -1266,14 +1185,7 @@ class PC_shop_attributes extends PC_shop_attribute_model {
 	 * @return boolean
 	 */
 	public function DeleteValue($id) {
-		$this->set_new_debug(true);
-		$this->set_instant_debug_to_file($this->cfg['path']['logs'] . 'delete_attribute_value.html', true);
-		$this->debug('===== ' . date('Y/m/d - H:ia') . ' ======');
-		$this->debug("DeleteValue");
-		$this->debug($id);
 		if (empty($id)) {
-			$this->debug("Id is empty, returning", 1);
-			$this->restore_debug();
 			return true;
 		}
 		$queryParams = array();
@@ -1282,10 +1194,7 @@ class PC_shop_attributes extends PC_shop_attribute_model {
 		$query = "DELETE FROM {$this->db_prefix}shop_attribute_values WHERE ".(is_array($id)?'id '.$this->sql_parser->in($id):'id=?');
 		$r = $this->prepare($query);
 		$s = $r->execute($queryParams);
-		$this->debug_query($query, $queryParams, 1);
-		
-		$this->debug('Affected rows: ' . $r->rowCount(), 2);
-		
+
 		if (!$s) return false;
 		//delete value contents
 		
@@ -1293,11 +1202,6 @@ class PC_shop_attributes extends PC_shop_attribute_model {
 		." WHERE ".(is_array($id)?'value_id '.$this->sql_parser->in($id):'value_id=?');
 		
 		$this->prepare($query_2)->execute($queryParams);
-		
-		$this->debug_query($query_2, $queryParams, 1);		
-		$this->debug('Affected rows: ' . $r->rowCount(), 2);
-		
-		$this->restore_debug();
 		
 		return true;
 	}
@@ -1456,7 +1360,6 @@ class PC_shop_attributes extends PC_shop_attribute_model {
 		. $join
 		." WHERE a.item_id=? AND a.level=1 AND (a.flags&?)=?" . $order;
 		$r = $this->prepare($query);
-		$this->debug_query($query, $queryParams);
 		$s = $r->execute($queryParams);
 		if (!$s) return false;
 		$list = array();
@@ -1476,8 +1379,6 @@ class PC_shop_attributes extends PC_shop_attribute_model {
 			FROM pc_shop_item_attributes a
 			WHERE item_id = ? AND attribute_id = ? LIMIT 1";
 		
-		$this->debug_query($query, $query_params);
-		
 		$r = $this->prepare($query);
 		$s = $r->execute($query_params);
 		if (!$s) return false;
@@ -1486,7 +1387,6 @@ class PC_shop_attributes extends PC_shop_attribute_model {
 	}
 	
 	public function Get_aggregate_data_for_category_products($id, $category_id = 0, $select = "count(*)", $where_s = '', $group_by = '', $fetch_all = false) {
-		$this->debug("Get_aggregate_data_for_category_products(id:$id, category_id: $category_id, select:$select, where_s:$where_s)");
 		if (empty($select)) {
 			$select = "count(*)";
 		}
@@ -1524,8 +1424,6 @@ class PC_shop_attributes extends PC_shop_attribute_model {
 			$join_s
 			WHERE $published_flag_cond AND $product_flag_conf AND at.id = ?" . $where_s . $group_by_s;
 		
-		$this->debug_query($query, $query_params);
-		
 		$r = $this->prepare($query);
 		$s = $r->execute($query_params);
 		if (!$s) return false;
@@ -1538,7 +1436,6 @@ class PC_shop_attributes extends PC_shop_attribute_model {
 	}
 	
 	public function Get_aggregate_data_for_page_categories($attribute_id, $page_id = 0, $select = "count(*)", $where_s = '', $fetch_all = false) {
-		$this->debug("Get_aggregate_data_for_page_categories(id:$attribute_id, page_id: $page_id, select:$select, where_s:$where_s)");
 		if (empty($select)) {
 			$select = "count(*)";
 		}
@@ -1562,8 +1459,6 @@ class PC_shop_attributes extends PC_shop_attribute_model {
 			$join_s
 			WHERE $published_flag_cond AND $category_attribute_flag_cond AND at.id = ?" . $where_s;
 		
-		$this->debug_query($query, $query_params);
-		
 		$r = $this->prepare($query);
 		$s = $r->execute($query_params);
 		if (!$s) return false;
@@ -1576,7 +1471,6 @@ class PC_shop_attributes extends PC_shop_attribute_model {
 	}
 	
 	public function Get_aggregate_data_for_category_children($attribute_id, $category_id = 0, $select = "count(*)", $where_s = '', $fetch_all = false) {
-		$this->debug("Get_aggregate_data_for_category_children(id:$attribute_id, category_id: $category_id, select:$select, where_s:$where_s)");
 		if (empty($select)) {
 			$select = "count(*)";
 		}
@@ -1600,8 +1494,6 @@ class PC_shop_attributes extends PC_shop_attribute_model {
 			$join_s
 			WHERE $published_flag_cond AND $category_attribute_flag_cond AND at.id = ?" . $where_s;
 		
-		$this->debug_query($query, $query_params);
-		
 		$r = $this->prepare($query);
 		$s = $r->execute($query_params);
 		if (!$s) return false;
@@ -1614,7 +1506,6 @@ class PC_shop_attributes extends PC_shop_attribute_model {
 	}
         
 	public function Assign_or_edit_for_item($itemId, $attributeId, $itemType=self::ITEM_IS_PRODUCT, $valueId=null, $value=null) {
-		$this->debug("Assign_or_edit_for_item(item_id: $itemId, atribute_id: $attributeId, $itemType, value_id: $valueId, value: $value)");
 		$attr_data = $this->Get_single_for_item($itemId, $attributeId);
 		if ($attr_data && v($attr_data['id'])) {
 			$this->Edit_for_item($attr_data['id'], $valueId, $value);
@@ -1629,7 +1520,6 @@ class PC_shop_attributes extends PC_shop_attribute_model {
 		$r = $this->prepare($query);
 		$params = array($itemId, $attributeId ? $attributeId : 0, $itemType, $valueId, $value, $nextAttributeId, $level);
 		$s = $r->execute($params);
-		$this->debug_query($query, $params);
 		if (!$s) return false;
 		return $this->db->lastInsertId($this->sql_parser->Get_sequence('shop_item_attributes'));
 	}
@@ -1638,7 +1528,6 @@ class PC_shop_attributes extends PC_shop_attribute_model {
 		$r = $this->prepare($query);
 		$params = array($valueId, $value, $id);
 		$s = $r->execute($params);
-		$this->debug_query($query, $params);
 		return $s;
 	}
 	
@@ -1653,7 +1542,6 @@ class PC_shop_attributes extends PC_shop_attribute_model {
 		$params = array_values($fields);
 		$params[] = $id;
 		$s = $r->execute($params);
-		$this->debug_query($query, $params);
 		return $s;
 	}
 	
@@ -1725,8 +1613,6 @@ class PC_shop_attributes extends PC_shop_attribute_model {
 		return true;
 	}
 	public function Save_for_item($itemId, $itemType=self::ITEM_IS_PRODUCT, $data, $insert = false) {
-		$this->debug("Save_for_item($itemId, $itemType)");
-		$this->debug($data);
 		if (!is_array($data)) return false;
 		if (count(v($data['save'], array()))) foreach ($data['save'] as $i) {
 
@@ -1744,7 +1630,6 @@ class PC_shop_attributes extends PC_shop_attribute_model {
 
 			if ($itemType == self::ITEM_IS_PRODUCT && (isset($i['price']) || isset($i['price_diff']))) {
 				$product_price_model = $this->core->Get_object('PC_shop_product_price_model');
-				$product_price_model->absorb_debug_settings($this);
 //				if ($i['value_id']) {
                 // Bug. Updates multiple items
 //					$key_fields = array(
@@ -1813,8 +1698,6 @@ class PC_shop_attributes extends PC_shop_attribute_model {
 						);
 					}
 				}
-				$this->debug($product_price_model->get_debug_string());
-				$product_price_model->clear_debug_string();
 			}
 		}
 		if (count(v($data['remove'], array())))
@@ -1829,7 +1712,6 @@ class PC_shop_attributes extends PC_shop_attribute_model {
 		return true;
 	}
 	public function Get_suggestions($id, $limit = 0) {
-		$this->debug("Get_suggestions($id, $limit)", 1);
 		$limit_s = '';
 		if ($limit > 0) {
 			$limit_s = ' LIMIT ' . $limit;
@@ -1837,10 +1719,8 @@ class PC_shop_attributes extends PC_shop_attribute_model {
 		$query = "SELECT value FROM {$this->db_prefix}shop_item_attributes WHERE attribute_id=?" . $limit_s;
 		$r = $this->prepare($query);
 		$query_params = array($id);
-		$this->debug_query($query, $query_params, 2);
 		$s = $r->execute($query_params);
 		if (!$s) {
-			$this->debug(':( could not execute query', 3);
 			return false;
 		}
 		$list = array();
@@ -1850,13 +1730,10 @@ class PC_shop_attributes extends PC_shop_attribute_model {
 			if ($limit > 0 and $limit_left == -1) {
 				break;
 			}
-			$this->debug(' - ', 5);
-			$this->debug($d, 5);
 			if (is_null($d)) continue;
 			if (in_array($d, $list)) continue;
 			$list[] = $d;
 		}
-		$this->debug(' finishing ', 3);
 		return $list;
 	}
 	public function Find($name, $isCategoryAttribute=false) {
@@ -1905,8 +1782,6 @@ class PC_shop_orders extends PC_shop_order_model {
 		}
 	}
 	public function Get($id=null, &$params=array()) {
-		$this->debug('Get()');
-		$this->debug($params);
 		$this->core->Init_params($params);
 		$queryParams = array();
 		$where = array();
@@ -1953,7 +1828,6 @@ class PC_shop_orders extends PC_shop_order_model {
 		.(count($where)?' WHERE '.implode(' and ', $where):''). $order_s . ' ' . $limit;
 		
 		$r = $this->prepare($query);
-		$this->debug_query($query, $queryParams, 3);
 		$s = $r->execute($queryParams);
 		if (!$s) return false;
 		if ($params->Has_paging()) {
@@ -2007,7 +1881,6 @@ class PC_shop_orders extends PC_shop_order_model {
 		else return $list;
 	}
 	public function Get_items($orderId) {
-		$this->debug("Get_items($orderId)");
 		$r = $this->prepare("SELECT oi.*, p.external_id FROM {$this->db_prefix}shop_order_items oi
 			LEFT JOIN {$this->db_prefix}shop_products p ON p.id = oi.product_id
 			WHERE order_id=?");
@@ -2035,7 +1908,6 @@ class PC_shop_orders extends PC_shop_order_model {
 			'id_keys' => true
 		);
 		$shop_site_products = $shop_site->products->Get($product_ids, null, $shop_products_params);
-		$this->debug($shop_site_products, 1);
 		//print_pre($products);
 		//print_pre($shop_site_products);
 		foreach ($list as $key => &$list_item) {
@@ -2170,7 +2042,6 @@ class PC_shop_orders extends PC_shop_order_model {
 	}
 	
 	public function Create($userId=null, $recipient, $address, $phone, $email, $comment=null, &$params=array(), $clearCart=true, $payment_option = 0, $delivery_option = 0, $is_paid = 0, $data = array()) {
-		$this->debug('Create()');
 		$this->last_order_id = 0;
 		$this->core->Init_params($params);
 		if (!isset($_SESSION['pc_shop']['cart'])) {
@@ -2190,7 +2061,6 @@ class PC_shop_orders extends PC_shop_order_model {
 		$insert_params = array(time(), $userId, $recipient, $email, $address, $phone, $comment, $payment_option, $delivery_option, $this->shop->price->get_user_currency(), $is_paid);
 		$insert_params = pc_sanitize_value($insert_params, 'strip_tags');
 		$insert_params[] = $data;
-		$this->debug_query($insert_query, $insert_params, 1);
 		$s = $r->execute($insert_params);
 		if (!$s) {
 			$params->errors->Add('insert_into_database', 'Error while trying to insert record into the database');
@@ -2202,17 +2072,13 @@ class PC_shop_orders extends PC_shop_order_model {
 		
 		$totalPrice = 0;
 		$eligible_discount = 0;
-		$this->debug('Cart data:', 3);
-		$this->debug($_SESSION['pc_shop'], 3);
 		$order_items_model = $this->core->Get_object('PC_shop_order_item_model');
-		$order_items_model->absorb_debug_settings($this);
 		$order_items_model->delete(array(
 			'where' => array(
 				'order_id' => $orderId
 			)
 		));
-		$this->debug($order_items_model->get_debug_string(), 6);
-		
+
 		$preserved_coupon_data = $this->shop->cart->get_preserved_coupon_data(true);
 		
 		$shop_cart_data = $this->shop->cart->Get();
@@ -2233,7 +2099,6 @@ class PC_shop_orders extends PC_shop_order_model {
 			else {
 				$price = $this->shop->products->get_price($product, $discount, $discount_percentage, $product_basket_data['attributes']);
 				$insert_item_query_params = array($orderId, $productId, $quantity, PC_utils::array_to_string($product_basket_data['attributes']), $price);
-				$this->debug_query($insert_item_query, $insert_item_query_params);
 				$s = $rInsertItem->execute($insert_item_query_params);
 				if ($s) {
 					$total_item_price = $price * $quantity;
@@ -2261,8 +2126,6 @@ class PC_shop_orders extends PC_shop_order_model {
 		
 		$this->shop->cart->Calculate_prices($cart_data, array(), $preserved_coupon_data);
 		//set total price
-		$this->debug("Prices were calculated:, ", 3);
-		$this->debug($cart_data, 4);
 		$rPrice = $this->prepare("UPDATE {$this->db_prefix}shop_orders SET delivery_price = ?, cod_price = ? , total_price = ?, coupon_id = ?, discount = ? WHERE id=?");
 		$s = $rPrice->execute(array(v($cart_data['order_delivery_price'], 0), v($cart_data['order_cod_price'], 0), v($cart_data['order_full_price'], $totalPrice), $coupon_id, v($cart_data['total_discount'], 0), $orderId));
 		if ($clearCart) {
@@ -2346,7 +2209,6 @@ class PC_shop_cart extends PC_base {
 		$data['errors'] = array();
 		$data['delivery_info'] = array();
 
-		$this->debug('Calculate_prices()');
 		$order_data = $this->shop->orders->Get_preserved_order_data();
 		
 		if (!$order_data)
@@ -2415,7 +2277,6 @@ class PC_shop_cart extends PC_base {
 			'coupon_data' => $coupon_data,
 			'delivery_option_data' => $delivery_option_data,
 			'delivery_form_data' => $form_data,
-			'logger' => $this,
 		);
 
 		if( $delivery_option_data ) {
@@ -2493,7 +2354,6 @@ class PC_shop_cart extends PC_base {
 	 * @return array
 	 */
 	public function Get($raw=false, &$params = array()) {
-		$this->click('Get()');
 		$my_params = $params;
 		if (!is_array($raw) and $raw) {
 			return $_SESSION['pc_shop']['cart'];
@@ -2511,14 +2371,9 @@ class PC_shop_cart extends PC_base {
 			unset($my_params['paging']);
 		}
 		$my_params['full_links'] = true;
-		$this->shop->products->absorb_debug_settings($this);
-		$this->shop->products->clear_debug_string();
-		$this->debug(v($_SESSION['pc_shop']));
 		$product_ids = array_keys($_SESSION['pc_shop']['cart']["productIndex"]);
 		$product_ids = array_unique($product_ids);
 		$productList = $this->shop->products->Get($product_ids, null, $my_params);
-		$this->debug($this->shop->products->get_debug_string());
-		$this->click('after products->Get');
 		$params = $my_params;
 		$products = Array();
 		foreach( $productList as &$p )
@@ -2567,9 +2422,7 @@ class PC_shop_cart extends PC_base {
 		if (is_array($raw)) {
 			$default_order_data = $raw;
 		}
-		$this->click('before calculate prices');
 		$this->Calculate_prices($d, $default_order_data, $preserved_coupon_data);
-		$this->click('Get finished()');
 		return $d;
 	}
 	/** Finds a product entry CIID by productId and attributes */
@@ -2595,7 +2448,6 @@ class PC_shop_cart extends PC_base {
 	 */
 	public function Add($productId, $quantity=1, $attributes=null, $do_not_increment = false) {
 		$this->product_was_added = false;
-		$this->debug("Add($productId, $quantity, , $do_not_increment)");
 		if (!$this->shop->products->Exists($productId)) return false;
 		if (!isset($_SESSION['pc_shop']['cart']['productIndex'][$productId]))
 			$_SESSION['pc_shop']['cart']['productIndex'][$productId] = Array();
@@ -2603,13 +2455,11 @@ class PC_shop_cart extends PC_base {
 		if( !is_array($attributes) )
 			$attributes = array();
 		$ciid = $this->Find($productId, $attributes);
-		$this->debug("ciid: $ciid", 1);
 		if( is_null($ciid) ) {
 			// Product is not in the cart yet so add it as a new item
 
 			// TODO: add "infinite" available quantity
 			$available_quantity = $this->shop->products->Get_product_quantity($productId, $attributes);
-			$this->debug("available_quantity: $available_quantity", 3);
 			if ($available_quantity !== null && !$available_quantity)
 				return 0;
 			if( $quantity < 1 )
@@ -2633,7 +2483,6 @@ class PC_shop_cart extends PC_base {
 			$this->product_was_added = true;
 		}
 		elseif (!$do_not_increment) {
-			$this->debug("Incrementing", 2);
 			$old_qty = $_SESSION['pc_shop']['cart']['totalQuantity'];
 			$qty = $this->AddAt($ciid, $quantity);
 			$new_qty = $_SESSION['pc_shop']['cart']['totalQuantity'];
@@ -2642,7 +2491,6 @@ class PC_shop_cart extends PC_base {
 			}
 		}
 		else {
-			$this->debug("nothing to do", 2);
 			return false;
 		}
 					
@@ -2660,7 +2508,6 @@ class PC_shop_cart extends PC_base {
 	*/
 	public function AddAt($ciid, $quantity=1) {
 		$this->product_was_added = false;
-		$this->debug("AddAt($ciid, $quantity)");
 		if (!isset($_SESSION['pc_shop']['cart']['items'][$ciid]))
 			return 0;
 		return $this->_SetQuantity($ciid, $_SESSION['pc_shop']['cart']['items'][$ciid][1] + intval($quantity));
@@ -2686,10 +2533,7 @@ class PC_shop_cart extends PC_base {
 	* removed from the cart.
 	*/
 	protected function _SetQuantity($ciid, $quantity) {
-		$this->debug("_SetQuantity($ciid, $quantity)");
-		$this->debug($_SESSION['pc_shop'], 4);
 		$old_qty = $_SESSION['pc_shop']['cart']['items'][$ciid][1];
-		// TODO: add "infinite" available quantity
 		$available_quantity = $_SESSION['pc_shop']['cart']['items'][$ciid][2];
 		$quantity = max($quantity, 0);
 		$quantity = ($available_quantity === null) ? $quantity : min($_SESSION['pc_shop']['cart']['items'][$ciid][2], $quantity);
@@ -2714,7 +2558,6 @@ class PC_shop_cart extends PC_base {
 	 * @return int
 	 */
 	public function Remove($ciid, $quantity=0) {
-		$this->debug("Remove($ciid, $quantity)");
 		if (!isset($_SESSION['pc_shop']['cart']['items'][$ciid]))
 			return 0;
 		if ($quantity != 0) {

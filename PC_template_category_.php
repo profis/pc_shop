@@ -1,3 +1,8 @@
+<?php
+/**
+ * @var PC_controller_pc_shop $this
+ */
+?>
 Category template
 <?php
 //$shop = $this->core->Get_object('PC_shop_site');
@@ -43,7 +48,6 @@ echo 'testing';
 $shop_categories_site = $this->core->Get_object('PC_shop_categories_site');
 
 ///*
-$shop_categories_site->debug = true;
 $params = array(
 	'all_children' => array(
 		'category_data' => $this->currentCategory,
@@ -57,10 +61,6 @@ $params = array(
 );
 $category_children = $shop_categories_site->Get(null, null, null, $params);
 //$category_children = $shop_categories_site->Get(null, $this->currentCategory['id'], null, $params);
-$shop_categories_site->debug($shop_categories_site->get_exec_times_summary());
-if ($shop_categories_site->debug) {
-	file_put_contents('logs/pc_shop_all_children.html', $shop_categories_site->get_debug_string());
-}
 
 require_once CMS_ROOT . 'libs/explore/explore.php';
 echo PC_explore::get_styles();
@@ -71,16 +71,9 @@ echo explore($category_children);
 
 
 $shop_products_site = $this->core->Get_object('PC_shop_products_site');
-$shop_products_site->debug = true;
 
 $flats = $shop_products_site->Get(null, $this->currentCategory["id"]);
 $flat =  $shop_products_site->Get(2177);
-
-$shop_products_site->debug($shop_products_site->get_exec_times_summary());
-
-if ($shop_products_site->debug) {
-	file_put_contents('logs/pc_shop_get_products.html', $shop_products_site->get_debug_string());
-}
 
 echo 'all flats';
 echo explore($flats);

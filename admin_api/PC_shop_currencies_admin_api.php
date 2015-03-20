@@ -56,8 +56,7 @@ class PC_shop_currencies_admin_api extends PC_shop_admin_api {
 	
 	public function get_for_combo() {
 		$this->_model = $this->_get_model();
-		$this->_model->absorb_debug_settings($this);
-		
+
 		$params = array(
 			'select' => 't.id, t.code, t.name, t.country_name',
 			'ln' => false,
