@@ -6,7 +6,70 @@ class PC_shop_import_products_admin_api extends PC_shop_admin_api {
 	
 	const MISSING_PRODUCTS_STRATEGY_DELETE = 'delete';
 	const MISSING_PRODUCTS_STRATEGY_HIDE = 'hide';
-	
+
+	/** @var string */
+	public $product_import_method = null;
+
+	/** @var string */
+	public $_file = null;
+
+	/** @var string */
+	public $_file_name = null;
+
+	/** @var array[] */
+	public $_field_names = array();
+
+	/** @var array[] */
+	public $_associations = array();
+
+	/** @var string[] */
+	public $_id_fields = array();
+
+	/** @var int[] */
+	public $_id_fields_flipped = array();
+
+	/** @var string*/
+	public $missing_products_strategy = self::MISSING_PRODUCTS_STRATEGY_DELETE;
+
+	/** @var string */
+	public $_missing_products_scope = '';
+
+	/** @var array */
+	public $_additional_product_data = array();
+
+	/** @var array[] */
+	public $_import_only_on = array();
+
+	/** @var string */
+	public $_product_scope = '';
+
+	/** @var string */
+	public $_hook_row = null;
+
+	/** @var array[] */
+	public $products = array();
+
+	/** @var int */
+	public $category_id = null;
+
+	/** @var string */
+	public $_import_products_scope_cond = '';
+
+	/** @var array */
+	public $_import_products_scope_params = array();
+
+	/** @var PC_shop_manufacturer_model */
+	public $_manufacturer_model = null;
+
+	/** @var PC_shop_attribute_model */
+	public $_attr_model = null;
+
+	/** @var PC_shop_attribute_item_model */
+	public $_attr_category_item_model = null;
+
+	/** @var PC_shop_attribute_value_model */
+	public $_attr_value_model = null;
+
 	protected function _import_set_arguments() {
 		//$this->categoryId = v($_POST['categoryId']);
 		//$this->ln = v($_POST['ln']);
@@ -28,9 +91,6 @@ class PC_shop_import_products_admin_api extends PC_shop_admin_api {
 	}
 	
 	protected function _get_products() {
-		
-		$this->product_import_method;
-		
 		$products = array();
 		
 		$this->core->Init_hooks('plugin/pc_shop/import-products/get_products/' . $this->product_import_method, array(
@@ -45,18 +105,14 @@ class PC_shop_import_products_admin_api extends PC_shop_admin_api {
 		switch ($ext) {
 			case 'xml':
 				return $this->_read_products_from_xml_file();
-				break;
 
 			case 'xls':
 			case 'xlsx':	
 				return $this->_read_products_from_excel_file();
-				break;
-			
+
 			default:
 				$items = $this->_get_products();
 				return $this->_read_products_from_array($items);
-				return array();
-				break;
 		}
 	}
 	
@@ -192,7 +248,7 @@ class PC_shop_import_products_admin_api extends PC_shop_admin_api {
 	
 	/**
 	 * Method populates $this->_associations and $this->missing_products_strategy
-	 * @param type $product_import_method
+	 * @param string $product_import_method
 	 */
 	protected function _load_fields_associations($product_import_method) {
 		$this->_id_fields = array();
@@ -212,7 +268,8 @@ class PC_shop_import_products_admin_api extends PC_shop_admin_api {
 			'additional_product_data' => &$this->_additional_product_data,
 			'import_only_on' => &$this->_import_only_on,
 			'product_scope' => &$this->_product_scope,
-			'hook_row' => &$this->_hook_row
+			'hook_row' => &$this->_hook_row,
+			'category_id' => $this->category_id,
 		));
 		foreach ($this->_associations as $key => $assoc) {
 			if (!isset($assoc['title'])) {
@@ -269,7 +326,6 @@ class PC_shop_import_products_admin_api extends PC_shop_admin_api {
 	 * Action for generating products from file.
 	 * This method expects uploaded file.
 	 * Action generates $this->_out['columns'] and $this->_out['data'] to display products to be imported.
-	 * @return type
 	 */
 	public function default_action() {
 		@ini_set('max_execution_time', 300);
@@ -498,7 +554,7 @@ class PC_shop_import_products_admin_api extends PC_shop_admin_api {
 				$items_skipped++;
 			}
 			if ($product_id) {
-				$this->shop->attributes->Remove_from_item(null, $product_id);
+				// $this->shop->attributes->Remove_from_item(null, $product_id);
 				foreach ($attributes as $ln => $attributes_for_language) {
 					foreach ($attributes_for_language as $attribute_key => $attribute_value) {
 						$attribute_id = $this->_attr_model->get_one(array(
@@ -598,15 +654,10 @@ class PC_shop_import_products_admin_api extends PC_shop_admin_api {
 	protected function _restore_products_state() {
 		$query = "UPDATE {$this->db_prefix}shop_products SET state = " . PC_shop_product_model::STATE_DEFAULT . " WHERE 1 = 1" . $this->_import_products_scope_cond;
 		$r = $this->prepare($query);
-		$s = $r->execute($this->_import_products_scope_params);
-		
-		if ($s) {
-			$affected = $r->rowCount();
-		}
+		$r->execute($this->_import_products_scope_params);
 	}
 	
 	/**
-	 * 
 	 * @return string
 	 */
 	protected function _get_product_id_key() {
@@ -744,13 +795,12 @@ class PC_shop_import_products_admin_api extends PC_shop_admin_api {
 	
 	/**
 	 * Method deletes all products (and all its attributes) of the category.
+	 * @param string $product_import_method
 	 * @param int $category_id
 	 */
 	protected function _delete_products($product_import_method = null, $category_id = null) {
 		$query_params = array();
 		
-
-		$shop = $this->core->Get_object('PC_shop_manager');
 		$flags_cond = $this->db->get_flag_query_condition(PC_shop_attributes::ITEM_IS_PRODUCT, $query_params);
 
 		$import_method_cond = '';
@@ -790,5 +840,3 @@ class PC_shop_import_products_admin_api extends PC_shop_admin_api {
 	}
 	
 }
-
-?>

@@ -1376,7 +1376,7 @@ class PC_shop_attributes extends PC_shop_attribute_model {
 		$query_params[] = $item_id;
 		$query_params[] = $attr_id;
 		$query = "SELECT *
-			FROM pc_shop_item_attributes a
+			FROM {$this->db_prefix}shop_item_attributes a
 			WHERE item_id = ? AND attribute_id = ? LIMIT 1";
 		
 		$r = $this->prepare($query);
@@ -1419,8 +1419,8 @@ class PC_shop_attributes extends PC_shop_attribute_model {
 		}
 		
 		$query = "SELECT $select
-			FROM pc_shop_item_attributes a
-			LEFT JOIN pc_shop_attributes at ON at.id=a.attribute_id
+			FROM {$this->db_prefix}shop_item_attributes a
+			LEFT JOIN {$this->db_prefix}shop_attributes at ON at.id=a.attribute_id
 			$join_s
 			WHERE $published_flag_cond AND $product_flag_conf AND at.id = ?" . $where_s . $group_by_s;
 		
@@ -1454,8 +1454,8 @@ class PC_shop_attributes extends PC_shop_attribute_model {
 		}
 		
 		$query = "SELECT $select
-			FROM pc_shop_item_attributes a
-			LEFT JOIN pc_shop_attributes at ON at.id=a.attribute_id
+			FROM {$this->db_prefix}shop_item_attributes a
+			LEFT JOIN {$this->db_prefix}shop_attributes at ON at.id=a.attribute_id
 			$join_s
 			WHERE $published_flag_cond AND $category_attribute_flag_cond AND at.id = ?" . $where_s;
 		
@@ -1489,8 +1489,8 @@ class PC_shop_attributes extends PC_shop_attribute_model {
 		}
 		
 		$query = "SELECT $select
-			FROM pc_shop_item_attributes a
-			LEFT JOIN pc_shop_attributes at ON at.id=a.attribute_id
+			FROM {$this->db_prefix}shop_item_attributes a
+			LEFT JOIN {$this->db_prefix}shop_attributes at ON at.id=a.attribute_id
 			$join_s
 			WHERE $published_flag_cond AND $category_attribute_flag_cond AND at.id = ?" . $where_s;
 		
