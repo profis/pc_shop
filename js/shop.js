@@ -90,7 +90,10 @@ var PC_shop_cart = {
 		if ( !data.total ) {
 			$("#product_cart, #cart_prices, table.cart").remove();
 			$(".empty_cart").show();
+			$(".go_to_cart_btn").addClass('disabled');
 		}
+		else
+			$(".go_to_cart_btn").removeClass('disabled');
 
 		if( typeof(data.errors) == "string" ) {
 			var $errorMsg = $("#order_errors");

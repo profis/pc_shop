@@ -610,8 +610,10 @@ class PC_shop_import_products_admin_api extends PC_shop_admin_api {
 		
 		$this->_out['unidentifyable'] = $items_unidentifyable;
 		$this->_out['not_inserted'] = $items_not_inserted;
+
+		$this->cache->flush();
 	}
-		
+
 	public function import($import_method, $category_id, $file, $missing_products_strategy = PC_shop_import_products_admin_api::MISSING_PRODUCTS_STRATEGY_DELETE) {
 		@ini_set('max_execution_time', 300);
 		set_time_limit(300);
