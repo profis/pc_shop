@@ -1,8 +1,10 @@
 <?php
 /**
- * @var PC_plugin_pc_shop_checkout_user_widget $this
+ * @var PC_plugin_pc_shop_category_products_filter_widget $this
  * @var string $tpl_group
  * @var string $base_url
+ * @var array[] $manufacturers
+ * @var float[] $category_products_data
  * @var array[] $filters
  */
 ?>
@@ -10,7 +12,7 @@
 <div id="product_filter">
 <?php 
 //print_pre($manufacturers);
-//print_pre($_GET);
+//print_pre($_REQUEST);
 //print_pre($category_products_data);
 if (!empty($manufacturers)) {
 ?>
@@ -19,12 +21,12 @@ if (!empty($manufacturers)) {
 	foreach ($manufacturers as $key => $manufacturer) {
 		$id = 'manufacturer_' . $manufacturer['id'];
 		$checked = '';
-		if (isset($_GET['manufacturers']) and in_array($manufacturer['id'], $_GET['manufacturers'])) {
+		if (isset($_REQUEST['manufacturers']) and in_array($manufacturer['id'], $_REQUEST['manufacturers'])) {
 			$checked = ' CHECKED ';
 		}
 		?>
 		<label class="checkbox-inline">
-			<input name="manufacturers[]" <?php echo $checked ?> type="checkbox" id="<?php echo $id ?>" value="<?php echo $manufacturer['id'] ?>"> <?php echo $manufacturer['name'] ?>(<?php echo $manufacturer['count'] ?>)
+			<input name="manufacturers[]" <?php echo $checked ?> type="checkbox" id="<?php echo $id ?>" value="<?php echo $manufacturer['id'] ?>"> <?php echo $manufacturer['name'] ?> (<?php echo $manufacturer['count'] ?>)
 		</label>
 		<?php
 	}
@@ -35,8 +37,8 @@ if (!empty($manufacturers)) {
 if (isset($category_products_data) and !empty($category_products_data)) {
 	$price_from = $category_products_data['min_price'];
 	$price_to = $category_products_data['max_price'];
-	$price_from_in_field = v($_GET['price_from'], $price_from);
-	$price_to_in_field = v($_GET['price_to'], $price_to);
+	$price_from_in_field = v($_REQUEST['price_from'], $price_from);
+	$price_to_in_field = v($_REQUEST['price_to'], $price_to);
 	
 ?>
 	<div class="separator"></div>
@@ -55,14 +57,14 @@ foreach ($filters as $filter) {
 	<?php
 	$name = 'attribute_' . $filter['id'];
 	foreach ($filter['filters'] as $filter_value) {
-		$id = 'attribute_'.$filter['id'] . '_' . $filter_value['id'];
+		// $id = 'attribute_'.$filter['id'] . '_' . $filter_value['id'];
 		$checked = '';
-		if (isset($_GET[$name]) and in_array($filter_value['id'], $_GET[$name])) {
+		if (isset($_REQUEST[$name]) and in_array($filter_value['id'], $_REQUEST[$name])) {
 			$checked = ' CHECKED ';
 		}
 		?>
 		<label class="checkbox-inline">
-			<input name="<?php echo $name?>[]" <?php echo $checked ?> type="checkbox" id="<?php echo $id ?>" value="<?php echo $filter_value['id'] ?>"> <?php echo $filter_value['value'] ?>(<?php echo $filter_value['count'] ?>)
+			<input name="<?php echo $name?>[]" <?php echo $checked ?> type="checkbox" value="<?php echo $filter_value['id'] ?>"> <?php echo $filter_value['value']; ?> (<?php echo $filter_value['count'] ?>)
 		</label>
 		
 		<?php

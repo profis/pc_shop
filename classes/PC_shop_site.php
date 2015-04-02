@@ -2008,7 +2008,10 @@ class PC_shop_products_site extends PC_shop_products {
 				if( isset($result['items_left']) )
 					return $result['items_left'];
 		}
-		return $results[0]['quantity'];
+		$qty = $results[0]['quantity'];
+		if ($qty !== null)
+			$qty = intval($qty);
+		return $qty;
 	}
 
 	/**

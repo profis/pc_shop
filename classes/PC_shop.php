@@ -2475,11 +2475,11 @@ class PC_shop_cart extends PC_base {
 			// entries in the cart.
 			$_SESSION['pc_shop']['cart']['items'][$ciid] = Array(
 				$productId,
-				$qty = $quantity,
+				0,
 				$available_quantity,
 				$attributes
 			);
-			$_SESSION['pc_shop']['cart']['totalQuantity'] += $qty;
+			$qty = $this->_SetQuantity($ciid, $quantity);
 			$this->product_was_added = true;
 		}
 		elseif (!$do_not_increment) {

@@ -180,20 +180,19 @@ class PC_controller_pc_shop extends PC_controller {
 	}
 	
 	protected function _validate_fast_order($data) {
-		if (!trim($data['name'])) {
-			return false;
-		}
 		if (!trim($data['email'])) {
 			return false;
 		}
-		if (v($_POST['is_company'])) {
+		if (v($data['is_company'])) {
 			if (!trim(v($data['company_name']))) {
 				return false;
 			}
 			if (!trim(v($data['company_code']))) {
 				return false;
 			}
-			if (!trim(v($data['company_pvm_code']))) {
+		}
+		else {
+			if (!trim($data['name'])) {
 				return false;
 			}
 		}
@@ -343,7 +342,12 @@ class PC_controller_pc_shop extends PC_controller {
 		$delivery_option = v($data['delivery_option']);
 		$params = array();
 
+		// collect old style fields ($_POST['company_name'], ...) for compatibility
 		$data = PC_utils::getRequestData(array('country', 'city', 'region', 'flat', 'post_index', 'is_company', 'company_name', 'company_code', 'company_pvm_code'));
+
+		// merge with current style fields ($_POST['order']['company_name'], ...)
+		$data = array_merge($data, array_intersect_key($_POST['order'], array_flip(array('country', 'city', 'region', 'flat', 'post_index', 'is_company', 'company_name', 'company_code', 'company_pvm_code'))));
+
 		if (isset($_POST['order_data']) and is_array($_POST['order_data'])) {
 			$data = array_merge($data, $_POST['order_data']);
 		}

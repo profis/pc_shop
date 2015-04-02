@@ -403,7 +403,7 @@ class PC_shop_import_products_admin_api extends PC_shop_admin_api {
 		}
 		
 		$this->_load_fields_associations($this->product_import_method);
-		
+
 		if (!is_array($this->products )) {
 			$this->products = json_decode($this->products, true);
 		}

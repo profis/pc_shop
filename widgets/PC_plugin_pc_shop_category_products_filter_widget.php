@@ -1,5 +1,6 @@
 <?php
 
+use \Profis\Db\DbException;
 
 class PC_plugin_pc_shop_category_products_filter_widget extends PC_plugin_pc_shop_widget {
 	
@@ -18,13 +19,18 @@ class PC_plugin_pc_shop_category_products_filter_widget extends PC_plugin_pc_sho
 			'page_id' => 0,
 			'page_ref' => '',
 			'category' => false,
+			'condition' => array(
+				'where' => '',
+				'params' => array(),
+			),
 			'include_subcategories' => false,
+			'auto_attributes' => false,
 			'only_existing_values' => true,
 			'filter_value_numbers' => true,
 			'filters' => array(
 				'manufacturer',
 				'price'
-			)
+			),
 		);
 	}
 	
@@ -38,78 +44,131 @@ class PC_plugin_pc_shop_category_products_filter_widget extends PC_plugin_pc_sho
 		$products_params['filter'] = array();
 		$products_params['attribute_filter'] = array();
 		$products_params['custom_attribute_filter'] = array();
-		
-				
-		if (in_array('manufacturer', $this->_config['filters'])) {
-			$manufact_params = array(
-				'select' => 't.*, count(*) as count',
-				'key' => 'id',
-				'join' => array(
-					"LEFT JOIN {$this->db_prefix}shop_products p ON p.manufacturer_id = t.id"
-				),
-				'where' => array(
-					'p.category_id = ?'
-				),
-				'query_params' => array(
-					$this->_config['category']['id']
-				),
-				'group' => 't.id',
-				//'query_only' => true
-			);
 
-			PC_model::absorb_scope_into_params($manufact_params, $site_product_scope);
+		if( $this->_config['include_subcategories'] )
+			$categoryJoin = "{$this->db_prefix}shop_categories c
+				INNER JOIN {$this->db_prefix}shop_categories sc ON sc.lft BETWEEN c.lft AND c.rgt
+				INNER JOIN {$this->db_prefix}shop_products p ON p.category_id=sc.id";
+		else
+			$categoryJoin = "{$this->db_prefix}shop_categories c
+				INNER JOIN {$this->db_prefix}shop_products p ON p.category_id=c.id";
 
+		$categoryWhere = array();
+		$categoryParams = array();
 
-			$manufacturer_model = new PC_shop_manufacturer_model();
-			$manufacturers = $manufacturer_model->get_all($manufact_params);
-
-			if (isset($_GET['manufacturers']) and is_array($_GET['manufacturers']) and !empty($_GET['manufacturers'])) {
-				$products_params['filter']['p.manufacturer_id'] = array_intersect(array_keys($manufacturers), $_GET['manufacturers']);
-			}	
+		if( isset($this->_config['category']['id']) ) {
+			$categoryWhere[] = "c.id=?";
+			$categoryParams[] = $this->_config['category']['id'];
 		}
-			
+		else if( isset($this->_config['page_id']) ) {
+			$categoryWhere[] = "c.pid=?";
+			$categoryParams[] = $this->_config['page_id'];
+		}
+		else
+			throw new Exception("Either 'category' or 'page_id' parameter is required");
+
+		if( isset($this->_config['condition']) && !empty($this->_config['condition']['where']) ) {
+			if( is_array($this->_config['condition']['where']) )
+				$categoryWhere = array_merge($categoryWhere, $this->_config['condition']['where']);
+			else
+				$categoryWhere[] = $this->_config['condition']['where'];
+			$categoryParams = array_merge($categoryParams, $this->_config['condition']['params']);
+		}
+
+		$categoryWhere = '(' . implode(') AND (', $categoryWhere) . ')';
+
+		// get list of manufacturers
+		if (in_array('manufacturer', $this->_config['filters'])) {
+			$q = "SELECT m.*, COUNT(*) AS `count`
+				FROM {$categoryJoin}
+				INNER JOIN {$this->db_prefix}shop_manufacturers m ON m.id=p.manufacturer_id
+				WHERE {$categoryWhere}
+				GROUP BY m.id
+				ORDER BY m.name";
+
+			$s = $this->db->prepare($q);
+			if( !$s->execute($categoryParams) )
+				throw new DbException($s->errorInfo(), $q, $categoryParams);
+
+			$manufacturers = array();
+			while( $row = $s->fetch() )
+				$manufacturers[$row['id']] = $row;
+
+			if (isset($_REQUEST['manufacturers']) && !empty($_REQUEST['manufacturers'])) {
+				if( is_array($_REQUEST['manufacturers']) ) {
+					$search = array_intersect(array_keys($manufacturers), $_REQUEST['manufacturers']);
+					if( !empty($search) )
+						$products_params['filter']['p.manufacturer_id'] = $search;
+				}
+				else if( isset($manufacturers[$_REQUEST['manufacturers']]) )
+					$products_params['filter']['p.manufacturer_id'] = $_REQUEST['manufacturers'];
+			}
+		}
+
+		// get min and max prices
 		if (in_array('price', $this->_config['filters'])) {
-			if (isset($_GET['price_from'])) {
+			$real_price_select = $product_model->get_price_select('p');
+
+			$q = "SELECT MIN($real_price_select) AS min_price, MAX($real_price_select) AS max_price
+				FROM {$categoryJoin}
+				WHERE {$categoryWhere}";
+
+			$s = $this->db->prepare($q);
+			if( !$s->execute($categoryParams) )
+				throw new DbException($s->errorInfo(), $q, $categoryParams);
+
+			$category_products_data = $s->fetch();
+
+			if (isset($_REQUEST['price_from']) && !empty($_REQUEST['price_from'])) {
 				$products_params['filter'][] = array(
 					'field' => 'real_price',
 					'op' => '>=',
-					'value' => $_GET['price_from']
+					'value' => $_REQUEST['price_from']
 				);
 			}
-			if (isset($_GET['price_to'])) {
+			if (isset($_REQUEST['price_to']) && !empty($_REQUEST['price_to'])) {
 				$products_params['filter'][] = array(
 					'field' => 'real_price',
 					'op' => '<=',
-					'value' => $_GET['price_to']
+					'value' => $_REQUEST['price_to']
 				);
 			}
-			
-			$real_price_select = $product_model->get_price_select();
-			$category_products_data = $product_model->get_all(array(
-				'select' =>  "min($real_price_select) as min_price, max($real_price_select) as max_price",
-				'limit' => 1,
-				'where' => array(
-					't.category_id' => $this->_config['category']['id']
-				)
-				//'query_only' => true
-			));
 		}
-		
-		
-		
-		
-		
-		
-		$filter_model = new PC_shop_category_product_filter_model();
-		$category_filters = $filter_model->get_all(array(
-			'content' => true,
-			'where' => array(
-				'category_id' => $this->_config['category']['id']
-			),
-			'key' => 'attribute',
-			'order' => 't.position'
-		));
-		$filter_attribute_ids = array_keys($category_filters);
+
+		$filter_attributes = array();
+
+		$attributeJoin = "INNER JOIN {$this->db_prefix}shop_item_attributes ia ON ia.item_id=p.id AND (ia.flags & " . PC_shop_attribute_model::ITEM_IS_PRODUCT . ") = " . PC_shop_attribute_model::ITEM_IS_PRODUCT;
+
+		if( v($this->_config['auto_attributes']) ) {
+			$q = "SELECT DISTINCT ia.attribute_id
+				FROM {$categoryJoin} {$attributeJoin}
+				INNER JOIN {$this->db_prefix}shop_attributes a ON a.id=ia.attribute_id
+				WHERE {$categoryWhere} AND ia.attribute_id != 0 AND (ia.value_id IS NOT NULL OR (ia.value IS NOT NULL AND ia.value != '')) AND a.is_searchable=1
+				ORDER BY a.position ASC, a.id ASC";
+
+			$s = $this->db->prepare($q);
+			if( !$s->execute($categoryParams) )
+				throw new DbException($s->errorInfo(), $q, $categoryParams);
+
+			$filter_attribute_ids = array();
+			while( $row = $s->fetch() )
+				$filter_attribute_ids[] = $row['attribute_id'];
+		}
+		else {
+			// load attributes according to filter builder
+			$filter_model = new PC_shop_category_product_filter_model();
+			$category_filters = $filter_model->get_all(array(
+				'content' => true,
+				'where' => array(
+					'category_id' => $this->_config['category']['id']
+				),
+				'key' => 'attribute',
+				'order' => 't.position'
+			));
+
+			$filter_attribute_ids = array_keys($category_filters);
+		}
+
 		$attribute_model = new PC_shop_attribute_model();
 		if (!empty($filter_attribute_ids)) {
 			$filter_attributes = $attribute_model->get_data($filter_attribute_ids, array(
@@ -122,124 +181,115 @@ class PC_plugin_pc_shop_category_products_filter_widget extends PC_plugin_pc_sho
 		else {
 			$filter_attributes = array();
 		}
-		
-		//print_pre($filter_attributes);
-		
-		$attribute_value_model = new PC_shop_attribute_value_model();
-		
-		$attribute_item_model = new PC_shop_attribute_item_model();
-		
-		$products_query = '';
-		$product_query_params = array();
-		if ($this->_config['filter_value_numbers']) {
-			if (!$this->_config['include_subcategories']) {
-				$product_model->set_category_scope($this->_config['category']['id']);
+		if( isset($category_filters) ) {
+			foreach ($filter_attributes as $key => $filter_attribute) {
+				$filter_attributes[$key]['filter_data'] = v($category_filters[$filter_attribute['id']], array());
 			}
-			else {
-				$product_model->set_category_branch_scope($this->_config['category']);
+		}
+		else {
+			foreach( $filter_attributes as $key => $filter_attribute ) {
+				$filter_attributes[$key]['filter_data'] = array(
+					'id' => $filter_attribute['id'],
+					'input_type' => 'select',
+					'filter_type' => PC_shop_category_product_filter_model::FILTER_TYPE_EQ,
+					'disabled' => 0,
+					'name' => $filter_attribute['name'],
+				);
 			}
-			$products_query = $product_model->get_all(array(
-				'select' => 't.id',
-				'query_only' => true,
-				'get_query_params' => &$product_query_params
-			));
 		}
-		foreach ($filter_attributes as $key => $filter_attribute) {
-			$filter_attributes[$key]['filter_data'] = v($category_filters[$filter_attribute['id']], array());
-		}
-		//print_pre($filter_attributes);
+
 		foreach ($filter_attributes as $key => $filter_attribute) {
 			if (!in_array(v($filter_attribute['filter_data']['input_type']), array('', 'select'))) {
 				$name = 'filter_' . v($filter_attribute['filter_data']['id']);
-				$get_var = v($_GET[$name], '');
+				$get_var = v($_REQUEST[$name], '');
 				$get_var = trim($get_var);
 				if (!empty($get_var)) {
 					$products_params['custom_attribute_filter'][$filter_attribute['id']] = array(
 						'op' => PC_shop_category_product_filter_model::$filter_type_operations[$filter_attribute['filter_data']['filter_type']],
-						'value' => $_GET[$name]
+						'value' => $_REQUEST[$name]
 					);
 				}
 				continue;
 			}
-			$query_params = array_merge(array($filter_attribute['id']), $product_query_params);
-			$count_select = '';
-			$attribute_value_params = array(
-				'content' => true,
-				'where' => array(),
-				'key' => 'id'
-			);
-			$attribute_values = array();
-			if ($this->_config['only_existing_values']) {
-				if ($this->_config['filter_value_numbers']) {
-					$count_select = 'count(*) as count, ';
-				}
-				$attribute_items_params = array(
-					'select' => $count_select . 't.value_id',
-					'where' => array(
-						't.attribute_id = ?',
-						//"t.item_id IN (SELECT id FROM {$this->db_prefix}shop_products WHERE category_id = ?)"
 
-					),
-					'query_params' => $query_params,
-					'group' => 't.value_id',
-					'key' => 'value_id',
-					//'query_only' => true
-				);
-				if ($this->_config['filter_value_numbers']) {
-					$attribute_items_params['where'][] = "t.item_id IN (".$products_query.")";
+			$name = 'attribute_' . $filter_attribute['id'];
+
+			// get all existing values of the attribute
+			$values = array();
+			if( $filter_attribute['is_custom'] ) {
+				$q = "SELECT ia.value, COUNT(*) AS `count`
+				FROM {$categoryJoin} {$attributeJoin}
+				WHERE {$categoryWhere} AND ia.attribute_id = ? AND ia.value IS NOT NULL AND ia.value != ''
+				GROUP BY ia.value
+				ORDER BY ia.value";
+
+				$s = $this->db->prepare($q);
+				if( !$s->execute($p = array_merge($categoryParams, array($filter_attribute['id']))) )
+					throw new DbException($s->errorInfo(), $q, $p);
+
+				while( $row = $s->fetch() )
+					$values[$row['value']] = array(
+						'id' => $row['value'],
+						'value' => $row['value'],
+						'count' => $row['count'],
+					);
+
+				if (isset($_REQUEST[$name]) && !empty($_REQUEST[$name])) {
+					if( is_array($_REQUEST[$name]) ) {
+						$search = array_intersect(array_keys($values), $_REQUEST[$name]);
+						if( !empty($search) )
+							$products_params['custom_attribute_filter'][$filter_attribute['id']] = array(
+								'clause' => 'ia.value IN (?' . str_repeat(',?', count($search) - 1) . ')',
+								'query_params' => $search,
+							);
+					}
+					else if( isset($values[$_REQUEST[$name]]) )
+						$products_params['custom_attribute_filter'][$filter_attribute['id']] = array(
+							'clause' => 'ia.value = ?',
+							'query_params' => array($_REQUEST[$name]),
+						);
 				}
-				$attribute_items_params['where'][] = $this->db->get_flag_query_condition(
-					PC_shop_attributes::ITEM_IS_PRODUCT,
-					$attribute_items_params['query_params'], 
-					'flags', 
-					't'
-				);
-				$attribute_values = $attribute_item_model->get_all($attribute_items_params);
-				$attribute_value_params['where']['t.id'] = array_keys($attribute_values);
 			}
 			else {
-				$attribute_value_params['where']['t.attribute_id'] = $filter_attribute['attribute_id'];
-			}
-			//print_pre($attribute_value_params);
-			//print_pre($attribute_values);
-			if (!$this->_config['only_existing_values'] or !empty($attribute_values)) {
-				//$attribute_value_params['query_only'] = true;
-				$filter_attributes[$key]['filters'] = $attribute_value_model->get_all($attribute_value_params);
-				//print_pre($filter_attributes[$key]['filters']);
-				if (empty($attribute_values)) {
-					$attribute_values = $filter_attributes[$key]['filters'];
+				$q = "SELECT ia.value_id, avc.value, COUNT(*) AS `count`
+				FROM {$categoryJoin} {$attributeJoin}
+				INNER JOIN {$this->db_prefix}shop_attribute_value_contents avc ON avc.value_id=ia.value_id AND avc.ln=?
+				WHERE {$categoryWhere} AND ia.attribute_id = ? AND ia.value_id IS NOT NULL AND ia.value_id != 0
+				GROUP BY ia.value_id
+				ORDER BY avc.value";
+
+				$s = $this->db->prepare($q);
+				if( !$s->execute($p = array_merge($categoryParams, array($this->site->ln, $filter_attribute['id']))) )
+					throw new DbException($s->errorInfo(), $q, $p);
+
+				while( $row = $s->fetch() )
+					$values[$row['value_id']] = array(
+						'id' => $row['value_id'],
+						'value' => $row['value'],
+						'count' => $row['count'],
+					);
+
+				if (isset($_REQUEST[$name]) && !empty($_REQUEST[$name])) {
+					if( is_array($_REQUEST[$name]) ) {
+						$search = array_intersect(array_keys($values), $_REQUEST[$name]);
+						if( !empty($search) )
+							$products_params['attribute_filter'][$filter_attribute['id']] = $search;
+					}
+					else if( isset($values[$_REQUEST[$name]]) )
+						$products_params['attribute_filter'][$filter_attribute['id']] = $_REQUEST[$name];
 				}
-				$name = 'attribute_' . $filter_attribute['id'];
-				if (isset($_GET[$name]) and !empty($_GET[$name])) {
-					if (!is_array($_GET[$name])) {
-						if (isset($attribute_values[$_GET[$name]])) {
-							$products_params['attribute_filter'][$filter_attribute['id']] = $_GET[$name];
-						}
-					}
-					else {
-						$products_params['attribute_filter'][$filter_attribute['id']] = array_intersect(array_keys($attribute_values), $_GET[$name]);
-					}
-				}	
-				if ($filter_attributes[$key]['filters'] and $this->_config['filter_value_numbers']) {
-					foreach($filter_attributes[$key]['filters'] as $k => $filter) {
-						$filter_attributes[$key]['filters'][$k]['count'] = $attribute_values[$k]['count'];
-					}
-				}
 			}
-			elseif (!$this->_config['filter_value_numbers']) {
-				unset($filter_attributes[$key]);
-			}
-			
+
+			$filter_attributes[$key]['filters'] = $values;
 		}
-		
+
 		//print_pre($filter_attributes);
-		
-		
+
 		//$shop = $this->core->Get_object('PC_shop_site');
 		//print_pre($shop->attributes->Get($filter_attribute_ids));
 		//$get_values_params = array();
 		//print_pre($shop->attributes->Get_values($filter_attribute_ids, $get_values_params));
-		
+
 		if ($this->_config['include_subcategories']) {
 			$products_params['all_products_of_category'] = true;
 		}
