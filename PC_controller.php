@@ -1,4 +1,7 @@
 <?php
+use \Profis\GlobalEvents;
+use \Profis\ValidationEventArgs;
+
 class PC_controller_pc_shop extends PC_controller {
 	public $currentProduct = null, $currentCategory = null;
 	
@@ -180,6 +183,12 @@ class PC_controller_pc_shop extends PC_controller {
 	}
 	
 	protected function _validate_fast_order($data) {
+		$args = new ValidationEventArgs($data);
+		GlobalEvents::invoke('pc_shop.validateFastOrderFormEvent', $args); // using global events since PC_controller_pc_shop might not be loaded when other plugin tries to add a listener
+		$hasErrors = $args->hasErrors();
+		if( $hasErrors || $args->isDefaultPrevented() )
+			return !$hasErrors;
+
 		if (!trim($data['email'])) {
 			return false;
 		}
