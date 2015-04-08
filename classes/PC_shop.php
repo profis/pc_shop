@@ -2404,7 +2404,12 @@ class PC_shop_cart extends PC_base {
 				'name' => $products[$cartItemInfo[0]]['name'],
 				'link' => $products[$cartItemInfo[0]]['link']
 			);
-			$amount_eligible_for_coupon += $this->shop->products->get_eligible_coupon_discount($preserved_coupon_data, $item_total_price, $p);
+
+			$eligible_discount = $this->shop->products->get_eligible_coupon_discount($preserved_coupon_data, $item_total_price, $p);
+			if( $preserved_coupon_data['percentage_discount'] <= 0 && $eligible_discount > 0 )
+				$preserved_coupon_data['discount'] -= $eligible_discount;
+			$amount_eligible_for_coupon += $eligible_discount;
+
 			$cart_item['original_name'] = $cart_item['name'];
 			if (v($cart_item['price_data']['attributes_string'])) {
 				$cart_item['name'] .= ' (' . $cart_item['price_data']['attributes_string'] . ')';
