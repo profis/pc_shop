@@ -1824,9 +1824,10 @@ class PC_shop_orders extends PC_shop_order_model {
 		}
 		
 		$query = "SELECT "
-		.($params->Has_paging()?'SQL_CALC_FOUND_ROWS ':'')."* FROM {$this->db_prefix}shop_orders o"
+		.($params->Has_paging()?'SQL_CALC_FOUND_ROWS ':'')."o.*, coupons.code AS coupon_code FROM {$this->db_prefix}shop_orders o"
+		." LEFT JOIN {$this->db_prefix}shop_coupons coupons ON coupons.id=o.coupon_id"
 		.(count($where)?' WHERE '.implode(' and ', $where):''). $order_s . ' ' . $limit;
-		
+
 		$r = $this->prepare($query);
 		$s = $r->execute($queryParams);
 		if (!$s) return false;
@@ -1881,11 +1882,11 @@ class PC_shop_orders extends PC_shop_order_model {
 		else return $list;
 	}
 	public function Get_items($orderId) {
-		$r = $this->prepare("SELECT oi.*, p.external_id FROM {$this->db_prefix}shop_order_items oi
+		$r = $this->prepare($q = "SELECT oi.*, p.external_id FROM {$this->db_prefix}shop_order_items oi
 			LEFT JOIN {$this->db_prefix}shop_products p ON p.id = oi.product_id
 			WHERE order_id=?");
-		$s = $r->execute(array($orderId));
-		if (!$s) return false;
+		if( !$r->execute($p = array($orderId)) )
+			throw new DbException($r->errorInfo(), $q, $p);
 		if (!$r->rowCount()) return array();
 		$list = array();
 		$product_ids = array();
@@ -2056,84 +2057,105 @@ class PC_shop_orders extends PC_shop_order_model {
 		$this->data = $data;
 		$data = serialize($data);
 
-		$insert_query = "INSERT INTO {$this->db_prefix}shop_orders (date,user_id,name,email,address,phone,comment,payment_option,delivery_option,currency,is_paid,data) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)";
-		$r = $this->prepare($insert_query);
-		$insert_params = array(time(), $userId, $recipient, $email, $address, $phone, $comment, $payment_option, $delivery_option, $this->shop->price->get_user_currency(), $is_paid);
-		$insert_params = pc_sanitize_value($insert_params, 'strip_tags');
-		$insert_params[] = $data;
-		$s = $r->execute($insert_params);
-		if (!$s) {
-			$params->errors->Add('insert_into_database', 'Error while trying to insert record into the database');
-			return false;
-		}
-		$this->last_order_id = $orderId = $this->db->lastInsertId($this->sql_parser->Get_sequence('shop_orders'));
-		$insert_item_query = "INSERT INTO {$this->db_prefix}shop_order_items (order_id,product_id,quantity,attributes,price) VALUES(?,?,?,?,?)";
-		$rInsertItem = $this->prepare($insert_item_query);
-		
-		$totalPrice = 0;
-		$eligible_discount = 0;
-		$order_items_model = $this->core->Get_object('PC_shop_order_item_model');
-		$order_items_model->delete(array(
-			'where' => array(
-				'order_id' => $orderId
-			)
-		));
-
-		$preserved_coupon_data = $this->shop->cart->get_preserved_coupon_data(true);
-		
-		$shop_cart_data = $this->shop->cart->Get();
-		
-		$cart_data = array(
-			'products' => $shop_cart_data['products'],
-			'items' => array()
-		);
-		
-		//foreach ($_SESSION['pc_shop']['cart']['items'] as $ciid => $product_basket_data) {
-		foreach ($shop_cart_data['items'] as $ciid => $product_basket_data) {
-			$productId = $product_basket_data['id'];
-			$quantity = $product_basket_data['basket_quantity'];
-			$product = $this->shop->products->Get($productId);
-			if (!$product) {
-				$params->errors->Add('unknown_product', 'Unknown product in the cart');
+		$this->db->beginTransaction();
+		try {
+			$insert_query = "INSERT INTO {$this->db_prefix}shop_orders (date,user_id,name,email,address,phone,comment,payment_option,delivery_option,currency,is_paid,data) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)";
+			$r = $this->prepare($insert_query);
+			$insert_params = array(time(), $userId, $recipient, $email, $address, $phone, $comment, $payment_option, $delivery_option, $this->shop->price->get_user_currency(), $is_paid);
+			$insert_params = pc_sanitize_value($insert_params, 'strip_tags');
+			$insert_params[] = $data;
+			$s = $r->execute($insert_params);
+			if (!$s) {
+				$params->errors->Add('insert_into_database', 'Error while trying to insert record into the database');
+				return false;
 			}
-			else {
-				$price = $this->shop->products->get_price($product, $discount, $discount_percentage, $product_basket_data['attributes']);
-				$insert_item_query_params = array($orderId, $productId, $quantity, PC_utils::array_to_string($product_basket_data['attributes']), $price);
-				$s = $rInsertItem->execute($insert_item_query_params);
-				if ($s) {
+
+			$this->last_order_id = $orderId = $this->db->lastInsertId($this->sql_parser->Get_sequence('shop_orders'));
+			$insert_item_query = "INSERT INTO {$this->db_prefix}shop_order_items (order_id,product_id,quantity,attributes,price) VALUES(?,?,?,?,?)";
+			$rInsertItem = $this->prepare($insert_item_query);
+
+			$totalPrice = 0;
+			$eligible_discount = 0;
+			$order_items_model = $this->core->Get_object('PC_shop_order_item_model');
+			$order_items_model->delete(array(
+				'where' => array(
+					'order_id' => $orderId
+				)
+			));
+
+			$preserved_coupon_data = $this->shop->cart->get_preserved_coupon_data(true);
+
+			$shop_cart_data = $this->shop->cart->Get();
+
+			$cart_data = array(
+				'products' => $shop_cart_data['products'],
+				'items' => array()
+			);
+
+			//foreach ($_SESSION['pc_shop']['cart']['items'] as $ciid => $product_basket_data) {
+			foreach ($shop_cart_data['items'] as $ciid => $product_basket_data) {
+				$productId = $product_basket_data['id'];
+				$quantity = $product_basket_data['basket_quantity'];
+				$product = $this->shop->products->Get($productId);
+				if (!$product) {
+					$params->errors->Add('unknown_product', 'Unknown product in the cart');
+					$this->db->rollBack();
+					return false;
+				}
+				else {
+					$price = $this->shop->products->get_price($product, $discount, $discount_percentage, $product_basket_data['attributes']);
+					$insert_item_query_params = array($orderId, $productId, $quantity, PC_utils::array_to_string($product_basket_data['attributes']), $price);
+					$s = $rInsertItem->execute($insert_item_query_params);
+					if (!$s) {
+						$params->errors->Add('insert_order_item', '');
+						$this->db->rollBack();
+						return false;
+					}
 					$total_item_price = $price * $quantity;
 					$totalPrice += $total_item_price;
 					$cart_data['items'][$ciid] = $product_basket_data;
-					
-					$eligible_discount += $this->shop->products->get_eligible_coupon_discount($preserved_coupon_data, $total_item_price, $product);
-					
-					continue;
+
+					$e_discount = $this->shop->products->get_eligible_coupon_discount($preserved_coupon_data, $total_item_price, $product);
+					if( $preserved_coupon_data['percentage_discount'] <= 0 && $e_discount > 0 )
+						$preserved_coupon_data['discount'] -= $e_discount;
+					$eligible_discount += $e_discount;
 				}
-				else $params->errors->Add('insert_order_item', '');
 			}
-			return false;
+
+			$cart_data['discounts'] = array();
+
+			$cart_data['totalPrice'] = $totalPrice;
+			$cart_data['eligible_discount'] = number_format($eligible_discount, 2, ".", "");
+
+			$coupon_id = null;
+			if ($preserved_coupon_data and v($preserved_coupon_data['id'])) {
+				$coupon_id = $preserved_coupon_data['id'];
+				$r = $this->prepare($q = "UPDATE {$this->db_prefix}shop_coupons SET used = used + 1 WHERE id = ?");
+				if( !$r->execute($p = array($coupon_id)) )
+					throw new DbException($r->errorInfo(), $q, $p);
+			}
+
+			$this->shop->cart->Calculate_prices($cart_data, array(), $preserved_coupon_data);
+			//set total price
+			$rPrice = $this->prepare("UPDATE {$this->db_prefix}shop_orders SET delivery_price = ?, cod_price = ? , total_price = ?, coupon_id = ?, discount = ? WHERE id=?");
+			$s = $rPrice->execute(array(v($cart_data['order_delivery_price'], 0), v($cart_data['order_cod_price'], 0), v($cart_data['order_full_price'], $totalPrice), $coupon_id, v($cart_data['total_discount'], 0), $orderId));
+			if( !$s ) {
+				$this->db->rollBack();
+				$params->errors->Add('update_in_database', 'Error while trying to update order record in the database');
+				return false;
+			}
+			$this->Assign_status($orderId, PC_shop_order_model::STATUS_NEW);
+			$this->db->commit();
 		}
-		
-		$cart_data['discounts'] = array();
-		
-		$cart_data['totalPrice'] = $totalPrice;
-		$cart_data['eligible_discount'] = number_format($eligible_discount, 2, ".", "");
-		
-		$coupon_id = null;
-		if ($preserved_coupon_data and v($preserved_coupon_data['id'])) {
-			$coupon_id = $preserved_coupon_data['id'];
+		catch(Exception $ex) {
+			$this->db->rollBack();
+			throw $ex;
 		}
-		
-		$this->shop->cart->Calculate_prices($cart_data, array(), $preserved_coupon_data);
-		//set total price
-		$rPrice = $this->prepare("UPDATE {$this->db_prefix}shop_orders SET delivery_price = ?, cod_price = ? , total_price = ?, coupon_id = ?, discount = ? WHERE id=?");
-		$s = $rPrice->execute(array(v($cart_data['order_delivery_price'], 0), v($cart_data['order_cod_price'], 0), v($cart_data['order_full_price'], $totalPrice), $coupon_id, v($cart_data['total_discount'], 0), $orderId));
-		if ($clearCart) {
-			$this->shop->cart->Clear();
-			$this->Clear_preserved_order_data();
-			$this->shop->cart->cancel_coupon();
-		}
-		$this->Assign_status($orderId, PC_shop_order_model::STATUS_NEW);
+
+		$this->shop->cart->Clear();
+		$this->Clear_preserved_order_data();
+		$this->shop->cart->cancel_coupon();
+
 		return true;
 	}
 	//order statuses: isPaid, isConfirmed, isSent, 

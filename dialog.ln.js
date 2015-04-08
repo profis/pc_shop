@@ -83,7 +83,8 @@ var ln =  {
 			delivery_price: 'Delivery price',
 			cod_price: 'Cash on delivery fee',
 			discount: 'Discount',
-			total_price: 'Total price of the order'
+			total_price: 'Total price of the order',
+			coupon_code: 'Coupon used'
 		},
 		attribute_categories: {
 			name: 'Name',
@@ -227,7 +228,8 @@ var ln =  {
 			delivery_price: 'Pristatymo kaina',
 			cod_price: 'Atsiskaitant grynaisiais pristatymo metu mokestis',
 			discount: 'Pritaikyta nuolaida',
-			total_price: 'Visa užsakymo suma'
+			total_price: 'Visa užsakymo suma',
+			coupon_code: 'Panaudotas kuponas'
 		},
 		attribute_categories: {
 			name: 'Pavadinimas',
@@ -372,7 +374,8 @@ var ln =  {
 			delivery_price: 'Стоимость доставки',
 			cod_price: 'Сбор за наложенный платеж',
 			discount: 'Ваучер скидка',
-			total_price: 'Вся сумма заказа'
+			total_price: 'Вся сумма заказа',
+			coupon_code: 'Использован купон'
 		},
 		attribute_categories: {
 			name: 'Название',

@@ -15,7 +15,10 @@ PC.plugin.pc_shop.crud_orders = Ext.extend(PC.ux.right_side_view_crud, {
 	
 	get_store_fields: function() {
 		return [
-			'id', 'address', 'comment', 'date', 'email', 'name', 'phone', 'user_id', 'items', 'data', 'currency', 'discount', 'total_price', 'status', 'is_paid', 'payment_option', 'delivery_option', 'delivery_price', 'cod_price',
+			'id', 'address', 'comment', 'date', 'email', 'name', 'phone',
+			'user_id', 'items', 'data', 'currency', 'discount', 'total_price',
+			'status', 'is_paid', 'payment_option', 'delivery_option',
+			'delivery_price', 'cod_price', 'coupon_id', 'coupon_code',
 			{name: 'dateFormatted', mapping: 'date', convert: this.format_time_to_date}
 			//{name: 'is_paid_icon', mapping: 'is_paid', convert: dialog.is_paid_icon}
 			//{name: 'status_icon', mapping: 'status', convert: dialog.Get_status_icon}
@@ -253,6 +256,9 @@ PC.plugin.pc_shop.crud_orders = Ext.extend(PC.ux.right_side_view_crud, {
 			'</tpl>',
 			'<tpl if="discount &gt; 0">',
 				'<br /><b>', this.ln.order_info.discount, '</b> - {discount} {currency} <br />',
+			'</tpl>',
+			'<tpl if="coupon_id &gt; 0">',
+				'<br /><b>', this.ln.order_info.coupon_code, '</b> - {coupon_code} <br />',
 			'</tpl>',
 			'<br /><b>' + this.ln.order_info.total_price + ':</b> {total_price} {currency}'
 		];

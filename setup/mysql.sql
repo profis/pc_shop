@@ -891,8 +891,15 @@ INSERT IGNORE INTO `{prefix}variables` (`vkey`, `controller`, `site`, `ln`, `val
 ('discount', 'pc_shop', 0, 'en', 'Applied discount'),
 ('discount', 'pc_shop', 0, 'ru', 'Скидка'),
 
+('coupon_used', 'pc_shop', 0, 'lt', 'Panaudotas kuponas'),
+('coupon_used', 'pc_shop', 0, 'en', 'Coupon used'),
+('coupon_used', 'pc_shop', 0, 'ru', 'Использован купон'),
+
 ('manufacturer', 'pc_shop', 0, 'lt', 'Gamintojas'),
 ('manufacturer', 'pc_shop', 0, 'en', 'Manufacturer'),
 ('manufacturer', 'pc_shop', 0, 'ru', 'Производитель');
 
-INSERT IGNORE INTO `{prefix}db_version` (`plugin`, `version`) VALUES('pc_shop', '2.0.3');
+INSERT IGNORE INTO `{prefix}config` (`plugin`, `ckey`, `site`, `value`) VALUES
+	('pc_shop', 'products_per_tree_page', 0, '100');
+
+INSERT IGNORE INTO `{prefix}db_version` (`plugin`, `version`) VALUES('pc_shop', '2.1.5');

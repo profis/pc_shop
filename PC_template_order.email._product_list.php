@@ -71,6 +71,10 @@ foreach ($this->order_data['items'] as $item) {
 <br />
 
 <?php
+if( v($this->order_data['coupon_id']) ) {
+	?><strong><?php echo $this->Get_variable('coupon_used'); ?></strong>: <?php echo htmlspecialchars($this->order_data['coupon_code']); ?><br /><br /><?php
+}
+
 $payment = PC_shop_payment_option_model::get_option_name(v($this->order_data['payment_option']));
 if ($payment) {
 ?>

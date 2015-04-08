@@ -138,6 +138,38 @@ class PC_shop_orders_admin_api extends PC_shop_admin_api {
 		
 	}
 
+	public function edit() {
+		$id = v($_POST['id']);
+		$data = json_decode(v($_POST['data'], '{}'), true);
+		$order_model = null;
+		$order = null;
+		if( $id && isset($data['other']['status']) ) {
+			/** @var PC_shop_order_model $order_model */
+			$order_model = $this->core->Get_object('PC_shop_order_model');
+			$order = $order_model->get_one(array('id' => $id));
+		}
+
+		parent::edit();
+
+		if( $order && $order['coupon_id'] && $this->_out['success'] ) {
+			$q = null;
+			if( $order['status'] != PC_shop_order_model::STATUS_CANCELED && $data['other']['status'] == PC_shop_order_model::STATUS_CANCELED ) {
+				// decrement coupon usage since order was cancelled
+				$q = "UPDATE {$this->db_prefix}shop_coupons SET used = used - 1 WHERE id = ?";
+			}
+			else if( $order['status'] == PC_shop_order_model::STATUS_CANCELED && $data['other']['status'] != PC_shop_order_model::STATUS_CANCELED ) {
+				// increment coupon usage since order was restored
+				$q = "UPDATE {$this->db_prefix}shop_coupons SET used = used + 1 WHERE id = ?";
+			}
+
+			if( $q ) {
+				$r = $this->db->prepare($q);
+				if( !$r->execute($p = array($order['coupon_id'])) )
+					throw new \Profis\Db\DbException($r->errorInfo(), $q, $p);
+			}
+		}
+	}
+
 	public function edit_() {
 		$data = json_decode(v($_POST['changes'], '{}'), true);
 		if (isset($data['is_paid_icon'])) {
@@ -152,7 +184,6 @@ class PC_shop_orders_admin_api extends PC_shop_admin_api {
 		if (empty($data)) {
 			return;
 		}
-		
 		$order_model = $this->core->Get_object('PC_shop_order_model');
 		$order_model->update($data, array(
 			'where' => array(
