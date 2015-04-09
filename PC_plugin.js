@@ -1378,7 +1378,7 @@ Plugin.attributes.Grid = {
 		}
 	},
 	tbar: [
-		{xtype: 'button', text: PC.i18n.save, icon: 'images/disk.png', handler: PC.editors.Save},
+		{xtype: 'button', /*text: PC.i18n.save, */ icon: 'images/disk.png', handler: PC.editors.Save},
 		'-',
 		{	
 			xtype:'tbtext',
@@ -1391,7 +1391,7 @@ Plugin.attributes.Grid = {
 			valueField: 'id',
 			displayField: 'name',
 			triggerAction: 'all',
-            width: 100,
+            width: 200,
 			//tpl: '<tpl for="."><div class="x-combo-list-item">{'+ this.displayField +'}</div></tpl>',
 			tpl: '<tpl for="."><div class="x-combo-list-item">{[PC.utils.extractName(values.names)]}</div></tpl>',
 			editable: false,
@@ -1405,7 +1405,7 @@ Plugin.attributes.Grid = {
 				}
 			}
 		},
-		{	icon: 'images/add.png', text: PC.i18n.add,// text: Plugin.ln.addAttribute,
+		{	icon: 'images/add.png', // text: PC.i18n.add,// text: Plugin.ln.addAttribute,
 			handler: function(){
 				var id = PC.editors.Get().attributesGrid._attribute_category_id.getValue();
 				var rec = Plugin.attributes.Category_store.getById(id);
@@ -1473,7 +1473,7 @@ Plugin.attributes.Grid = {
 			}
 		},
         '-',
-		{	icon: 'images/add.png', text: PC.i18n.add,// text: Plugin.ln.addAttribute,
+		{	icon: 'images/add.png', // text: PC.i18n.add,// text: Plugin.ln.addAttribute,
 			handler: function(){
 				var gridFields = {};
 				var valid = false;
@@ -1507,7 +1507,7 @@ Plugin.attributes.Grid = {
 		},
 		'-',
 		{	icon: 'images/delete.png',
-			text: PC.i18n.del,
+			// text: PC.i18n.del,
 			handler: function(){
 				var grid = PC.editors.Get().attributesGrid;
 				var records = grid.selModel.getSelections();
