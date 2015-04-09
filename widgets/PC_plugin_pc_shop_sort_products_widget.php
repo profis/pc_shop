@@ -50,12 +50,13 @@ class PC_plugin_pc_shop_sort_products_widget extends PC_plugin_pc_shop_widget {
 		}
 
 		$set = isset($_REQUEST[$this->_config['order_var']]) && isset($_REQUEST[$this->_config['order_dir_var']]);
-
 		foreach ($this->_config['sort_options'] as $key => $sort_option) {
-			$order_vars = array(
-				$this->_config['order_var'] => $sort_option['var']
-			);
-			$order_vars[$this->_config['order_dir_var']] = $sort_option['dir'];
+			$order_vars = array();
+			if( $key != $this->_config['default_sort'] ) {
+				$order_vars[$this->_config['order_var']] = $sort_option['var'];
+				$order_vars[$this->_config['order_dir_var']] = $sort_option['dir'];
+			}
+
 			$menu_item = array(
 				'key' => $key,
 				'link' => PC_utils::getUrl($base_url, $order_vars),
