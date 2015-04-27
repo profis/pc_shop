@@ -1102,6 +1102,7 @@ class PC_shop_products_site extends PC_shop_products {
 	 * @throws DbException
 	 */
 	public function Get($id=null, $categoryId=null, &$params=array()) {
+
 		if (isset($params['product_id'])) {
 			$id = $params['product_id'];
 		}
@@ -1174,8 +1175,7 @@ class PC_shop_products_site extends PC_shop_products {
 			}
 			$categoryId = null;
 		}
-		
-		
+
 		$this->core->Init_params($params);
 		if (v($params->nothing)) {
 			return array();
@@ -1426,8 +1426,7 @@ class PC_shop_products_site extends PC_shop_products {
 				$order .= ' ' . $params->order_direction;
 			}
 		}
-		
-		
+
 		if (!empty($groups)) {
 			$group_params = array();
 			foreach ($groups as $group_key => $group) {
@@ -1533,7 +1532,7 @@ class PC_shop_products_site extends PC_shop_products {
 		//filters
 		.(count($where)?' WHERE '.implode(' and ', $where):'')
 		." GROUP BY p.id". ' ' . $group_s . $having_s . ' ' . $order . ' ' . $limit ;
-		
+
 		$queryParams = array_merge($queryParams_after_join_item_attributes, $queryParams, $filter_data['having_query_params']);
 		
 		$ckey = "pcs.get." . md5($query . serialize($queryParams) . serialize($params_array));
@@ -2120,4 +2119,17 @@ class PC_shop_products_site extends PC_shop_products {
 
 		return $result;
 	}
+
+	/**
+	 * 
+	 * @param int $id - product id
+	 * @return boolean - success
+	 */
+	public function addView($id) {
+		$query = "UPDATE {$this->db_prefix}shop_products SET views=views+1 WHERE id = ?";
+		$r = $this->prepare($query);
+
+		return $r->execute(array($id));
+	}
+
 }

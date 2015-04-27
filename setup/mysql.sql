@@ -593,9 +593,11 @@ CREATE TABLE IF NOT EXISTS `{prefix}shop_products` (
   `length` INT(10) UNSIGNED NULL DEFAULT NULL,
   `width` INT(10) UNSIGNED NULL DEFAULT NULL,
   `height` INT(10) UNSIGNED NULL DEFAULT NULL,
+  `views` INT(10) UNSIGNED NULL DEFAULT 0,
   PRIMARY KEY (`id`),
   UNIQUE KEY `external_id` (`external_id`),
-  KEY `category_id` (`category_id`,`position`,`manufacturer_id`,`flags`)
+  KEY `category_id` (`category_id`,`position`,`manufacturer_id`,`flags`),
+  KEY `views` (`views`)
 ) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
 -- --------------------------------------------------------

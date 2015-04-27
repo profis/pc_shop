@@ -60,7 +60,7 @@ abstract class PC_shop extends PC_base {
 		$fields = array();
 		$fields['categories'] = array('flags', 'discount', 'percentage_discount', 'external_id', 'redirect');
 		$fields['category_contents'] = array('name', 'custom_name', 'description', 'seo_title', 'seo_description', 'seo_keywords', 'route', 'permalink');
-		$fields['products'] = array('manufacturer_id', 'mpn', 'is_not_quantitive', 'quantity', 'flags', 'warranty', 'discount', 'percentage_discount', 'hot_from', 'price', 'external_id', 'import_method', 'state', 'info_1', 'info_2', 'info_3', 'weight', 'volume', 'length', 'width', 'height');
+		$fields['products'] = array('manufacturer_id', 'mpn', 'is_not_quantitive', 'quantity', 'flags', 'warranty', 'discount', 'percentage_discount', 'hot_from', 'price', 'external_id', 'import_method', 'state', 'info_1', 'info_2', 'info_3', 'weight', 'volume', 'length', 'width', 'height', 'views');
 		$fields['product_contents'] = array('name', 'custom_name', 'short_description', 'description', 'seo_title', 'seo_description', 'seo_keywords', 'route', 'permalink');
 		foreach ($fields as $table=>&$cols) {
 			foreach ($cols as $col) {

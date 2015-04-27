@@ -20,6 +20,9 @@ switch ($route) {
 	case 'order':
 		$out = process_api_for_order();
 		break;
+	case 'addView':
+		$out = process_api_add_view($routes->Get(2));
+		break;
 		
 	default: $out['error'] = 'Invalid action';
 		break;
@@ -153,6 +156,13 @@ function process_api_for_order() {
 	}
 
 	return $out;
+}
+
+function process_api_add_view($id) {
+	global $core;
+	$shop = $core->Get_object('PC_shop_site');
+	/* @var $shop PC_shop_site */
+	return $shop->products->addView($id);
 }
 
 echo json_encode($out);
