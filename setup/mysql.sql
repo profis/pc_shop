@@ -31,7 +31,7 @@
 -- 
 
 CREATE TABLE IF NOT EXISTS `{prefix}shop_attribute_categories` (
-  `id` smallint(5) unsigned NOT NULL AUTO_INCREMENT,
+  `id` INT(10) unsigned NOT NULL AUTO_INCREMENT,
   `flags` smallint(5) unsigned NOT NULL DEFAULT '1',
   `ref` varchar(100) COLLATE utf8_unicode_ci NOT NULL,
   PRIMARY KEY (`id`)
@@ -117,8 +117,8 @@ CREATE TABLE IF NOT EXISTS `{prefix}shop_attributes` (
 
 CREATE TABLE IF NOT EXISTS `{prefix}shop_attributes_categories` (
   `id` int(10) NOT NULL AUTO_INCREMENT,
-  `attribute_id` int(10) NOT NULL,
-  `category_id` smallint(5) NOT NULL,
+  `attribute_id` int(10) UNSINGED NOT NULL,
+  `category_id` int(10) UNSINGED NOT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `attribute_id` (`attribute_id`,`category_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
@@ -617,6 +617,32 @@ CREATE TABLE IF NOT EXISTS `{prefix}shop_resources` (
   KEY `position` (`position`)
 ) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
+--
+-- Relations
+--
+
+ALTER TABLE `{prefix}shop_attribute_category_contents`
+	ADD CONSTRAINT `fk_sacc_attribute_category` FOREIGN KEY (`attr_category_id`) REFERENCES `{prefix}shop_attribute_categories` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+ALTER TABLE `{prefix}shop_attribute_contents` 
+	ADD CONSTRAINT `fk_sacn_attribute` FOREIGN KEY (`attribute_id`) REFERENCES `{prefix}shop_attributes` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+ALTER TABLE `{prefix}shop_attribute_values` 
+	ADD CONSTRAINT `fk_sav_attribute` FOREIGN KEY (`attribute_id`) REFERENCES `{prefix}shop_attributes` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+ALTER TABLE `{prefix}shop_attribute_value_contents` 
+	ADD CONSTRAINT `fk_savc_attribute_value` FOREIGN KEY (`value_id`) REFERENCES `{prefix}shop_attribute_values` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+ALTER TABLE `{prefix}shop_attributes_categories` 
+	ADD CONSTRAINT `fk_sacm_attribute` FOREIGN KEY (`attribute_id`) REFERENCES `{prefix}shop_attributes` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+	ADD CONSTRAINT `fk_sacm_attribute_category` FOREIGN KEY (`category_id`) REFERENCES `{prefix}shop_attribute_categories` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+ALTER TABLE `{prefix}shop_item_attributes` 
+	ADD INDEX `fk_item_attributes_attributes_idx` (`attribute_id` ASC),
+	ADD INDEX `fk_item_attributes_attribute_values_idx` (`value_id` ASC),
+	ADD CONSTRAINT `fk_sia_attribute` FOREIGN KEY (`attribute_id`) REFERENCES `{prefix}shop_attributes` (`id`) ON DELETE NO ACTION ON UPDATE CASCADE,
+	ADD CONSTRAINT `fk_sia_attribute_value` FOREIGN KEY (`value_id`) REFERENCES `{prefix}shop_attribute_values` (`id`) ON DELETE NO ACTION ON UPDATE CASCADE;
+
 -- 
 -- Dumping data for table `{prefix}variables`
 -- 
@@ -904,4 +930,4 @@ INSERT IGNORE INTO `{prefix}variables` (`vkey`, `controller`, `site`, `ln`, `val
 INSERT IGNORE INTO `{prefix}config` (`plugin`, `ckey`, `site`, `value`) VALUES
 	('pc_shop', 'products_per_tree_page', 0, '100');
 
-INSERT IGNORE INTO `{prefix}db_version` (`plugin`, `version`) VALUES('pc_shop', '2.1.5');
+INSERT IGNORE INTO `{prefix}db_version` (`plugin`, `version`) VALUES('pc_shop', '2.1.8');
