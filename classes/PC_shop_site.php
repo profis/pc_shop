@@ -418,9 +418,8 @@ class PC_shop_categories_site extends PC_shop_categories {
 					$queryParams[] = $params_array['all_children']['category_data']['rgt'];
 				}
 				
-				
 				$hidden_query_params = array();
-				$hidden_query = "SELECT lft, rgt FROM pc_shop_categories c
+				$hidden_query = "SELECT lft, rgt FROM {$this->db_prefix}shop_categories c
 					WHERE " . $this->get_flag_query_condition(self::CF_PUBLISHED, $hidden_query_params, 'c', '<>');
 
 				$r_hidden = $this->prepare($hidden_query);

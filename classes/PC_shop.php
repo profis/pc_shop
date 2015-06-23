@@ -1364,8 +1364,10 @@ class PC_shop_attributes extends PC_shop_attribute_model {
 		if (!$s) return false;
 		$list = array();
 		while ($d = $r->fetch()) {
-			$d['weight'] = preg_replace('#(?:\\.0+|(\\.[0-9]*[1-9])0*)$#', '$1', $d['weight']); // remove trailing zeroes
-			$d['volume'] = preg_replace('#(?:\\.0+|(\\.[0-9]*[1-9])0*)$#', '$1', $d['volume']); // remove trailing zeroes
+			if( isset($d['weight']) ) {
+				$d['weight'] = preg_replace('#(?:\\.0+|(\\.[0-9]*[1-9])0*)$#', '$1', $d['weight']); // remove trailing zeroes
+				$d['volume'] = preg_replace('#(?:\\.0+|(\\.[0-9]*[1-9])0*)$#', '$1', $d['volume']); // remove trailing zeroes
+			}
 			$list[] = $d;
 		}
 		return $list;
@@ -1397,7 +1399,7 @@ class PC_shop_attributes extends PC_shop_attribute_model {
 		
 		$query_params[] = $id;
 		
-		$join_s = ' LEFT JOIN pc_shop_products p ON p.id = a.item_id';
+		$join_s = " LEFT JOIN {$this->db_prefix}shop_products p ON p.id = a.item_id";
 		
 		if ($category_id) {
 			if (is_array($category_id)) {
@@ -1446,7 +1448,7 @@ class PC_shop_attributes extends PC_shop_attribute_model {
 		
 		$query_params[] = $attribute_id;
 		
-		$join_s = ' LEFT JOIN pc_shop_categories c ON c.id = a.item_id';
+		$join_s = " LEFT JOIN {$this->db_prefix}shop_categories c ON c.id = a.item_id";
 		
 		if ($page_id) {
 			$where_s .= ' AND c.pid = ?';
@@ -1481,7 +1483,7 @@ class PC_shop_attributes extends PC_shop_attribute_model {
 		
 		$query_params[] = $attribute_id;
 		
-		$join_s = ' LEFT JOIN pc_shop_categories c ON c.id = a.item_id';
+		$join_s = " LEFT JOIN {$this->db_prefix}shop_categories c ON c.id = a.item_id";
 		
 		if ($category_id) {
 			$where_s .= ' AND c.parent_id = ?';

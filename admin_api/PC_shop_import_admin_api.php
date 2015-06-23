@@ -360,7 +360,7 @@ class PC_shop_import_admin_api extends PC_shop_admin_api {
 						$attributes_names[$value] = '';
 					}
 
-					$query_attr_names = "SELECT * FROM pc_shop_attribute_contents
+					$query_attr_names = "SELECT * FROM {$this->cfg['db']['prefix']}shop_attribute_contents
 						WHERE attribute_id IN (" . implode(',', $attributes_keys) . ") AND ln = ?";
 					$params_attr_names = array($ln);
 
