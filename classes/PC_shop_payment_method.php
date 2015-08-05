@@ -134,7 +134,7 @@ abstract class PC_shop_payment_method extends PC_base {
 		if (!$this->order_id) {
 			throw new Exception(':( could not get respose order id');
 		}
-		if (empty($this->order_id)) {
+		if (empty($this->_order_data)) {
 			$this->_order_data = $this->_get_order_data($this->order_id);
 		}
 		
