@@ -117,8 +117,8 @@ CREATE TABLE IF NOT EXISTS `{prefix}shop_attributes` (
 
 CREATE TABLE IF NOT EXISTS `{prefix}shop_attributes_categories` (
   `id` int(10) NOT NULL AUTO_INCREMENT,
-  `attribute_id` int(10) UNSINGED NOT NULL,
-  `category_id` int(10) UNSINGED NOT NULL,
+  `attribute_id` int(10) UNSIGNED NOT NULL,
+  `category_id` int(10) UNSIGNED NOT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `attribute_id` (`attribute_id`,`category_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
@@ -930,4 +930,4 @@ INSERT IGNORE INTO `{prefix}variables` (`vkey`, `controller`, `site`, `ln`, `val
 INSERT IGNORE INTO `{prefix}config` (`plugin`, `ckey`, `site`, `value`) VALUES
 	('pc_shop', 'products_per_tree_page', 0, '100');
 
-INSERT IGNORE INTO `{prefix}db_version` (`plugin`, `version`) VALUES('pc_shop', '2.1.8');
+INSERT IGNORE INTO `{prefix}db_version` (`plugin`, `version`) VALUES('pc_shop', '2.1.10');
