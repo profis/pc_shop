@@ -141,15 +141,21 @@ class PC_plugin_pc_shop_category_products_filter_widget extends PC_plugin_pc_sho
 		$attributeJoin = "INNER JOIN {$this->db_prefix}shop_item_attributes ia ON ia.item_id=p.id AND (ia.flags & " . PC_shop_attribute_model::ITEM_IS_PRODUCT . ") = " . PC_shop_attribute_model::ITEM_IS_PRODUCT;
 
 		if( v($this->_config['auto_attributes']) ) {
+			$p = $categoryParams;
+			$attributesCriteria = 'a.is_searchable=1';
+			if( is_array($this->_config['auto_attributes']) && isset($this->_config['auto_attributes']['force']) && is_array($this->_config['auto_attributes']['force']) && !empty($this->_config['auto_attributes']['force']) ) {
+				$attributesCriteria .= ' OR a.ref IN (?' . str_repeat(',?', count($this->_config['auto_attributes']['force']) - 1) . ')';
+				$p = array_merge($p, $this->_config['auto_attributes']['force']);
+			}
 			$q = "SELECT DISTINCT ia.attribute_id
 				FROM {$categoryJoin} {$attributeJoin}
 				INNER JOIN {$this->db_prefix}shop_attributes a ON a.id=ia.attribute_id
-				WHERE {$categoryWhere} AND ia.attribute_id != 0 AND (ia.value_id IS NOT NULL OR (ia.value IS NOT NULL AND ia.value != '')) AND a.is_searchable=1
+				WHERE {$categoryWhere} AND ia.attribute_id != 0 AND (ia.value_id IS NOT NULL OR (ia.value IS NOT NULL AND ia.value != '')) AND ({$attributesCriteria})
 				ORDER BY a.position ASC, a.id ASC";
 
 			$s = $this->db->prepare($q);
-			if( !$s->execute($categoryParams) )
-				throw new DbException($s->errorInfo(), $q, $categoryParams);
+			if( !$s->execute($p) )
+				throw new DbException($s->errorInfo(), $q, $p);
 
 			$filter_attribute_ids = array();
 			while( $row = $s->fetch() )
