@@ -9,7 +9,7 @@ var PC_shop_cart = {
 		$this = $object.closest('[key]');
 		var $quantity = $this.find("input.cart_quantity");
 		var key = $this.attr("key");
-		console.log($quantity.length);
+
 		var requestType = type;
 		var requestData = {};
 
