@@ -55,7 +55,7 @@ foreach ($filters as $filter) {
 	<h3><?php echo $filter['name']?></h3>
 	
 	<?php
-	$name = 'attribute_' . $filter['id'];
+	$name = $this->_config['query_param_prefix'] . $filter['id'];
 	foreach ($filter['filters'] as $filter_value) {
 		// $id = 'attribute_'.$filter['id'] . '_' . $filter_value['id'];
 		$checked = '';

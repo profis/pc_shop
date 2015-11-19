@@ -31,6 +31,7 @@ class PC_plugin_pc_shop_category_products_filter_widget extends PC_plugin_pc_sho
 				'manufacturer',
 				'price'
 			),
+			'query_param_prefix' => 'attribute_',
 		);
 	}
 	
@@ -212,7 +213,7 @@ class PC_plugin_pc_shop_category_products_filter_widget extends PC_plugin_pc_sho
 				continue;
 			}
 
-			$name = 'attribute_' . $filter_attribute['id'];
+			$name = $this->_config['query_param_prefix'] . $filter_attribute['id'];
 
 			// get all existing values of the attribute
 			$values = array();
@@ -259,7 +260,7 @@ class PC_plugin_pc_shop_category_products_filter_widget extends PC_plugin_pc_sho
 				ORDER BY avc.value";
 
 				$s = $this->db->prepare($q);
-				if( !$s->execute($p = array_merge($categoryParams, array($this->site->ln, $filter_attribute['id']))) )
+				if( !$s->execute($p = array_merge(array($this->site->ln), $categoryParams, array($filter_attribute['id']))) )
 					throw new DbException($s->errorInfo(), $q, $p);
 
 				while( $row = $s->fetch() )
