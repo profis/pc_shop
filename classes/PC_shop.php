@@ -2373,7 +2373,7 @@ class PC_shop_cart extends PC_base {
 	
 	/**
 	 * 
-	 * @param bool $raw
+	 * @param bool|array $raw
 	 * @param array $params
 	 * @return array
 	 */
@@ -2387,7 +2387,9 @@ class PC_shop_cart extends PC_base {
 			'total'=> 0,
 			'totalQuantity'=> $_SESSION['pc_shop']['cart']['totalQuantity'],
 			'items'=> array(),
-			'totalPrice'=> 0
+			'totalPrice' => 0,
+			'totalFullPrice' => 0,
+			'totalFullPriceNoPromos' => 0,
 		);
 		$paging_params = false;
 		if (isset($my_params['paging'])) {
@@ -2415,16 +2417,21 @@ class PC_shop_cart extends PC_base {
 			$item_price_data = $this->shop->products->adjust_price($item_price, $p, $cartItemInfo[3]);
 			//print_pre($item_price_data);
 			$item_price = $item_price_data['price'];
+			$item_full_price = $item_price_data['full_price'];
 			$item_total_price = $item_price * $cartItemInfo[1];
+			$item_total_full_price = $item_full_price * $cartItemInfo[1];
+
 			$cart_item = array(
 				'id' => $cartItemInfo[0],
 				'product_id' => $cartItemInfo[0],
 				'basket_quantity' => $cartItemInfo[1],
 				'attributes' => $cartItemInfo[3],
 				'price' => $item_price,
+				'fullPrice' => $item_full_price,
 				'price_data' => $item_price_data,
 				'total_price' => $item_total_price,
 				'totalPrice' => $item_total_price,
+				'totalFullPrice' => $item_total_full_price,
 				'name' => $products[$cartItemInfo[0]]['name'],
 				'link' => $products[$cartItemInfo[0]]['link']
 			);
@@ -2443,9 +2450,14 @@ class PC_shop_cart extends PC_base {
 			$d['items'][$ciid] = $cart_item;
 			// $d['totalPrice'] += $p['totalPrice'] = $shop->products->Get_price($cartItemInfo[0], $cartItemInfo[1]);
 			$d['totalPrice'] += $item_total_price;
+			$d['totalFullPrice'] += $item_total_full_price;
+			if( $item_total_full_price == $item_total_price )
+				$d['totalFullPriceNoPromos'] += $item_total_full_price;
 		}
 		$d['products'] = $products;
 		$d['totalPrice'] = number_format($d['totalPrice'], 2, ".", "");
+		$d['totalFullPrice'] = number_format($d['totalFullPrice'], 2, ".", "");
+		$d['totalFullPriceNoPromos'] = number_format($d['totalFullPriceNoPromos'], 2, ".", "");
 		$d['eligible_discount'] = number_format($amount_eligible_for_coupon, 2, ".", "");
 		$default_order_data = array();
 		if (is_array($raw)) {

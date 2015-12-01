@@ -2,21 +2,16 @@
 
 class PC_shop_product_products_admin_api extends PC_shop_admin_api {
 	
-	public function get($product_id, $ln = 'lt') {
-		if (empty($ln)) {
+	public function get() {
+		$product_id = isset($_POST['product_id']) ? intval($_POST['product_id']) : func_get_arg(0);
+		$ln = isset($_POST['ln']) ? $_POST['ln'] : func_get_arg(1);
+		if( !$ln )
 			$ln = 'lt';
-		}
-		if (isset($_POST['product_id'])) {
-			$product_id = intval($_POST['product_id']);
-		}
-		if (isset($_POST['ln'])) {
-			$ln = $_POST['ln'];
-		}
 
 		$product_model = new PC_shop_product_model();
 		$related_products = $product_model->get_related_product_ids($product_id);
 		
-		if (v($this->routes->Get(4)) == 'for_page_tree') {
+		if ($this->routes->Get(4) == 'for_page_tree') {
 			$related_products = array_values($related_products);
 			foreach ($related_products as $key => $id) {
 				$related_products[$key] = 'pc_shop/product/' . $related_products[$key];
