@@ -84,8 +84,7 @@ var PC_shop_cart = {
 		$("#discount_price").text(PC_shop_cart.format(-data.total_discount)); // discount, total_discount or eligible_discount?
 		$("#delivery_form").html(data.delivery_form).trigger('changed');
 
-		if( typeof(data.discounts) == 'object' )
-			$('#promo_discount').text(PC_shop_cart.format(-data.discounts.coupon));
+		$('#promo_discount').text(PC_shop_cart.format((typeof(data.discounts) == 'object' && data.discounts.hasOwnProperty('coupon')) ? -data.discounts.coupon : 0));
 
 		if ( !data.total ) {
 			$("#product_cart, #cart_prices, table.cart").remove();
